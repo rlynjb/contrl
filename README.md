@@ -251,3 +251,169 @@ This is "real agentic architecture" without over-engineering.
 - Personalization via embeddings over past sessions
 - "Exercise substitution" tool using library retrieval
 - Badge economy + quests ("3-day TRX streak")
+
+---
+
+## Architecture
+
+MVP build route with concrete architecture + what runs where
+
+### Frontend (Next.js)
+
+UI: chat + "Workout Card" view (warmup/main/cooldown)
+
+Calls your backend via:
+
+- `/.netlify/functions/coach` (main orchestrator)
+
+Streams responses if you want a "coach talking while thinking" feel (Agents SDK supports streaming + tracing).
+
+---
+
+### Netlify Serverless Functions (Backend)
+
+#### 1) `/.netlify/functions/coach` = Supervisor / Orchestrator
+
+This is your single entry point.
+
+**Receives**: user message + session state
+
+**Loads**: profile + last sessions from DB
+
+**Routes to the right in-app agent:**
+
+- Intake & Safety
+- Program Designer
+- Technique Coach
+- Gamification & Adherence
+
+**Why here?** This is where your control flow lives (state machine), not inside the model.
+
+Netlify Functions are designed for API endpoints like this.
+
+#### 2) Optional: `/.netlify/functions/coach_background` = Background compute
+
+Use this for:
+
+- Summarizing today's logs
+- Generating "next week plan"
+- Computing badges / analytics
+- Cleaning up long traces
+
+Netlify Background Functions are explicitly for longer-running tasks via async invocation.
+
+#### 3) Secrets management
+
+Store `OPENAI_API_KEY` in Netlify environment variables (never client-side).
+
+---
+
+### OpenAI Agents SDK (How it fits your multi-agent MVP)
+
+**The key Agents SDK features you'll use:**
+
+- Define multiple agents with distinct roles
+- Tool calling (your DB/logging functions)
+- Handoffs between agents
+- Streaming + full traces of what happened
+
+OpenAI's docs position the Agents SDK specifically for agentic apps with tools, handoffs, and tracing.
+
+---
+
+### Your 4 In-App Agents (implemented in Agents SDK)
+
+#### A) Intake & Safety Agent
+
+- Asks minimal questions
+- Emits structured `user_profile` + `readiness` + `red_flags`
+
+#### B) Program Designer Agent
+
+- Builds today's plan (time/equipment constraints)
+- Must include regressions + progression rule
+
+#### C) Technique Coach Agent
+
+- Executes live: cues, modifications, pain-based swaps
+
+#### D) Gamification Agent
+
+- XP, streaks, badges
+- Suggests next session focus
+
+---
+
+### Tools (Function Calling) exposed to the Agents SDK
+
+You'll expose server-side "tools" like:
+
+- `save_profile(profile)`
+- `fetch_last_sessions(user_id, n)`
+- `create_session(plan)`
+- `log_set(session_id, data)`
+- `award_xp(user_id, delta)`
+
+This uses the standard tool/function calling approach: you define tools, the model chooses to call them.
+
+---
+
+### Minimal Orchestration Pattern (recommended)
+
+**Supervisor (code) decides "which agent"**
+
+Don't let the model pick the agent every time in MVP.
+
+Use a simple state machine:
+
+- If missing profile → Intake Agent
+- If no plan today → Program Agent
+- If session is active → Technique Agent
+- If session completed → Gamification Agent
+
+Then call `Runner.run(agent, input)` (Agents SDK) for that step and save outputs.
+
+This is how you keep the system testable and deterministic.
+
+---
+
+### Data options for MVP (pick one)
+
+#### Option A: Postgres (Neon)
+
+Best if you already have it in your stack.
+
+**Note:** CalisthenIQ will be built using Postgres (Neon) as the database solution. Alternative options are included for reference and comparison purposes.
+
+#### Option B: Netlify Blobs (super fast MVP)
+
+A lightweight KV-ish store for:
+
+- profile json
+- session json
+- streak counters
+
+Netlify Blobs exists exactly for simple blob / KV storage use cases.
+
+---
+
+### What this looks like in practice
+
+User message → coach function → supervisor routes → Agents SDK agent runs → tools are called → response returned (optionally streamed) → logs stored.
+
+**You now have:**
+
+- Real multi-agent architecture
+- Real tool calling
+- Real persistence
+- Real traces/debuggability
+
+---
+
+## Implementation
+
+1. Build coach function with state machine routing
+2. Implement Intake Agent + `save_profile` tool
+3. Implement Program Agent + `create_session` tool
+4. Implement Technique Agent + `log_set` tool
+5. Implement Gamification Agent + `award_xp` tool
