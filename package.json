@@ -1,0 +1,60 @@
+{
+  "name": "calistheniq",
+  "version": "0.1.0",
+  "description": "AI-powered calisthenics coach focused on helping beginners build strength safely through proper form, controlled progressions, and body awareness",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "netlify-dev": "netlify dev",
+    "netlify-build": "netlify build"
+  },
+  "dependencies": {
+    "next": "^14.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "openai": "^4.20.0",
+    "@openai/agents": "^0.1.0",
+    "pg": "^8.11.0",
+    "@neondatabase/serverless": "^0.9.0",
+    "@netlify/functions": "^2.4.0",
+    "zod": "^3.22.0",
+    "@types/node": "^20.8.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/pg": "^8.10.0",
+    "typescript": "^5.2.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.51.0",
+    "eslint-config-next": "^14.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.7.0",
+    "@typescript-eslint/parser": "^6.7.0",
+    "tailwindcss": "^3.3.0",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.31",
+    "netlify-cli": "^17.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rlynjb/calistheniq.git"
+  },
+  "keywords": [
+    "ai",
+    "calisthenics",
+    "fitness",
+    "coaching",
+    "multi-agent",
+    "openai",
+    "next.js",
+    "netlify"
+  ],
+  "author": "rlynjb",
+  "license": "MIT"
+}
