@@ -4,7 +4,14 @@ CalisthenIQ is an AI-powered calisthenics coach focused on helping beginners bui
 
 Instead of generic workouts, CalisthenIQ uses an agent-based approach to guide users step-by-step—adapting exercises, cues, and difficulty based on movement quality, feedback, and consistency. The goal is not intensity, but sustainable strength built on solid fundamentals.
 
-Key ideas:
+## Table of Contents
+
+- [Key Ideas](#key-ideas)
+- [Plan](#plan)
+- [Architecture](#architecture)
+- [Implementation](#implementation)
+
+## Key Ideas
 
 - Beginner-first, injury-aware design
 - Form, control, and movement quality over reps
