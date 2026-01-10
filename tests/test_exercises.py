@@ -56,11 +56,11 @@ def test_exercise_progressions():
     wall_pushup = exercises["wall_pushup"]
     incline_pushup = exercises["incline_pushup"]
     
-    # Wall pushup should regress to incline pushup
-    assert "incline_pushup" in wall_pushup.regressions
+    # Wall pushup should progress to incline pushup (harder)
+    assert "incline_pushup" in wall_pushup.progressions
     
-    # Incline pushup should progress from wall pushup
-    assert "wall_pushup" in incline_pushup.progressions
+    # Incline pushup should regress to wall pushup (easier)
+    assert "wall_pushup" in incline_pushup.regressions
 
 
 if __name__ == "__main__":

@@ -91,10 +91,10 @@ class CoachingAgent:
         
         if feedback.form_quality in [FormQuality.GOOD, FormQuality.EXCELLENT]:
             if feedback.difficulty_rating <= 2 and completion_rate >= 1.0:
-                # Too easy - suggest progression
-                if current_exercise.regressions:
+                # Too easy - suggest progression (harder)
+                if current_exercise.progressions:
                     advice["assessment"] = "You're crushing this! Ready for a challenge?"
-                    advice["progression_advice"] = f"Consider progressing to: {current_exercise.regressions[0]}"
+                    advice["progression_advice"] = f"Consider progressing to: {current_exercise.progressions[0]}"
                     advice["next_action"] = "suggest_progression"
                     advice["encouragement"] = "Your consistency is paying off. Let's level up!"
                 else:
@@ -104,10 +104,10 @@ class CoachingAgent:
                     advice["encouragement"] = "You've mastered this movement!"
             
             elif feedback.difficulty_rating >= 4 or completion_rate < 0.6:
-                # Too hard - suggest regression
-                if current_exercise.progressions:
+                # Too hard - suggest regression (easier)
+                if current_exercise.regressions:
                     advice["assessment"] = "This variation might be too challenging right now."
-                    advice["progression_advice"] = f"Let's build strength with: {current_exercise.progressions[0]}"
+                    advice["progression_advice"] = f"Let's build strength with: {current_exercise.regressions[0]}"
                     advice["next_action"] = "suggest_regression"
                     advice["encouragement"] = "No rush! Building a strong foundation takes time."
                 else:

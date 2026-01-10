@@ -208,7 +208,7 @@ class CalisthenIQCLI:
                 target_num = int(target_reps.split('-')[1])
             else:
                 target_num = int(''.join(filter(str.isdigit, target_reps)))
-        except:
+        except (ValueError, IndexError, AttributeError):
             target_num = completed_reps
         
         notes = input("Any notes? (press Enter to skip): ").strip()

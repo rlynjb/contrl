@@ -32,8 +32,8 @@ class Exercise(BaseModel):
     muscle_groups: List[MuscleGroup]
     form_cues: List[str] = Field(default_factory=list, description="Key form points to focus on")
     common_mistakes: List[str] = Field(default_factory=list, description="Common form errors to avoid")
-    progressions: List[str] = Field(default_factory=list, description="Easier variations")
-    regressions: List[str] = Field(default_factory=list, description="Harder variations")
+    regressions: List[str] = Field(default_factory=list, description="Easier variations")
+    progressions: List[str] = Field(default_factory=list, description="Harder variations")
     sets: int = Field(default=3, description="Recommended sets")
     reps: str = Field(default="8-12", description="Recommended rep range")
     rest_seconds: int = Field(default=60, description="Rest between sets")
@@ -62,8 +62,8 @@ class ExerciseLibrary:
                     "Elbows flaring out too wide",
                     "Not going through full range of motion"
                 ],
-                progressions=[],
-                regressions=["incline_pushup"],
+                progressions=["incline_pushup"],
+                regressions=[],
                 sets=3,
                 reps="10-15",
                 rest_seconds=60
@@ -84,8 +84,8 @@ class ExerciseLibrary:
                     "Not maintaining neutral spine",
                     "Rushing the movement"
                 ],
-                progressions=["wall_pushup"],
-                regressions=["knee_pushup"],
+                progressions=["knee_pushup"],
+                regressions=["wall_pushup"],
                 sets=3,
                 reps="8-12",
                 rest_seconds=60
@@ -106,8 +106,8 @@ class ExerciseLibrary:
                     "Looking up instead of down",
                     "Not lowering enough"
                 ],
-                progressions=["incline_pushup"],
-                regressions=["standard_pushup"],
+                progressions=["standard_pushup"],
+                regressions=["incline_pushup"],
                 sets=3,
                 reps="10-15",
                 rest_seconds=60
@@ -128,8 +128,8 @@ class ExerciseLibrary:
                     "Swinging",
                     "Gripping too tight causing early fatigue"
                 ],
-                progressions=[],
-                regressions=["assisted_pullup"],
+                progressions=["assisted_pullup"],
+                regressions=[],
                 sets=3,
                 reps="10-30 seconds",
                 rest_seconds=90
@@ -150,8 +150,8 @@ class ExerciseLibrary:
                     "Holding breath",
                     "Head dropping or lifting"
                 ],
-                progressions=[],
-                regressions=["side_plank"],
+                progressions=["side_plank"],
+                regressions=[],
                 sets=3,
                 reps="20-45 seconds",
                 rest_seconds=60
@@ -172,8 +172,8 @@ class ExerciseLibrary:
                     "Heels lifting off ground",
                     "Rounding lower back"
                 ],
-                progressions=[],
-                regressions=["jump_squat"],
+                progressions=["jump_squat"],
+                regressions=[],
                 sets=3,
                 reps="12-15",
                 rest_seconds=60
@@ -194,8 +194,8 @@ class ExerciseLibrary:
                     "Not squeezing glutes",
                     "Pushing through toes instead of heels"
                 ],
-                progressions=[],
-                regressions=["single_leg_glute_bridge"],
+                progressions=["single_leg_glute_bridge"],
+                regressions=[],
                 sets=3,
                 reps="12-15",
                 rest_seconds=60
