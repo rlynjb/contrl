@@ -28,16 +28,23 @@ CalisthenIQ will be developed in three distinct phases, each building upon the p
 
 ```
 Week 1-2: Project Setup & Infrastructure
-- Next.js app with Tailwind CSS
-- Netlify Functions configuration
-- Database schema and migrations
-- OpenAI Agents SDK integration
+- ✅ Next.js app with Tailwind CSS
+- ✅ Netlify Functions configuration
+  - ✅ Supervisor/router implementation (basic structure)
+  - ✅ State machine logic (basic transitions)
+  - ✅ Session management (in-memory, needs database)
 
-Week 3-4: Core Orchestration
-- Supervisor/router implementation
-- State machine logic
-- Session management
-- Response handling & streaming
+Week 3-4: Core Integration
+- Database schema design and Neon/Postgres setup
+- Database integration (replace in-memory storage)
+  - Replace Map<string, SessionContext> with Postgres tables
+  - Implement persistent session storage and user profiles
+  - Add database connection and query management
+- OpenAI Agents SDK integration
+  - Replace mock agent handlers with real OpenAI agents
+  - Implement proper prompts and structured outputs
+  - Response handling & streaming implementation
+- Function calling tools implementation
 
 Week 5-6: Agent Implementation
 - Intake & Safety Agent + save_profile tool
