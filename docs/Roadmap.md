@@ -33,13 +33,23 @@ Week 1-2: Project Setup & Infrastructure
   - ✅ Supervisor/router implementation (basic structure)
   - ✅ State machine logic (basic transitions)
   - ✅ Session management (in-memory, needs database)
+- Database schema design and Neon/Postgres setup
+  - Design database schema for users, sessions, workouts, achievements
+  - Set up Neon/Postgres database instance
+  - Create tables and initial database structure
+  - Configure database connection and environment variables
+- OpenAI setup and configuration
+  - Set up OpenAI API account and billing
+  - Configure OpenAI API keys and environment variables
+  - Install OpenAI SDK dependencies
+  - Basic OpenAI connection testing and validation
 
 Week 3-4: Core Integration
-- Database schema design and Neon/Postgres setup
 - Database integration (replace in-memory storage)
   - Replace Map<string, SessionContext> with Postgres tables
   - Implement persistent session storage and user profiles
-  - Add database connection and query management
+  - Integrate database queries into SessionManager
+  - Add database connection pooling and query management
 - OpenAI Agents SDK integration
   - Replace mock agent handlers with real OpenAI agents
   - Implement proper prompts and structured outputs
