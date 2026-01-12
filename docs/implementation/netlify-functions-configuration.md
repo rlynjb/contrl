@@ -43,14 +43,15 @@ netlify/
 ### Request Flow
 
 ```
-Frontend → coach.ts → Supervisor → SessionManager → State Machine → Agent Router → Response Handler → Frontend
+Frontend → coach.ts → ResponseHandler → Supervisor → SessionManager → State Machine → Agent Router → ResponseHandler → Frontend
 ```
 
 **Key Architecture Changes**:
 
+- **ResponseHandler Integration**: Both coach.ts and supervisor.ts use ResponseHandler for consistent formatting
+- **Enhanced Processing**: Processing time tracking, message enrichment, and content sanitization
 - **SessionManager Integration**: All session operations flow through SessionManager abstraction
-- **Clean Separation**: Supervisor focuses on orchestration, SessionManager handles persistence
-- **Async Operations**: All session operations are properly async for database readiness
+- **Clean Separation**: Each component has clear responsibilities with proper abstractions
 
 ---
 
@@ -66,13 +67,16 @@ Frontend → coach.ts → Supervisor → SessionManager → State Machine → Ag
 - ✅ CORS handling for frontend communication
 - ✅ Request validation and error handling
 - ✅ Integration with supervisor orchestration
-- ✅ Session operations delegated to SessionManager
+- ✅ **ResponseHandler integration** for consistent formatting
+- ✅ **Processing time tracking** and enhanced metadata
+- ✅ **Message enrichment** with contextual information
+- ✅ **Content sanitization** for security
 - 🔄 **Ready for**: OpenAI Agents SDK integration
 
 **API Contract**:
 
 ```typescript
-// Request
+// Request (unchanged)
 interface CoachRequest {
   message: string;
   sessionId?: string;
@@ -80,13 +84,23 @@ interface CoachRequest {
   sessionState?: "intake" | "planning" | "workout" | "logging" | "complete";
 }
 
-// Response
-interface CoachResponse {
+// Response (Enhanced with ResponseHandler)
+interface FormattedResponse {
   message: string;
   sessionId: string;
   sessionState: SessionState;
   currentAgent: AgentType;
   data?: any;
+  context?: SessionContext;
+  metadata: {
+    timestamp: string;
+    processing_time_ms: number;
+    agent: AgentType;
+    state_transition?: {
+      from: SessionState;
+      to: SessionState;
+    };
+  };
 }
 ```
 
@@ -137,24 +151,29 @@ interface CoachResponse {
 
 - ✅ **Removed Direct Session Storage**: No longer maintains internal session Map
 - ✅ **Delegates to SessionManager**: All session operations go through SessionManager abstraction
+- ✅ **ResponseHandler Integration**: Consistent error handling and message formatting
+- ✅ **Enhanced Mock Agents**: Professional, context-aware responses without debug prefixes
+- ✅ **Message Sanitization**: All agent responses sanitized for security
 - ✅ **Clean Separation of Concerns**: Orchestration logic separate from session management
 - ✅ **Async Session Operations**: All session operations are properly async
-- ✅ **Removed Wrapper Methods**: Direct access to sessionManager instead of thin wrappers
+- ✅ **Improved Error Handling**: Structured error responses with detailed context
 
 **Features**:
 
 - ✅ Multi-agent routing logic
 - ✅ Session context coordination via SessionManager
-- ✅ Error handling and fallbacks
-- ✅ Async session operations
-- 🔄 **Placeholder agents**: Not connected to OpenAI yet
+- ✅ **Professional agent responses** with coaching tone
+- ✅ **Consistent error formatting** via ResponseHandler
+- ✅ **Message enhancement and sanitization**
+- ✅ **Processing context tracking**
+- 🔄 **Placeholder agents**: Enhanced but not connected to OpenAI yet
 
-**Agent Handlers** (Currently Mock Responses):
+**Agent Handlers** (Enhanced Mock Responses):
 
-- `handleIntakeAgent()` - Returns placeholder profile data
-- `handleProgramAgent()` - Returns mock workout plans
-- `handleTechniqueAgent()` - Returns generic coaching responses
-- `handleGamificationAgent()` - Returns mock XP and achievements
+- `handleIntakeAgent()` - **Welcome flow with progressive questioning**
+- `handleProgramAgent()` - **Personalized workout planning with time options**
+- `handleTechniqueAgent()` - **Context-aware coaching with form feedback**
+- `handleGamificationAgent()` - **Engaging XP/streak system with achievements**
 
 **Session Operations**:
 
@@ -203,23 +222,66 @@ interface CoachResponse {
 
 ### 5. Response Handler (`/core/orchestration/response-handler.ts`)
 
-**Purpose**: Formats responses and prepares for streaming
+**Purpose**: Centralized response formatting and message enhancement
+
+**Integration Status**: ✅ **FULLY INTEGRATED** - Now actively used by both coach.ts and supervisor.ts
+
+**Technical Pattern**: **Data Normalization Layer**
+
+- **Pattern Type**: Response normalization and standardization
+- **Input**: Heterogeneous data from diverse agent sources (intake, program, coach, gamification)
+- **Process**: Converts varied agent outputs into consistent, standardized format
+- **Output**: Uniform `FormattedResponse` structure with enriched metadata
+- **Benefits**: Eliminates response variance, ensures API contract consistency, enables frontend predictability
+
+**Architecture Role**:
+
+```
+Raw Agent Data → [ResponseHandler Normalization] → Standardized Response Format
+```
 
 **Features**:
 
-- ✅ Standardized response formatting
-- ✅ Error response handling
-- ✅ Message sanitization and enrichment
-- ✅ Debug information generation
+- ✅ **Active Response Formatting**: All responses formatted with metadata and timestamps
+- ✅ **Processing Time Tracking**: Measures and reports request processing duration
+- ✅ **Message Enhancement**: Context-aware message enrichment (step counts, XP, progress)
+- ✅ **Content Sanitization**: Security filtering of all response messages
+- ✅ **Consistent Error Handling**: Standardized error response formatting
+- ✅ **State Transition Tracking**: Records session state changes in metadata
 - 🔄 **Streaming structure**: Ready for OpenAI SDK integration
 
-**Methods**:
+**Core Methods** (Now Active):
 
-- `formatResponse()` - Standard response formatting
-- `formatErrorResponse()` - Error handling
-- `createStreamingChunks()` - Streaming preparation
-- `enrichMessageWithContext()` - Add contextual information
-- `generateDebugInfo()` - Development debugging
+- `formatResponse()` - **Used by coach.ts** for final response formatting
+- `formatErrorResponse()` - **Used by both coach.ts and supervisor.ts** for error handling
+- `sanitizeMessage()` - **Used by supervisor.ts** for all agent responses
+- `enrichMessageWithContext()` - **Used by coach.ts** for contextual message enhancement
+- `createStreamingChunks()` - Ready for streaming implementation
+- `generateDebugInfo()` - Available for development debugging
+
+**Response Enhancement Examples**:
+
+```typescript
+// Before ResponseHandler Integration
+{
+  "message": "Thanks for your message. What are your main fitness goals?",
+  "sessionId": "session_123"
+}
+
+// After ResponseHandler Integration
+{
+  "message": "Thanks for your message. What are your main fitness goals?\n\n*Building your profile (step 2)*",
+  "sessionId": "session_123",
+  "sessionState": "intake",
+  "currentAgent": "intake",
+  "metadata": {
+    "timestamp": "2026-01-12T10:30:00.000Z",
+    "processing_time_ms": 150,
+    "agent": "intake",
+    "state_transition": { "from": "intake", "to": "intake" }
+  }
+}
+```
 
 ### 6. Test Function (`/test.ts`)
 
@@ -349,7 +411,9 @@ curl -X POST http://localhost:8888/.netlify/functions/coach \
 - ✅ Hot reload working
 - ✅ TypeScript compilation successful
 - ✅ CORS configured for frontend
-- 🔄 **Returns**: Mock responses from placeholder agents
+- ✅ **ResponseHandler integration active** - Enhanced responses with metadata
+- ✅ **Professional mock agents** - Realistic coaching experience
+- 🔄 **Returns**: Enhanced mock responses with professional coaching tone (not debug responses)
 
 ### Production Readiness
 
@@ -382,13 +446,16 @@ curl -X POST http://localhost:8888/.netlify/functions/coach \
 
 ## 🔮 Next Steps
 
-### Week 3-4: Core Orchestration (85% Complete)
+### Week 3-4: Core Orchestration (90% Complete)
 
-- ✅ Supervisor/router implementation - **Architecture Refined**
+- ✅ Supervisor/router implementation - **Architecture Refined + ResponseHandler Integrated**
 - ✅ State machine logic - **Framework Complete**
 - ✅ Session management - **Abstraction Complete, Ready for Database**
-- ✅ Clean separation of concerns - **Supervisor ↔ SessionManager decoupling**
-- 🔄 Response handling & streaming - **Structure Ready, Needs OpenAI SDK**
+- ✅ **ResponseHandler integration** - **Fully Active in coach.ts and supervisor.ts**
+- ✅ **Enhanced mock agents** - **Professional responses with coaching tone**
+- ✅ **Message processing pipeline** - **Sanitization, enrichment, formatting**
+- ✅ Clean separation of concerns - **All components properly decoupled**
+- 🔄 Response streaming - **Structure Ready, Needs OpenAI SDK**
 
 ### Immediate Priorities (Week 5-6)
 
@@ -405,7 +472,7 @@ curl -X POST http://localhost:8888/.netlify/functions/coach \
 ### Current Limitations
 
 - **In-Memory Storage**: SessionManager uses in-memory storage (ready for database swap)
-- **Mock Agents**: Placeholder responses, not connected to OpenAI Agents SDK
+- **Mock Agents**: Enhanced responses but not connected to OpenAI Agents SDK yet
 - **No Database**: SessionManager abstraction ready, needs database implementation
 - **No Function Tools**: Database operation tools not implemented yet
 - **No Streaming**: Response structure ready but no real streaming implementation
@@ -414,12 +481,17 @@ curl -X POST http://localhost:8888/.netlify/functions/coach \
 ### Planned Resolutions (Week 5-6)
 
 - **Database integration**: Simple SessionManager storage swap to Postgres/Neon
-- **OpenAI Agents SDK integration**: Replace all placeholder agents
+- **OpenAI Agents SDK integration**: Replace enhanced mock agents with real AI agents
 - **Function calling tools**: Implement database operation tools
-- **Real streaming responses**: Connect OpenAI SDK streaming
+- **Real streaming responses**: Connect OpenAI SDK streaming to existing ResponseHandler
 - **Authentication system**: User management (post-MVP)
 
-**Architecture Benefits**: Clean separation means database integration requires minimal changes - just swap SessionManager's internal storage implementation.
+**Current State Benefits**:
+
+- **Professional User Experience**: Enhanced mock agents provide realistic coaching preview
+- **Complete Response Pipeline**: Message processing, enhancement, and formatting fully active
+- **Consistent Error Handling**: All error scenarios properly formatted and handled
+- **Ready for AI Integration**: ResponseHandler seamlessly works with any response source
 
 ---
 
@@ -433,9 +505,12 @@ curl -X POST http://localhost:8888/.netlify/functions/coach \
 
 - All functions use proper TypeScript typing and error handling
 - CORS configured for frontend integration
-- Code structure designed for easy OpenAI Agents SDK integration
+- **ResponseHandler fully integrated** for consistent response formatting and enhancement
+- **Professional mock agents** provide realistic coaching experience preview
+- **Message processing pipeline** active: sanitization → enrichment → formatting → delivery
 - Session management framework ready for database persistence
-- Response formatting standardized across all agent handlers
-- **Current State**: Infrastructure complete, needs AI and database integration
+- **Enhanced error handling** with structured responses and detailed context
+- Code structure designed for easy OpenAI Agents SDK integration
+- **Current State**: Complete response pipeline active, enhanced user experience, ready for AI integration
 
-This completes the **orchestration framework** phase of the CalisthenIQ MVP development roadmap. The next phase focuses on connecting this framework to real AI agents and database persistence.
+This completes the **enhanced orchestration framework** phase of the CalisthenIQ MVP development roadmap. The system now provides a professional coaching experience with placeholder agents while the infrastructure is fully ready for OpenAI Agents SDK integration.

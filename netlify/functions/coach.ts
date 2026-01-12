@@ -1,6 +1,7 @@
 import { Handler, HandlerEvent, HandlerContext, HandlerResponse } from '@netlify/functions'
 import { supervisor, SupervisorRequest } from './core/orchestration/supervisor'
 import { SessionState } from './core/orchestration/state-machine'
+import { responseHandler } from './core/orchestration/response-handler'
 
 // Type definitions for the coach function
 interface CoachRequest {
@@ -38,18 +39,29 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
   }
 
   try {
+    // Track processing time
+    const processingStartTime = Date.now()
+    
     // Parse request body
     const body: CoachRequest = JSON.parse(event.body || '{}')
     
     // Validate required fields
     if (!body.message) {
+      const errorResponse = responseHandler.formatErrorResponse(
+        'Message is required',
+        body.sessionId || 'unknown',
+        'intake',
+        'intake',
+        { validationError: 'missing_message' }
+      )
+      
       return {
         statusCode: 400,
         headers: {
           'Access-Control-Allow-Origin': '*',
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ error: 'Message is required' })
+        body: JSON.stringify(errorResponse)
       }
     }
 
@@ -68,7 +80,27 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       sessionState: body.sessionState
     }
 
-    const response = await supervisor.processRequest(supervisorRequest)
+    const supervisorResponse = await supervisor.processRequest(supervisorRequest)
+
+    // Enhance message with context if available
+    const enhancedMessage = supervisorResponse.context 
+      ? responseHandler.enrichMessageWithContext(
+          supervisorResponse.message,
+          supervisorResponse.context,
+          supervisorResponse.currentAgent
+        )
+      : supervisorResponse.message
+
+    // Format response with ResponseHandler
+    const formattedResponse = responseHandler.formatResponse(
+      responseHandler.sanitizeMessage(enhancedMessage),
+      supervisorResponse.sessionId,
+      supervisorResponse.sessionState,
+      supervisorResponse.currentAgent,
+      supervisorResponse.context,
+      supervisorResponse.data,
+      processingStartTime
+    )
 
     return {
       statusCode: 200,
@@ -76,7 +108,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
         'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(response)
+      body: JSON.stringify(formattedResponse)
     }
 
   } catch (error) {
@@ -84,16 +116,25 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
     
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     
+    // Use ResponseHandler for error formatting
+    const errorResponse = responseHandler.formatErrorResponse(
+      'Internal server error',
+      'unknown', // We don't have sessionId in catch block
+      'intake',
+      'intake',
+      {
+        originalError: errorMessage,
+        development: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      }
+    )
+    
     return {
       statusCode: 500,
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ 
-        error: 'Internal server error',
-        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
-      })
+      body: JSON.stringify(errorResponse)
     }
   }
 }

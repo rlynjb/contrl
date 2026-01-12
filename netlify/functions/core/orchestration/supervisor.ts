@@ -1,5 +1,6 @@
 import { SessionContext, SessionState, AgentType, StateMachine } from './state-machine'
 import { sessionManager } from './session-manager'
+import { responseHandler } from './response-handler'
 
 export interface SupervisorRequest {
   message: string
@@ -60,8 +61,11 @@ export class Supervisor {
       // Store updated context
       await sessionManager.saveSession(sessionId, context)
 
+      // Sanitize the agent response message
+      const sanitizedMessage = responseHandler.sanitizeMessage(agentResponse.message)
+
       return {
-        message: agentResponse.message,
+        message: sanitizedMessage,
         sessionId,
         sessionState: nextState,
         currentAgent,
@@ -72,12 +76,26 @@ export class Supervisor {
     } catch (error) {
       console.error(`Error routing to ${currentAgent} agent:`, error)
       
-      return {
-        message: `I'm sorry, I encountered an error. Let me try to help you differently.`,
+      // Use ResponseHandler for consistent error formatting
+      const errorResponse = responseHandler.formatErrorResponse(
+        'I encountered an error processing your request',
         sessionId,
-        sessionState: context.currentState,
+        context.currentState,
         currentAgent,
-        data: { error: true, errorType: 'agent_routing_error' }
+        {
+          errorType: 'agent_routing_error',
+          originalError: error instanceof Error ? error.message : 'Unknown error',
+          agent: currentAgent
+        }
+      )
+      
+      return {
+        message: errorResponse.message,
+        sessionId: errorResponse.sessionId,
+        sessionState: errorResponse.sessionState,
+        currentAgent: errorResponse.currentAgent,
+        data: errorResponse.data,
+        context
       }
     }
   }
@@ -105,8 +123,15 @@ export class Supervisor {
     // TODO: Implement with OpenAI Agents SDK
     const isProfileComplete = message.toLowerCase().includes('complete') || context.metadata.stepCount > 3
     
+    let responseMessage = ''
+    if (context.metadata.stepCount === 0) {
+      responseMessage = `Welcome to CalisthenIQ! I'm here to help you get started with a safe and effective workout routine. To create the best program for you, I'd love to learn about your fitness background and goals. What brings you here today?`
+    } else {
+      responseMessage = `Thanks for sharing that information! I'm building your fitness profile to ensure we create workouts that are both safe and effective for your current level. What are your main fitness goals? Are you looking to build strength, improve mobility, lose weight, or something else?`
+    }
+    
     return {
-      message: `[Intake Agent] Thanks for your message: "${message}". I'm gathering your fitness profile to ensure safe and effective workouts. What are your main fitness goals?`,
+      message: responseMessage,
       profileComplete: isProfileComplete,
       userProfile: isProfileComplete ? { goals: ['strength', 'mobility'], level: 'beginner' } : undefined,
       data: { agent: 'intake', step: context.metadata.stepCount + 1 }
@@ -117,10 +142,12 @@ export class Supervisor {
     // TODO: Implement with OpenAI Agents SDK
     const isPlanReady = message.toLowerCase().includes('ready') || context.metadata.stepCount > 1
     
+    const responseMessage = `Perfect! Based on your fitness profile, I'm designing a personalized calisthenics workout that matches your current level and goals. How much time do you have available for today's workout? I can create anything from a quick 10-minute session to a full 45-minute routine.`
+    
     return {
-      message: `[Program Designer] Based on your profile, I'll create a personalized workout. How much time do you have today?`,
+      message: responseMessage,
       planReady: isPlanReady,
-      workoutPlan: isPlanReady ? { duration: 20, exercises: ['push-up', 'squat', 'plank'] } : undefined,
+      workoutPlan: isPlanReady ? { duration: 20, exercises: ['push-up', 'squat', 'plank'], difficulty: 'beginner' } : undefined,
       data: { agent: 'program', step: context.metadata.stepCount + 1 }
     }
   }
@@ -129,10 +156,18 @@ export class Supervisor {
     // TODO: Implement with OpenAI Agents SDK
     const isWorkoutComplete = message.toLowerCase().includes('done') || message.toLowerCase().includes('finished')
     
+    const responseMessage = isWorkoutComplete 
+      ? `Excellent work completing your workout! You showed great form and dedication. Remember to stay hydrated and listen to your body. How are you feeling right now? Any muscle groups that feel particularly worked?`
+      : `Great job! You're doing fantastic. Remember to focus on controlled movements and steady breathing. Quality over quantity is key in calisthenics. How is the current exercise feeling for you?`
+    
     return {
-      message: `[Technique Coach] Great work! Focus on form and breath control. How are you feeling?`,
+      message: responseMessage,
       workoutComplete: isWorkoutComplete,
-      sessionData: { currentExercise: 'push-up', setsCompleted: isWorkoutComplete ? 3 : 1 },
+      sessionData: { 
+        currentExercise: context.workoutPlan?.exercises?.[0] || 'push-up', 
+        setsCompleted: isWorkoutComplete ? 3 : 1,
+        formFeedback: 'good'
+      },
       data: { agent: 'coach', step: context.metadata.stepCount + 1 }
     }
   }
@@ -141,10 +176,22 @@ export class Supervisor {
     // TODO: Implement with OpenAI Agents SDK
     const startNew = message.toLowerCase().includes('another') || message.toLowerCase().includes('next')
     
+    const xpEarned = 15
+    const currentStreak = 3
+    
+    const responseMessage = startNew
+      ? `🎉 Amazing session! You've earned ${xpEarned} XP and you're on a ${currentStreak}-day streak! Your consistency is paying off. Ready to plan your next workout and keep building that momentum?`
+      : `🎉 Fantastic workout! You've earned ${xpEarned} XP today and you're maintaining a strong ${currentStreak}-day streak! Your dedication to consistent training is exactly what builds real strength and skill. Great job today!`
+    
     return {
-      message: `[Gamification] Excellent session! You've earned 15 XP. ${startNew ? "Let's plan your next workout!" : "Great job today!"}`,
+      message: responseMessage,
       startNew,
-      sessionData: { xpEarned: 15, streakDay: 3 },
+      sessionData: { 
+        xpEarned, 
+        streakDay: currentStreak,
+        totalXP: (context.sessionData?.totalXP || 0) + xpEarned,
+        achievements: ['consistency_champion']
+      },
       data: { agent: 'gamification', step: context.metadata.stepCount + 1 }
     }
   }
