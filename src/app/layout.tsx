@@ -34,18 +34,13 @@ export default function RootLayout({
           <header className="border-b">
             <div className="container mx-auto px-4 py-3">
               <nav className="flex items-center justify-between">
-                <Link href="/" className="font-bold text-xl">
-                  CalisthenIQ
+                <Link href="/" className="font-bold text-xl flex items-center gap-2">
+                  🤸‍♂️ CalisthenIQ
                 </Link>
                 <div className="flex items-center gap-4">
-                  <Link href="/chat">
-                    <Button variant="ghost" size="sm">
-                      Coach
-                    </Button>
-                  </Link>
                   <Link href="/workout">
                     <Button variant="ghost" size="sm">
-                      Workout
+                      Workouts
                     </Button>
                   </Link>
                 </div>
