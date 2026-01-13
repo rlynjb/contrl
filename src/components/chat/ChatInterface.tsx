@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useChat } from '@/hooks/useChat'
-import { useWorkout } from '@/hooks/useWorkout'
 
 interface MessageBubbleProps {
   content: string
@@ -58,8 +57,6 @@ export default function ChatInterface() {
     retryLastMessage
   } = useChat()
 
-  const { createWorkoutFromChatResponse } = useWorkout()
-
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -69,32 +66,6 @@ export default function ChatInterface() {
   useEffect(() => {
     inputRef.current?.focus()
   }, [])
-
-  // Check for workout plan in the latest assistant message
-  useEffect(() => {
-    const lastAssistantMessage = [...messages].reverse().find(msg => msg.role === 'assistant')
-    if (lastAssistantMessage && sessionState === 'program') {
-      // In a real implementation, this would check the API response data
-      // For now, we'll create a mock workout when in program state
-      const mockChatResponse = {
-        context: {
-          workoutPlan: {
-            title: 'AI Generated Workout',
-            description: 'Personalized workout based on your goals',
-            duration: 20,
-            difficulty: 'beginner',
-            equipment: ['bodyweight'],
-            exercises: [
-              { name: 'Push-ups', sets: 3, reps: '8-12', difficulty: 'beginner' },
-              { name: 'Squats', sets: 3, reps: '12-15', difficulty: 'beginner' },
-              { name: 'Plank', sets: 3, reps: '30 seconds', difficulty: 'beginner' }
-            ]
-          }
-        }
-      }
-      createWorkoutFromChatResponse(mockChatResponse)
-    }
-  }, [messages, sessionState, createWorkoutFromChatResponse])
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -148,15 +119,6 @@ export default function ChatInterface() {
                 disabled={isLoading}
               >
                 Retry
-              </Button>
-            )}
-            {sessionState === 'program' && (
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => window.location.href = '/workout'}
-              >
-                View Workout
               </Button>
             )}
             <Button
