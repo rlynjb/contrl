@@ -354,47 +354,24 @@ function ConsolidatedProgress() {
             <div className="space-y-4">
               {mockLastWorkout.exercises.map((exercise, exerciseIndex) => (
                 <div key={exerciseIndex} className="border rounded-lg p-4">
-                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                  <h4 className="font-medium mb-3">
                     {exercise.name}
-                    <Badge variant="outline" className="ml-auto">
-                      {exercise.sets.filter(s => s.completed).length}/{exercise.sets.length} completed
-                    </Badge>
                   </h4>
                   <div className="space-y-2">
-                    {exercise.sets.map((set, setIndex) => (
-                      <div key={setIndex} className="flex items-center gap-4 text-sm">
-                        <div className="w-12 text-center font-medium text-muted-foreground">
-                          Set {setIndex + 1}
-                        </div>
-                        <div className="flex-1 grid grid-cols-4 gap-4">
-                          <div>
-                            <span className="text-muted-foreground">Reps: </span>
-                            <span className="font-medium">
-                              {'reps' in set ? set.reps : `${set.duration}s`}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Tempo: </span>
-                            <span className="font-medium">{set.tempo}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Rest: </span>
-                            <span className="font-medium">{set.rest}s</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {set.completed ? (
-                              <Badge variant="secondary" className="bg-green-100 text-green-800">
-                                ✓ Done
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-orange-600 border-orange-200">
-                                Skipped
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                    {/* Sets, Tempo, and Rest in one line */}
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">{exercise.sets.length} Sets: </span>
+                      <span className="font-medium">
+                        {exercise.sets.map((set, index) => {
+                          const value = 'reps' in set ? set.reps : `${set.duration}s`
+                          return set.completed ? `${value}✓` : `${value}✗`
+                        }).join(' → ')}
+                      </span>
+                      <span className="text-muted-foreground ml-4">Tempo: </span>
+                      <span className="font-medium">{exercise.sets[0].tempo}</span>
+                      <span className="text-muted-foreground ml-4">Rest: </span>
+                      <span className="font-medium">{exercise.sets[0].rest}s</span>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -411,47 +388,29 @@ function ConsolidatedProgress() {
             <div className="space-y-4">
               {mockTodaysWorkout.exercises.map((exercise, exerciseIndex) => (
                 <div key={exerciseIndex} className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="mb-3">
                     <h4 className="font-medium">{exercise.name}</h4>
-                    <Badge className="bg-blue-100 text-blue-800">
-                      {exercise.targetSets.length} sets
-                    </Badge>
-                  </div>
-                  
-                  <div className="mb-3 p-2 bg-blue-50 rounded-md">
-                    <div className="text-xs text-blue-600 font-medium mb-1">PROGRESSION NOTE</div>
-                    <div className="text-sm text-blue-800">{exercise.progression}</div>
                   </div>
 
                   <div className="space-y-2">
-                    {exercise.targetSets.map((set, setIndex) => (
-                      <div key={setIndex} className="flex items-center gap-4 text-sm">
-                        <div className="w-12 text-center font-medium text-muted-foreground">
-                          Set {setIndex + 1}
-                        </div>
-                        <div className="flex-1 grid grid-cols-3 gap-4">
-                          <div>
-                            <span className="text-muted-foreground">Target: </span>
-                            <span className="font-medium">
-                              {'reps' in set ? `${set.reps} reps` : `${set.duration}s`}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Tempo: </span>
-                            <span className="font-medium">{set.tempo}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Rest: </span>
-                            <span className="font-medium">{set.rest}s</span>
-                          </div>
-                        </div>
-                        <div className="w-16">
-                          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-                            Pending
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
+                    {/* Sets, Tempo, and Rest in one line */}
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">{exercise.targetSets.length} Sets: </span>
+                      <span className="font-medium">
+                        {exercise.targetSets.map((set, index) => 
+                          'reps' in set ? set.reps : `${set.duration}s`
+                        ).join(' → ')}
+                      </span>
+                      <span className="text-muted-foreground ml-4">Tempo: </span>
+                      <span className="font-medium">{exercise.targetSets[0].tempo}</span>
+                      <span className="text-muted-foreground ml-4">Rest: </span>
+                      <span className="font-medium">{exercise.targetSets[0].rest}s</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3 p-2 rounded-md">
+                    <div className="text-xs text-blue-600 font-medium mb-1">PROGRESSION NOTE</div>
+                    <div className="text-sm text-blue-800">{exercise.progression}</div>
                   </div>
                 </div>
               ))}
