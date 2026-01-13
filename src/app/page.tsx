@@ -355,14 +355,6 @@ export default function DashboardPage() {
         {/* Chat Interface - Takes up 2/3 of the width */}
         <div className="lg:col-span-2">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                🤖 Your AI Coach
-              </CardTitle>
-              <CardDescription>
-                Start a conversation to get your personalized workout plan
-              </CardDescription>
-            </CardHeader>
             <CardContent className="p-0">
               <div className="h-[600px]">
                 <ChatInterface />
