@@ -33,8 +33,16 @@ Week 1-2: Project Setup & Infrastructure
   - ✅ Supervisor/router implementation (basic structure)
   - ✅ State machine logic (basic transitions)
   - ✅ Session management (in-memory, needs database)
-- Database schema design and Neon/Postgres setup
-  - Design database schema for users, sessions, workouts, achievements
+- Type System & Data Modeling
+  - Consolidate inline types into centralized definitions
+  - Extract data patterns from mock data across components
+  - Design normalized database entity relationships
+  - Create type-to-schema mapping strategy
+- Database Schema Design & Implementation
+  - Convert mock data structures to production database tables
+  - Implement proper foreign key relationships and constraints
+  - Set up database connection pooling and query optimization
+  - Create migration scripts and seed data
   - Set up Neon/Postgres database instance
   - Create tables and initial database structure
   - Configure database connection and environment variables
