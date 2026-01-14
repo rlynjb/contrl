@@ -10,6 +10,32 @@ This document outlines the project directory structure and architectural layers 
 - **State Machine Routing**: Deterministic agent selection based on session state
 - **Schema Validation**: Structured JSON contracts for all agent outputs
 
+## Current Implementation Status (Simplified Frontend)
+
+**Phase**: Frontend-focused development with simplified architecture
+**Focus**: Clean UI components with mock data, preparation for backend integration
+
+**Completed**:
+
+- ✅ Single dashboard page with tabbed progress interface
+- ✅ Modular component architecture (WeeklyProgress, WorkoutProgress, CurrentLevel, WorkoutLevels)
+- ✅ Integrated chat interface for AI coach communication
+- ✅ Mock data structures for workout levels and progress tracking
+- ✅ Clean component separation and reusable UI components
+
+**Simplified/Removed**:
+
+- ❌ Separate `/chat` and `/workout` routes (consolidated into main dashboard)
+- ❌ Backend API routes (health check endpoint removed)
+- ❌ Workout-related hooks and components (WorkoutCard, useWorkout)
+- ❌ Complex type definitions (consolidated into TODO for centralization)
+
+**Next Steps**:
+
+- 🔄 Consolidate inline types into centralized type definitions
+- 🔄 Backend integration with Netlify Functions (full multi-agent architecture)
+- 🔄 Database integration for user profiles and workout sessions
+
 ## Project Directory Structure
 
 ```
@@ -27,64 +53,38 @@ calistheniq/
 │
 ├── public/
 │   ├── favicon.ico
-│   └── images/
-│       └── exercises/
+│   └── favicon.svg
 │
 ├── src/
 │   ├── app/                           # Next.js App Router (Presentation Layer)
-│   │   ├── layout.tsx
-│   │   ├── page.tsx
-│   │   ├── globals.css
-│   │   │
-│   │   ├── chat/
-│   │   │   └── page.tsx               # Main chat interface
-│   │   │
-│   │   ├── workout/
-│   │   │   └── page.tsx               # Workout card view
-│   │   │
-│   │   └── api/
-│   │       └── health/
-│   │           └── route.ts           # Health check endpoint
+│   │   ├── layout.tsx                 # Root layout with navigation
+│   │   ├── page.tsx                   # Main dashboard page
+│   │   └── globals.css                # Global styles
 │   │
 │   ├── components/                    # UI Components (Presentation Layer)
-│   │   ├── ui/
+│   │   ├── ui/                        # Base UI components
 │   │   │   ├── button.tsx
 │   │   │   ├── card.tsx
 │   │   │   ├── input.tsx
 │   │   │   └── badge.tsx
 │   │   │
 │   │   ├── chat/
-│   │   │   ├── ChatInterface.tsx      # Main chat component
-│   │   │   ├── MessageBubble.tsx      # Individual message display
-│   │   │   └── StreamingResponse.tsx  # Streaming response handler
+│   │   │   └── ChatInterface.tsx      # Main chat component
 │   │   │
-│   │   ├── workout/
-│   │   │   ├── WorkoutCard.tsx        # Workout plan display
-│   │   │   ├── ExerciseItem.tsx       # Individual exercise component
-│   │   │   ├── ProgressTracker.tsx    # Progress tracking UI
-│   │   │   └── SafetyIndicator.tsx    # Pain/safety indicators
-│   │   │
-│   │   └── gamification/
-│   │       ├── XPDisplay.tsx          # Experience points UI
-│   │       ├── StreakCounter.tsx      # Streak tracking display
-│   │       └── BadgesList.tsx         # Achievements display
+│   │   ├── WeeklyProgress.tsx         # Weekly calendar with progress tracking
+│   │   ├── WorkoutProgress.tsx        # Last session & today's workout plan
+│   │   ├── CurrentLevel.tsx           # User's current level across categories
+│   │   └── WorkoutLevels.tsx          # Progressive exercise levels display
 │   │
 │   ├── hooks/                         # React Hooks (Presentation Logic)
-│   │   ├── useChat.ts                 # Chat state management
-│   │   ├── useWorkout.ts              # Workout session state
-│   │   └── useStreaming.ts            # Streaming response handling
+│   │   └── useChat.ts                 # Chat state management
 │   │
 │   ├── lib/                           # Shared Utilities
 │   │   ├── utils.ts                   # General utilities
-│   │   ├── cn.ts                      # Class name utilities
 │   │   └── constants.ts               # App constants
 │   │
 │   └── types/                         # TypeScript Types
-│       ├── index.ts                   # Shared types export
-│       ├── agents.ts                  # Agent-related types
-│       ├── workout.ts                 # Workout domain types
-│       ├── user.ts                    # User profile types
-│       └── api.ts                     # API response types
+│       └── index.ts                   # Centralized type definitions (TODO)
 │
 ├── netlify/
 │   └── functions/                     # Backend Brain/Hub (Serverless Functions)
@@ -263,15 +263,26 @@ calistheniq/
 
 **Purpose**: User interface and interaction handling
 
-- **App Router**: Next.js 14 App Router for routing and layouts
-- **Components**: Reusable UI components following atomic design principles
-- **Hooks**: React hooks for state management and side effects
+- **App Router**: Next.js 14 App Router with single page dashboard
+- **Components**:
+  - **UI Components**: Base components (button, card, input, badge)
+  - **Dashboard Components**: Progress tracking components (WeeklyProgress, WorkoutProgress, CurrentLevel, WorkoutLevels)
+  - **Chat Interface**: Integrated chat component for AI coach interaction
+- **Hooks**: React hooks for state management (useChat)
 - **Responsibilities**:
-  - Render chat interface and workout cards
-  - Handle user input and interactions
-  - Manage client-side state
-  - Stream responses from backend
-  - Display workout progress and gamification elements
+  - Render dashboard with tabbed progress interface
+  - Handle chat interactions with AI coach
+  - Display workout levels and exercise progressions
+  - Manage client-side state for progress tracking
+  - Stream responses from backend (via Netlify Functions)
+
+**Current Implementation Status**:
+
+- ✅ **Single Page Dashboard**: Consolidated progress interface with tabs
+- ✅ **Component Separation**: Modular components for different progress views
+- ✅ **Chat Integration**: Built-in chat interface within dashboard
+- ✅ **Mock Data**: Local mock data for workout levels and progress
+- 🔄 **Type Consolidation**: Types need to be gathered from inline definitions
 
 ### 2. Orchestration Layer (`netlify/functions/core/orchestration/`)
 
