@@ -5,11 +5,9 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Modal } from '@/components/ui/modal'
 import ChatInterface from '@/components/chat/ChatInterface'
 import WeeklyProgress from '@/components/WeeklyProgress'
-import CurrentLevel from '@/components/CurrentLevel'
 import WorkoutLevels from '@/components/WorkoutLevels'
 
 function ProgressPanel() {
-  const [isCurrentLevelModalOpen, setIsCurrentLevelModalOpen] = useState(false)
   const [isWorkoutLevelsModalOpen, setIsWorkoutLevelsModalOpen] = useState(false)
 
   return (
@@ -25,12 +23,6 @@ function ProgressPanel() {
             {/* Right side - Action buttons */}
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setIsCurrentLevelModalOpen(true)}
-                className="px-3 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
-              >
-                🎯 Current Level
-              </button>
-              <button
                 onClick={() => setIsWorkoutLevelsModalOpen(true)}
                 className="px-3 py-2 bg-secondary text-secondary-foreground rounded-md text-sm font-medium hover:bg-secondary/80 transition-colors"
               >
@@ -44,15 +36,6 @@ function ProgressPanel() {
           <WeeklyProgress />
         </CardContent>
       </Card>
-
-      {/* Current Level Modal */}
-      <Modal 
-        isOpen={isCurrentLevelModalOpen} 
-        onClose={() => setIsCurrentLevelModalOpen(false)}
-        title="🎯 Current Level"
-      >
-        <CurrentLevel />
-      </Modal>
 
       {/* Workout Levels Modal */}
       <Modal 
