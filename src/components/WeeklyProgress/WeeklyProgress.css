@@ -219,9 +219,16 @@
 }
 
 .weekly-progress__exercise-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .weekly-progress__exercise-list {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
 }
 
 .weekly-progress__exercise-card {
