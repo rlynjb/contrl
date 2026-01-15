@@ -3,16 +3,12 @@
 
 export type { 
   WeekDay, 
-  WeeklyStats, 
   WeeklyProgressData,
   WorkoutSession
 } from './mock'
 
 export { 
   generateWeeklyProgress,
-  calculateWeeklyStats,
-  generateMotivationalMessage,
-  getRelevantAchievements,
   generateCompleteWeeklyProgress,
   getTodaysWorkoutPreview,
   getRecentWorkoutSummary,

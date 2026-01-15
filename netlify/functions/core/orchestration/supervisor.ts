@@ -176,20 +176,17 @@ export class Supervisor {
     // TODO: Implement with OpenAI Agents SDK
     const startNew = message.toLowerCase().includes('another') || message.toLowerCase().includes('next')
     
-    const xpEarned = 15
     const currentStreak = 3
     
     const responseMessage = startNew
-      ? `🎉 Amazing session! You've earned ${xpEarned} XP and you're on a ${currentStreak}-day streak! Your consistency is paying off. Ready to plan your next workout and keep building that momentum?`
-      : `🎉 Fantastic workout! You've earned ${xpEarned} XP today and you're maintaining a strong ${currentStreak}-day streak! Your dedication to consistent training is exactly what builds real strength and skill. Great job today!`
+      ? `🎉 Amazing session! You're on a ${currentStreak}-day streak! Your consistency is paying off. Ready to plan your next workout and keep building that momentum?`
+      : `🎉 Fantastic workout! You're maintaining a strong ${currentStreak}-day streak! Your dedication to consistent training is exactly what builds real strength and skill. Great job today!`
     
     return {
       message: responseMessage,
       startNew,
       sessionData: { 
-        xpEarned, 
         streakDay: currentStreak,
-        totalXP: (context.sessionData?.totalXP || 0) + xpEarned,
         achievements: ['consistency_champion']
       },
       data: { agent: 'gamification', step: context.metadata.stepCount + 1 }

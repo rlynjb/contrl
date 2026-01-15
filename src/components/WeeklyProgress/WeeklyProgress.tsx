@@ -23,10 +23,10 @@ export default function WeeklyProgress() {
     setProgressData(generateCompleteWeeklyProgress())
   }, [])
 
-  const { weekDays, stats, motivationalMessage, achievements } = progressData
+  const { weekDays } = progressData
 
   const handleDayClick = (day: WeekDay) => {
-    if (day.workoutSession || day.plannedWorkout) {
+    if (day.completedWorkout || day.plannedWorkout) {
       setSelectedDay(day)
       setIsModalOpen(true)
     }
@@ -86,11 +86,11 @@ export default function WeeklyProgress() {
                     : day.completed
                       ? 'weekly-progress__day--completed'
                       : 'weekly-progress__day--default'
-                } ${(day.workoutSession || day.plannedWorkout) ? 'weekly-progress__day--with-workout' : ''}`}
+                } ${(day.completedWorkout || day.plannedWorkout) ? 'weekly-progress__day--with-workout' : ''}`}
                 onClick={() => handleDayClick(day)}
               >
-                <div className="weekly-progress__day-name">{day.day}</div>
-                <div className="weekly-progress__day-number">{day.dayNum}</div>
+                <div className="weekly-progress__day-name">{day.date.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                <div className="weekly-progress__day-number">{day.date.getDate()}</div>
                 <div className="weekly-progress__day-indicator">
                   {day.completed ? (
                     <div className="weekly-progress__day-indicator--completed">✓</div>
@@ -102,9 +102,9 @@ export default function WeeklyProgress() {
                 </div>
                 
                 {/* Exercise count indicator */}
-                {day.workoutSession && (
+                {day.completedWorkout && (
                   <div className="weekly-progress__exercise-count weekly-progress__exercise-count--completed">
-                    {day.workoutSession.exercises.length} ex
+                    {day.completedWorkout.exercises.length} ex
                   </div>
                 )}
                 {day.plannedWorkout && (
@@ -120,7 +120,7 @@ export default function WeeklyProgress() {
           <Modal 
             isOpen={isModalOpen} 
             onClose={closeModal}
-            title={selectedDay ? `${selectedDay.day} (${selectedDay.dayNum}) - Workout Details` : 'Workout Details'}
+            title={selectedDay ? `${selectedDay.date.toLocaleDateString('en-US', { weekday: 'short' })} (${selectedDay.date.getDate()}) - Workout Details` : 'Workout Details'}
           >
             {selectedDay && (
               <div className="weekly-progress__modal-content">
@@ -129,16 +129,23 @@ export default function WeeklyProgress() {
                   {selectedDay.isToday && <Badge variant="default" className="weekly-progress__modal-badge">Today</Badge>}
                 </div>
                 
-                {selectedDay.workoutSession && (
+                {selectedDay.completedWorkout && (
                   <div className="weekly-progress__workout-section weekly-progress__workout-section--completed">
                     <h3 className="weekly-progress__workout-title weekly-progress__workout-title--completed">Completed Workout</h3>
                     <div className="weekly-progress__workout-meta weekly-progress__workout-meta--completed">
-                      Duration: {selectedDay.workoutSession.duration}min | 
-                      XP: {selectedDay.workoutSession.xpEarned} | 
-                      Categories: {selectedDay.workoutSession.categories.join(', ')}
+                      Completed: {selectedDay.completedWorkout.date.toLocaleString('en-US', { 
+                        weekday: 'short', 
+                        month: 'short', 
+                        day: 'numeric', 
+                        hour: 'numeric', 
+                        minute: '2-digit',
+                        hour12: true 
+                      })} | 
+                      Duration: {selectedDay.completedWorkout.duration}min | 
+                      Categories: {selectedDay.completedWorkout.categories.join(', ')}
                     </div>
                     <div className="weekly-progress__exercise-list">
-                      {selectedDay.workoutSession.exercises.map((exercise, exIndex) => (
+                      {selectedDay.completedWorkout.exercises.map((exercise, exIndex) => (
                         <div key={exIndex} className="weekly-progress__exercise-item weekly-progress__exercise-item--completed">
                           <div className="weekly-progress__exercise-name weekly-progress__exercise-name--completed">{exercise.name}</div>
                           <div className="weekly-progress__exercise-sets weekly-progress__exercise-sets--completed">
@@ -171,8 +178,15 @@ export default function WeeklyProgress() {
                   <div className="weekly-progress__workout-section weekly-progress__workout-section--planned">
                     <h3 className="weekly-progress__workout-title weekly-progress__workout-title--planned">Planned Workout</h3>
                     <div className="weekly-progress__workout-meta weekly-progress__workout-meta--planned">
-                      Planned Duration: {selectedDay.plannedWorkout.duration}min | 
-                      Expected XP: {selectedDay.plannedWorkout.xpEarned} | 
+                      Planned for: {selectedDay.plannedWorkout.date.toLocaleString('en-US', { 
+                        weekday: 'short', 
+                        month: 'short', 
+                        day: 'numeric', 
+                        hour: 'numeric', 
+                        minute: '2-digit',
+                        hour12: true 
+                      })} | 
+                      Duration: {selectedDay.plannedWorkout.duration}min | 
                       Categories: {selectedDay.plannedWorkout.categories.join(', ')}
                     </div>
                     <div className="weekly-progress__exercise-list">

@@ -168,9 +168,7 @@ export class ResponseHandler {
         break
 
       case 'gamification':
-        if (context.sessionData?.xpEarned) {
-          enrichedMessage += `\n\n🎉 *You earned ${context.sessionData.xpEarned} XP this session!*`
-        }
+        // XP functionality removed for simplicity
         break
     }
 

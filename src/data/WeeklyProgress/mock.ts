@@ -8,33 +8,19 @@ export interface WorkoutSession {
   duration: number // minutes
   categories: ('Push' | 'Pull' | 'Squat')[]
   level: number
-  xpEarned: number
+  date: Date // When the workout was completed or is planned
 }
 
 export interface WeekDay {
   date: Date
-  day: string
-  dayNum: number
   completed: boolean
   isToday: boolean
-  workoutSession?: WorkoutSession // Completed workout data
+  completedWorkout?: WorkoutSession // Completed workout data
   plannedWorkout?: WorkoutSession // What's planned for today/future
-}
-
-export interface WeeklyStats {
-  completedDays: number
-  streakCount: number
-  xpEarned: number
-  weekCompletion: number // percentage
-  totalExercises: number
-  favoriteCategory: 'Push' | 'Pull' | 'Squat' | 'Mixed'
 }
 
 export interface WeeklyProgressData {
   weekDays: WeekDay[]
-  stats: WeeklyStats
-  motivationalMessage: string
-  achievements: string[]
 }
 
 // Sample workout sessions for mock data
@@ -59,7 +45,7 @@ const sampleWorkouts: WorkoutSession[] = [
     duration: 25,
     categories: ['Push'],
     level: 0,
-    xpEarned: 15
+    date: new Date('2026-01-12T09:30:00') // Monday
   },
   {
     exercises: [
@@ -81,7 +67,7 @@ const sampleWorkouts: WorkoutSession[] = [
     duration: 30,
     categories: ['Push', 'Pull'],
     level: 1,
-    xpEarned: 20
+    date: new Date('2026-01-13T07:00:00') // Tuesday
   },
   {
     exercises: [
@@ -102,7 +88,7 @@ const sampleWorkouts: WorkoutSession[] = [
     duration: 20,
     categories: ['Push', 'Squat'],
     level: 0,
-    xpEarned: 15
+    date: new Date('2026-01-11T10:15:00') // Saturday
   },
   {
     exercises: [
@@ -131,7 +117,7 @@ const sampleWorkouts: WorkoutSession[] = [
     duration: 35,
     categories: ['Push', 'Squat'],
     level: 1,
-    xpEarned: 25
+    date: new Date('2026-01-11T08:45:00') // Sunday
   }
 ]
 
@@ -165,27 +151,12 @@ const todaysPlannedWorkout: WorkoutSession = {
   duration: 30,
   categories: ['Push', 'Squat'],
   level: 1,
-  xpEarned: 20
+  date: new Date('2026-01-15T18:00:00') // Today - planned for evening
 }
 
 // Mock weekly progress data - simulates a realistic workout week
 const mockWeeklyProgressData: WeeklyProgressData = {
-  weekDays: [], // Will be generated dynamically
-  stats: {
-    completedDays: 0, // Will be calculated
-    streakCount: 0, // Will be calculated
-    xpEarned: 0, // Will be calculated
-    weekCompletion: 0, // Will be calculated
-    totalExercises: 0, // Will be calculated
-    favoriteCategory: 'Mixed' // Will be calculated
-  },
-  motivationalMessage: "",
-  achievements: [
-    "First workout completed! 💪",
-    "3-day streak achieved! 🔥", 
-    "Week warrior - 5 days done! 🏆",
-    "Perfect week completed! 🎉"
-  ]
+  weekDays: [] // Will be generated dynamically
 }
 
 export { mockWeeklyProgressData, sampleWorkouts, todaysPlannedWorkout }
