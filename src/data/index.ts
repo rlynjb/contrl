@@ -4,9 +4,6 @@
 // Workout Levels data
 export * from './WorkoutLevels'
 
-// Workout Progress data
-export * from './WorkoutProgress'
-
 // Current Level / User Progress data
 export * from './CurrentLevel'
 
