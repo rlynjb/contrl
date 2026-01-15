@@ -4,7 +4,8 @@
 export type { 
   WeekDay, 
   WeeklyStats, 
-  WeeklyProgressData 
+  WeeklyProgressData,
+  WorkoutSession
 } from './mock'
 
 export { 
@@ -13,5 +14,7 @@ export {
   generateMotivationalMessage,
   getRelevantAchievements,
   generateCompleteWeeklyProgress,
+  getTodaysWorkoutPreview,
+  getRecentWorkoutSummary,
   weeklyProgressData
 } from './normalization'
