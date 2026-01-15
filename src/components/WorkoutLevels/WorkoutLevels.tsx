@@ -10,61 +10,61 @@ import './WorkoutLevels.css'
 
 export default function WorkoutLevels() {
   return (
-    <div>
-      <div className="text-sm text-muted-foreground mb-4">
+    <div className="workout-levels">
+      <div className="workout-levels__description">
         Progressive calisthenics exercises organized by difficulty levels
       </div>
       
-      <div className="space-y-6">
+      <div className="workout-levels__container">
         {Object.entries(workoutLevels).map(([levelKey, level], levelIndex) => (
-          <div key={levelKey} className="border rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Badge variant="outline" className="text-lg px-3 py-1">
+          <div key={levelKey} className="workout-levels__level-card">
+            <div className="workout-levels__level-header">
+              <Badge variant="outline" className="workout-levels__level-badge">
                 Level {levelIndex}
               </Badge>
-              <h3 className="text-lg font-semibold">{level.name}</h3>
+              <h3 className="workout-levels__level-title">{level.name}</h3>
             </div>
             
             {level.description && (
-              <p className="text-sm text-muted-foreground mb-2">{level.description}</p>
+              <p className="workout-levels__level-description">{level.description}</p>
             )}
             
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="workout-levels__categories-grid">
               {Object.entries(level.exercises).map(([category, exercises]) => (
-                <div key={category} className="space-y-3">
-                  <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+                <div key={category} className="workout-levels__category">
+                  <h4 className="workout-levels__category-title">
                     {category}
                   </h4>
                   
-                  <div className="space-y-3">
+                  <div className="workout-levels__exercises">
                     {exercises.map((exercise: BaseExercise, exerciseIndex: number) => (
-                      <div key={exerciseIndex} className="bg-secondary/30 rounded-md p-3">
-                        <h5 className="font-medium text-sm mb-2">{exercise.name}</h5>
+                      <div key={exerciseIndex} className="workout-levels__exercise-card">
+                        <h5 className="workout-levels__exercise-name">{exercise.name}</h5>
                         
                         {exercise.equipment && (
-                          <div className="mb-2">
-                            <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+                          <div className="workout-levels__equipment-badge">
+                            <Badge variant="outline" className="workout-levels__equipment-badge-inner">
                               {exercise.equipment}
                             </Badge>
                           </div>
                         )}
                         
-                        <div className="space-y-1">
+                        <div className="workout-levels__sets-info">
                           {/* Sets, Tempo, and Rest in one line */}
-                          <div className="text-xs">
-                            <span className="text-muted-foreground">{exercise.sets.length} Sets: </span>
-                            <span className="font-medium">
+                          <div className="workout-levels__sets-row">
+                            <span className="workout-levels__sets-label">{exercise.sets.length} Sets: </span>
+                            <span className="workout-levels__sets-list">
                               {exercise.sets.map((set: BaseExerciseSet, index: number) => 
                                 'reps' in set ? set.reps : `${set.duration}s`
                               ).join(' → ')}
                             </span>
                           </div>
                           
-                          <div className="text-xs">
-                            <span className="text-muted-foreground">Tempo: </span>
-                            <span className="font-medium">{exercise.tempo}</span>
-                            <span className="text-muted-foreground ml-3">Rest: </span>
-                            <span className="font-medium">{exercise.rest}s</span>
+                          <div className="workout-levels__exercise-meta">
+                            <span className="workout-levels__meta-label">Tempo: </span>
+                            <span className="workout-levels__meta-value">{exercise.tempo}</span>
+                            <span className="workout-levels__meta-label workout-levels__meta-label--spaced">Rest: </span>
+                            <span className="workout-levels__meta-value">{exercise.rest}s</span>
                           </div>
                         </div>
                       </div>
@@ -78,18 +78,18 @@ export default function WorkoutLevels() {
       </div>
       
       {/* Level Guidelines */}
-      <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="text-blue-600">💡</div>
-          <div className="text-sm font-medium text-blue-800">Progression Guidelines</div>
+      <div className="workout-levels__guidelines">
+        <div className="workout-levels__guidelines-header">
+          <div className="workout-levels__guidelines-icon">💡</div>
+          <div className="workout-levels__guidelines-title">Progression Guidelines</div>
         </div>
-        <div className="text-xs text-blue-700 space-y-1">
-          <p>• <strong>Level 0 (Foundation):</strong> Focus on stability, control, and knee-friendly movements with mini band assistance</p>
-          <p>• Complete all exercises in your current level with proper form before advancing</p>
-          <p>• Master at least 80% of the target reps/duration for each exercise</p>
-          <p>• Focus on quality over quantity - perfect form is essential</p>
-          <p>• Rest adequately between workouts (48-72 hours for same muscle groups)</p>
-          <p>• If experiencing knee discomfort, start with Level 0 and progress slowly</p>
+        <div className="workout-levels__guidelines-content">
+          <p className="workout-levels__guideline-item">• <strong>Level 0 (Foundation):</strong> Focus on stability, control, and knee-friendly movements with mini band assistance</p>
+          <p className="workout-levels__guideline-item">• Complete all exercises in your current level with proper form before advancing</p>
+          <p className="workout-levels__guideline-item">• Master at least 80% of the target reps/duration for each exercise</p>
+          <p className="workout-levels__guideline-item">• Focus on quality over quantity - perfect form is essential</p>
+          <p className="workout-levels__guideline-item">• Rest adequately between workouts (48-72 hours for same muscle groups)</p>
+          <p className="workout-levels__guideline-item">• If experiencing knee discomfort, start with Level 0 and progress slowly</p>
         </div>
       </div>
     </div>

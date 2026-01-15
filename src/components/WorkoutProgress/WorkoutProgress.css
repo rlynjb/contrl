@@ -52,15 +52,26 @@
 }
 
 .workout-progress__exercise-card {
-  background-color: hsl(var(--secondary) / 0.2);
   border-radius: 0.5rem;
   padding: 0.75rem;
+}
+
+.workout-progress__exercise-card--last {
+  background-color: hsl(var(--secondary) / 0.2);
+}
+
+.workout-progress__exercise-card--today {
+  background-color: rgb(239 246 255 / 0.5);
 }
 
 .workout-progress__exercise-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.workout-progress__exercise-header--today {
   margin-bottom: 0.5rem;
 }
 
@@ -92,35 +103,80 @@
 }
 
 .workout-progress__exercise-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
   font-size: 0.75rem;
-  color: rgb(107 114 128);
-  margin-top: 0.25rem;
 }
 
+.workout-progress__meta-label {
+  color: rgb(107 114 128);
+}
+
+.workout-progress__meta-label--spaced {
+  margin-left: 0.75rem;
+}
+
+.workout-progress__meta-value {
+  font-weight: 500;
+}
+
+.workout-progress__progression-note {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background-color: rgb(219 234 254 / 0.5);
+  border-radius: 0.25rem;
+}
+
+.workout-progress__progression-title {
+  font-size: 0.75rem;
+  color: rgb(37 99 235);
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.workout-progress__progression-text {
+  font-size: 0.75rem;
+  color: rgb(30 58 138);
+}
+
+/* Progress Section */
 .workout-progress__progress-section {
-  margin-top: 1.5rem;
+  border: 1px solid rgb(229 231 235);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  background: linear-gradient(to right, rgb(240 253 244), rgb(239 246 255));
+}
+
+.workout-progress__progress-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.workout-progress__progress-icon {
+  color: rgb(37 99 235);
 }
 
 .workout-progress__progress-title {
-  font-size: 1.125rem;
   font-weight: 600;
-  margin-bottom: 1rem;
+  font-size: 1.125rem;
 }
 
 .workout-progress__comparisons {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 1rem;
 }
 
+@media (min-width: 768px) {
+  .workout-progress__comparisons {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 .workout-progress__comparison-card {
-  background-color: rgb(239 246 255);
-  border: 1px solid rgb(191 219 254);
-  border-radius: 0.5rem;
-  padding: 1rem;
+  background-color: rgb(255 255 255 / 0.5);
+  border-radius: 0.25rem;
+  padding: 0.75rem;
 }
 
 .workout-progress__comparison-header {
@@ -131,7 +187,14 @@
 }
 
 .workout-progress__comparison-exercise {
+  font-size: 0.875rem;
   font-weight: 500;
+}
+
+.workout-progress__improvement-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .workout-progress__improvement-badge {
@@ -140,14 +203,12 @@
 
 .workout-progress__improvement-badge--positive {
   background-color: rgb(220 252 231);
-  color: rgb(22 163 74);
-  border-color: rgb(134 239 172);
+  color: rgb(21 128 61);
 }
 
 .workout-progress__improvement-badge--negative {
   background-color: rgb(254 226 226);
-  color: rgb(220 38 38);
-  border-color: rgb(252 165 165);
+  color: rgb(180 83 9);
 }
 
 .workout-progress__comparison-details {
@@ -194,13 +255,40 @@
   font-weight: 500;
 }
 
-.workout-progress__analysis {
-  font-size: 0.75rem;
-  color: rgb(107 114 128);
-  margin-top: 0.5rem;
-  font-style: italic;
+/* Tips Section */
+.workout-progress__tips {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: rgb(240 253 244);
+  border-radius: 0.5rem;
+  border: 1px solid rgb(187 247 208);
 }
 
-.workout-progress__analysis-icon {
-  margin-right: 0.25rem;
+.workout-progress__tips-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.workout-progress__tips-icon {
+  color: rgb(22 163 74);
+}
+
+.workout-progress__tips-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(22 101 52);
+}
+
+.workout-progress__tips-content {
+  font-size: 0.75rem;
+  color: rgb(21 128 61);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.workout-progress__tip-item {
+  margin: 0;
 }

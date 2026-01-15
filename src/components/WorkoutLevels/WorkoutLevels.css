@@ -92,7 +92,7 @@
   margin-bottom: 0.5rem;
 }
 
-.workout-levels__equipment-badge .badge {
+.workout-levels__equipment-badge-inner {
   font-size: 0.75rem;
   background-color: rgb(254 243 199);
   color: rgb(180 83 9);
@@ -105,35 +105,68 @@
   gap: 0.25rem;
 }
 
-.workout-levels__sets-title {
+.workout-levels__sets-row {
   font-size: 0.75rem;
+}
+
+.workout-levels__sets-label {
   color: rgb(107 114 128);
 }
 
 .workout-levels__sets-list {
-  font-size: 0.75rem;
-  color: rgb(55 65 81);
+  font-weight: 500;
 }
 
-.workout-levels__exercise-details {
+.workout-levels__exercise-meta {
+  font-size: 0.75rem;
+}
+
+.workout-levels__meta-label {
+  color: rgb(107 114 128);
+}
+
+.workout-levels__meta-label--spaced {
+  margin-left: 0.75rem;
+}
+
+.workout-levels__meta-value {
+  font-weight: 500;
+}
+
+/* Guidelines Section */
+.workout-levels__guidelines {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: rgb(239 246 255);
+  border-radius: 0.5rem;
+  border: 1px solid rgb(191 219 254);
+}
+
+.workout-levels__guidelines-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.workout-levels__guidelines-icon {
+  color: rgb(37 99 235);
+}
+
+.workout-levels__guidelines-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(30 58 138);
+}
+
+.workout-levels__guidelines-content {
+  font-size: 0.75rem;
+  color: rgb(29 78 216);
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  margin-top: 0.5rem;
 }
 
-.workout-levels__exercise-detail {
-  font-size: 0.75rem;
-  color: rgb(107 114 128);
-}
-
-.workout-levels__notes {
-  font-size: 0.75rem;
-  color: rgb(107 114 128);
-  font-style: italic;
-  margin-top: 0.25rem;
-}
-
-.workout-levels__notes-icon {
-  margin-right: 0.25rem;
+.workout-levels__guideline-item {
+  margin: 0;
 }

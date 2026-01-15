@@ -12,19 +12,19 @@ export default function WorkoutProgress() {
   } = workoutProgressData
 
   return (
-    <div>
-      <div className="text-sm text-muted-foreground mb-4">
+    <div className="workout-progress">
+      <div className="workout-progress__description">
         Your workout progress: last session results and today's targets
       </div>
       
-      <div className="grid gap-4 md:grid-cols-2 mb-6">
+      <div className="workout-progress__main-grid">
         {/* Last Session Column */}
-        <div className="border rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Badge variant="outline" className="text-base px-3 py-1">
+        <div className="workout-progress__session-card">
+          <div className="workout-progress__session-header">
+            <Badge variant="outline" className="workout-progress__session-badge">
               📋 Last Session
             </Badge>
-            <div className="text-sm text-muted-foreground">
+            <div className="workout-progress__session-meta">
               {lastWorkout.date.toLocaleDateString('en-US', { 
                 weekday: 'short',
                 month: 'short', 
@@ -33,21 +33,21 @@ export default function WorkoutProgress() {
             </div>
           </div>
           
-          <div className="space-y-3">
+          <div className="workout-progress__exercises">
             {lastWorkout.exercises.map((exercise, exerciseIndex) => (
-              <div key={exerciseIndex} className="bg-secondary/20 rounded-lg p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium text-sm">{exercise.name}</h4>
-                  <Badge variant="outline" className="text-xs">
+              <div key={exerciseIndex} className="workout-progress__exercise-card workout-progress__exercise-card--last">
+                <div className="workout-progress__exercise-header">
+                  <h4 className="workout-progress__exercise-name">{exercise.name}</h4>
+                  <Badge variant="outline" className="workout-progress__completion-badge">
                     {exercise.sets.filter(s => s.completed).length}/{exercise.sets.length}
                   </Badge>
                 </div>
                 
-                <div className="space-y-1">
+                <div className="workout-progress__exercise-details">
                   {/* Sets, Tempo, and Rest in one line */}
-                  <div className="text-xs">
-                    <span className="text-muted-foreground">{exercise.sets.length} Sets: </span>
-                    <span className="font-medium">
+                  <div className="workout-progress__sets-info">
+                    <span className="workout-progress__sets-label">{exercise.sets.length} Sets: </span>
+                    <span className="workout-progress__sets-value">
                       {exercise.sets.map((set, index) => {
                         const value = 'reps' in set ? set.reps : `${set.duration}s`
                         return set.completed ? `${value}✓` : `${value}✗`
@@ -55,11 +55,11 @@ export default function WorkoutProgress() {
                     </span>
                   </div>
                   
-                  <div className="text-xs">
-                    <span className="text-muted-foreground">Tempo: </span>
-                    <span className="font-medium">{exercise.tempo}</span>
-                    <span className="text-muted-foreground ml-3">Rest: </span>
-                    <span className="font-medium">{exercise.rest}s</span>
+                  <div className="workout-progress__exercise-meta">
+                    <span className="workout-progress__meta-label">Tempo: </span>
+                    <span className="workout-progress__meta-value">{exercise.tempo}</span>
+                    <span className="workout-progress__meta-label workout-progress__meta-label--spaced">Rest: </span>
+                    <span className="workout-progress__meta-value">{exercise.rest}s</span>
                   </div>
                 </div>
               </div>
@@ -68,45 +68,45 @@ export default function WorkoutProgress() {
         </div>
 
         {/* Today's Plan Column */}
-        <div className="border rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Badge variant="outline" className="text-base px-3 py-1">
+        <div className="workout-progress__session-card">
+          <div className="workout-progress__session-header">
+            <Badge variant="outline" className="workout-progress__session-badge">
               🎯 Today's Plan
             </Badge>
-            <div className="text-sm text-muted-foreground">
+            <div className="workout-progress__session-meta">
               Based on your progress
             </div>
           </div>
           
-          <div className="space-y-3">
+          <div className="workout-progress__exercises">
             {todaysWorkout.exercises.map((exercise, exerciseIndex) => (
-              <div key={exerciseIndex} className="bg-blue-50/50 rounded-lg p-3">
-                <div className="mb-2">
-                  <h4 className="font-medium text-sm">{exercise.name}</h4>
+              <div key={exerciseIndex} className="workout-progress__exercise-card workout-progress__exercise-card--today">
+                <div className="workout-progress__exercise-header workout-progress__exercise-header--today">
+                  <h4 className="workout-progress__exercise-name">{exercise.name}</h4>
                 </div>
                 
-                <div className="space-y-1">
+                <div className="workout-progress__exercise-details">
                   {/* Sets, Tempo, and Rest in one line */}
-                  <div className="text-xs">
-                    <span className="text-muted-foreground">{exercise.targetSets.length} Sets: </span>
-                    <span className="font-medium">
+                  <div className="workout-progress__sets-info">
+                    <span className="workout-progress__sets-label">{exercise.targetSets.length} Sets: </span>
+                    <span className="workout-progress__sets-value">
                       {exercise.targetSets.map((set, index) => 
                         'reps' in set ? set.reps : `${set.duration}s`
                       ).join(' → ')}
                     </span>
                   </div>
                   
-                  <div className="text-xs">
-                    <span className="text-muted-foreground">Tempo: </span>
-                    <span className="font-medium">{exercise.tempo}</span>
-                    <span className="text-muted-foreground ml-3">Rest: </span>
-                    <span className="font-medium">{exercise.rest}s</span>
+                  <div className="workout-progress__exercise-meta">
+                    <span className="workout-progress__meta-label">Tempo: </span>
+                    <span className="workout-progress__meta-value">{exercise.tempo}</span>
+                    <span className="workout-progress__meta-label workout-progress__meta-label--spaced">Rest: </span>
+                    <span className="workout-progress__meta-value">{exercise.rest}s</span>
                   </div>
                 </div>
                 
-                <div className="mt-2 p-2 bg-blue-100/50 rounded text-xs">
-                  <div className="text-xs text-blue-600 font-medium mb-1">PROGRESSION NOTE</div>
-                  <div className="text-blue-800">{exercise.notes}</div>
+                <div className="workout-progress__progression-note">
+                  <div className="workout-progress__progression-title">PROGRESSION NOTE</div>
+                  <div className="workout-progress__progression-text">{exercise.notes}</div>
                 </div>
               </div>
             ))}
@@ -115,37 +115,51 @@ export default function WorkoutProgress() {
       </div>
       
       {/* Progress Comparison */}
-      <div className="border rounded-lg p-4 bg-gradient-to-r from-green-50 to-blue-50">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="text-blue-600">📈</div>
-          <h3 className="font-semibold text-lg">Progress Comparison</h3>
+      <div className="workout-progress__progress-section">
+        <div className="workout-progress__progress-header">
+          <div className="workout-progress__progress-icon">📈</div>
+          <h3 className="workout-progress__progress-title">Progress Comparison</h3>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="workout-progress__comparisons">
           {progressComparisons.map((comparison, index) => (
-            <div key={index} className="bg-white/50 rounded p-3">
-              <div className="text-sm font-medium mb-2">{comparison.exerciseName}</div>
-              <div className="space-y-1">
-                <div className="text-xs">
-                  <span className="text-muted-foreground">Last: </span>
-                  <span className="font-medium">{comparison.lastTotal}</span>
-                  <span className="text-muted-foreground ml-2">Target: </span>
-                  <span className="font-medium">{comparison.todayTotal}</span>
-                </div>
-                <div className="flex items-center gap-2">
+            <div key={index} className="workout-progress__comparison-card">
+              <div className="workout-progress__comparison-header">
+                <div className="workout-progress__comparison-exercise">{comparison.exerciseName}</div>
+                <div className="workout-progress__improvement-badges">
                   {comparison.hasImprovement ? (
-                    <Badge variant="default" className="text-xs bg-green-100 text-green-700">
+                    <Badge variant="default" className="workout-progress__improvement-badge workout-progress__improvement-badge--positive">
                       +{comparison.improvement} ({comparison.improvementPercent > 0 ? `+${comparison.improvementPercent}` : comparison.improvementPercent}%)
                     </Badge>
                   ) : comparison.isDecline ? (
-                    <Badge variant="outline" className="text-xs bg-orange-100 text-orange-700">
+                    <Badge variant="outline" className="workout-progress__improvement-badge workout-progress__improvement-badge--negative">
                       {comparison.improvement} ({comparison.improvementPercent}%)
                     </Badge>
                   ) : (
-                    <Badge variant="secondary" className="text-xs">
+                    <Badge variant="secondary" className="workout-progress__improvement-badge">
                       Maintain
                     </Badge>
                   )}
+                </div>
+              </div>
+              <div className="workout-progress__comparison-details">
+                <div className="workout-progress__comparison-column">
+                  <div className="workout-progress__comparison-title">Last Session</div>
+                  <div className="workout-progress__comparison-data">
+                    <div className="workout-progress__comparison-metric">
+                      <span className="workout-progress__metric-label">Total: </span>
+                      <span className="workout-progress__metric-value">{comparison.lastTotal}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="workout-progress__comparison-column">
+                  <div className="workout-progress__comparison-title">Today's Target</div>
+                  <div className="workout-progress__comparison-data">
+                    <div className="workout-progress__comparison-metric">
+                      <span className="workout-progress__metric-label">Target: </span>
+                      <span className="workout-progress__metric-value">{comparison.todayTotal}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -154,16 +168,16 @@ export default function WorkoutProgress() {
       </div>
       
       {/* Workout Tips */}
-      <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="text-green-600">💡</div>
-          <div className="text-sm font-medium text-green-800">Today's Workout Tips</div>
+      <div className="workout-progress__tips">
+        <div className="workout-progress__tips-header">
+          <div className="workout-progress__tips-icon">💡</div>
+          <div className="workout-progress__tips-title">Today's Workout Tips</div>
         </div>
-        <div className="text-xs text-green-700 space-y-1">
-          <p>• Focus on completing all planned sets with proper form</p>
-          <p>• If you can't hit the target reps, maintain good form and do what you can</p>
-          <p>• Rest adequately between sets - don't rush the workout</p>
-          <p>• Chat with your AI coach if you need form guidance or modifications</p>
+        <div className="workout-progress__tips-content">
+          <p className="workout-progress__tip-item">• Focus on completing all planned sets with proper form</p>
+          <p className="workout-progress__tip-item">• If you can't hit the target reps, maintain good form and do what you can</p>
+          <p className="workout-progress__tip-item">• Rest adequately between sets - don't rush the workout</p>
+          <p className="workout-progress__tip-item">• Chat with your AI coach if you need form guidance or modifications</p>
         </div>
       </div>
     </div>

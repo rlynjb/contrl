@@ -38,77 +38,77 @@ export default function WeeklyProgress() {
   }
 
   return (
-    <div>
+    <div className="weekly-progress">
       {!isClient || weekDays.length === 0 ? (
-        <div>
-          <div className="flex items-center justify-between mb-4">
+        <div className="weekly-progress__loading">
+          <div className="weekly-progress__loading-header">
             <div>
               <CardDescription>Loading your weekly progress...</CardDescription>
             </div>
-            <div className="text-right">
-              <div className="text-2xl font-bold text-primary">-</div>
-              <div className="text-sm text-muted-foreground">Day Streak</div>
+            <div className="weekly-progress__loading-streak">
+              <div className="weekly-progress__loading-streak-number">-</div>
+              <div className="weekly-progress__loading-streak-label">Day Streak</div>
             </div>
           </div>
-          <div className="grid grid-cols-7 gap-2">
+          <div className="weekly-progress__loading-grid">
             {Array.from({ length: 7 }, (_, index) => (
               <div
                 key={index}
-                className="flex flex-col items-center p-3 rounded-lg border-2 border-border bg-card animate-pulse"
+                className="weekly-progress__loading-day"
               >
-                <div className="text-xs text-muted-foreground mb-1">-</div>
-                <div className="text-sm font-medium mb-2">-</div>
-                <div className="flex items-center justify-center w-6 h-6">
-                  <div className="w-3 h-3 border-2 border-muted-foreground/30 rounded-full"></div>
+                <div className="weekly-progress__loading-day-name">-</div>
+                <div className="weekly-progress__loading-day-number">-</div>
+                <div className="weekly-progress__loading-day-indicator">
+                  <div className="weekly-progress__loading-day-dot"></div>
                 </div>
               </div>
             ))}
           </div>
         </div>
       ) : (
-        <div>
+        <div className="weekly-progress__content">
           {/* Week header (optional visual improvement) */}
-          <div className="grid grid-cols-7 gap-2 mb-2">
+          <div className="weekly-progress__week-header">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((dayLabel, index) => (
-              <div key={index} className="text-center text-xs text-muted-foreground font-medium py-1">
+              <div key={index} className="weekly-progress__day-label">
                 {dayLabel}
               </div>
             ))}
           </div>
           
-          <div className="grid grid-cols-7 gap-2">
+          <div className="weekly-progress__grid">
             {weekDays.map((day: WeekDay, index: number) => (
               <div
                 key={index}
-                className={`flex flex-col items-center p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                className={`weekly-progress__day ${
                   day.isToday
-                    ? 'border-primary bg-primary/10'
+                    ? 'weekly-progress__day--today'
                     : day.completed
-                      ? 'border-green-600 bg-green-600/10 hover:bg-green-600/20'
-                      : 'border-border bg-card'
-                } ${(day.workoutSession || day.plannedWorkout) ? 'hover:shadow-md' : ''}`}
+                      ? 'weekly-progress__day--completed'
+                      : 'weekly-progress__day--default'
+                } ${(day.workoutSession || day.plannedWorkout) ? 'weekly-progress__day--with-workout' : ''}`}
                 onClick={() => handleDayClick(day)}
               >
-                <div className="text-xs text-muted-foreground mb-1">{day.day}</div>
-                <div className="text-sm font-medium mb-2">{day.dayNum}</div>
-                <div className="flex items-center justify-center w-6 h-6">
+                <div className="weekly-progress__day-name">{day.day}</div>
+                <div className="weekly-progress__day-number">{day.dayNum}</div>
+                <div className="weekly-progress__day-indicator">
                   {day.completed ? (
-                    <div className="text-green-600 text-lg">✓</div>
+                    <div className="weekly-progress__day-indicator--completed">✓</div>
                   ) : day.isToday ? (
-                    <div className="w-3 h-3 bg-primary rounded-full"></div>
+                    <div className="weekly-progress__day-indicator--today"></div>
                   ) : (
-                    <div className="w-3 h-3 border-2 border-muted-foreground/30 rounded-full"></div>
+                    <div className="weekly-progress__day-indicator--default"></div>
                   )}
                 </div>
                 
                 {/* Exercise count indicator */}
                 {day.workoutSession && (
-                  <div className="text-xs text-green-600 mt-1">
+                  <div className="weekly-progress__exercise-count weekly-progress__exercise-count--completed">
                     {day.workoutSession.exercises.length} ex
                   </div>
                 )}
                 {day.plannedWorkout && (
-                  <div className="text-xs text-blue-600 mt-1">
+                  <div className="weekly-progress__exercise-count weekly-progress__exercise-count--planned">
                     {day.plannedWorkout.exercises.length} planned
                   </div>
                 )}
@@ -123,41 +123,41 @@ export default function WeeklyProgress() {
             title={selectedDay ? `${selectedDay.day} (${selectedDay.dayNum}) - Workout Details` : 'Workout Details'}
           >
             {selectedDay && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  {selectedDay.completed && <Badge variant="outline" className="text-xs">Completed</Badge>}
-                  {selectedDay.isToday && <Badge variant="default" className="text-xs">Today</Badge>}
+              <div className="weekly-progress__modal-content">
+                <div className="weekly-progress__modal-badges">
+                  {selectedDay.completed && <Badge variant="outline" className="weekly-progress__modal-badge">Completed</Badge>}
+                  {selectedDay.isToday && <Badge variant="default" className="weekly-progress__modal-badge">Today</Badge>}
                 </div>
                 
                 {selectedDay.workoutSession && (
-                  <div className="space-y-3">
-                    <h3 className="font-medium text-green-800">Completed Workout</h3>
-                    <div className="text-sm text-muted-foreground bg-green-50 p-3 rounded-lg">
+                  <div className="weekly-progress__workout-section weekly-progress__workout-section--completed">
+                    <h3 className="weekly-progress__workout-title weekly-progress__workout-title--completed">Completed Workout</h3>
+                    <div className="weekly-progress__workout-meta weekly-progress__workout-meta--completed">
                       Duration: {selectedDay.workoutSession.duration}min | 
                       XP: {selectedDay.workoutSession.xpEarned} | 
                       Categories: {selectedDay.workoutSession.categories.join(', ')}
                     </div>
-                    <div className="space-y-2">
+                    <div className="weekly-progress__exercise-list">
                       {selectedDay.workoutSession.exercises.map((exercise, exIndex) => (
-                        <div key={exIndex} className="p-3 bg-green-50 rounded-lg border-l-4 border-green-300">
-                          <div className="font-medium text-green-900">{exercise.name}</div>
-                          <div className="text-sm text-green-700 mt-1">
+                        <div key={exIndex} className="weekly-progress__exercise-item weekly-progress__exercise-item--completed">
+                          <div className="weekly-progress__exercise-name weekly-progress__exercise-name--completed">{exercise.name}</div>
+                          <div className="weekly-progress__exercise-sets weekly-progress__exercise-sets--completed">
                             {exercise.sets.map((set, setIndex) => 
                               'reps' in set ? `${set.reps} reps` : `${set.duration}s`
                             ).join(' → ')}
                           </div>
                           {exercise.equipment && (
-                            <div className="text-xs text-green-600 mt-1">
+                            <div className="weekly-progress__exercise-detail weekly-progress__exercise-detail--completed">
                               Equipment: {exercise.equipment}
                             </div>
                           )}
                           {exercise.tempo && (
-                            <div className="text-xs text-green-600">
+                            <div className="weekly-progress__exercise-detail weekly-progress__exercise-detail--completed">
                               Tempo: {exercise.tempo}
                             </div>
                           )}
                           {exercise.rest && (
-                            <div className="text-xs text-green-600">
+                            <div className="weekly-progress__exercise-detail weekly-progress__exercise-detail--completed">
                               Rest: {exercise.rest}s
                             </div>
                           )}
@@ -168,39 +168,39 @@ export default function WeeklyProgress() {
                 )}
                 
                 {selectedDay.plannedWorkout && (
-                  <div className="space-y-3">
-                    <h3 className="font-medium text-blue-800">Planned Workout</h3>
-                    <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded-lg">
+                  <div className="weekly-progress__workout-section weekly-progress__workout-section--planned">
+                    <h3 className="weekly-progress__workout-title weekly-progress__workout-title--planned">Planned Workout</h3>
+                    <div className="weekly-progress__workout-meta weekly-progress__workout-meta--planned">
                       Planned Duration: {selectedDay.plannedWorkout.duration}min | 
                       Expected XP: {selectedDay.plannedWorkout.xpEarned} | 
                       Categories: {selectedDay.plannedWorkout.categories.join(', ')}
                     </div>
-                    <div className="space-y-2">
+                    <div className="weekly-progress__exercise-list">
                       {selectedDay.plannedWorkout.exercises.map((exercise, exIndex) => (
-                        <div key={exIndex} className="p-3 bg-blue-50 rounded-lg border-l-4 border-blue-300">
-                          <div className="font-medium text-blue-900">{exercise.name}</div>
-                          <div className="text-sm text-blue-700 mt-1">
+                        <div key={exIndex} className="weekly-progress__exercise-item weekly-progress__exercise-item--planned">
+                          <div className="weekly-progress__exercise-name weekly-progress__exercise-name--planned">{exercise.name}</div>
+                          <div className="weekly-progress__exercise-sets weekly-progress__exercise-sets--planned">
                             {exercise.sets.map((set, setIndex) => 
                               'reps' in set ? `${set.reps} reps` : `${set.duration}s`
                             ).join(' → ')}
                           </div>
                           {exercise.equipment && (
-                            <div className="text-xs text-blue-600 mt-1">
+                            <div className="weekly-progress__exercise-detail weekly-progress__exercise-detail--planned">
                               Equipment: {exercise.equipment}
                             </div>
                           )}
                           {exercise.tempo && (
-                            <div className="text-xs text-blue-600">
+                            <div className="weekly-progress__exercise-detail weekly-progress__exercise-detail--planned">
                               Tempo: {exercise.tempo}
                             </div>
                           )}
                           {exercise.rest && (
-                            <div className="text-xs text-blue-600">
+                            <div className="weekly-progress__exercise-detail weekly-progress__exercise-detail--planned">
                               Rest: {exercise.rest}s
                             </div>
                           )}
                           {exercise.notes && (
-                            <div className="text-xs text-blue-600 mt-1 italic">
+                            <div className="weekly-progress__exercise-notes weekly-progress__exercise-notes--planned">
                               💡 {exercise.notes}
                             </div>
                           )}
