@@ -51,12 +51,3 @@ export interface ChatResponse {
   context?: any
   processingTimeMs?: number
 }
-
-// Exercise pattern types (matching constants.ts)
-export type ExercisePattern = 'push' | 'pull' | 'squat' | 'hinge' | 'core' | 'mobility'
-export type EquipmentType = 'bodyweight' | 'trx' | 'band' | 'household'
-
-// Pain scale type (0-10 scale)
-export type PainScale = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10
-
-// TODO: Add more shared types as they are identified in components and hooks
