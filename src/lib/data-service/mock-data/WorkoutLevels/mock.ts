@@ -1,14 +1,4 @@
-import type { BaseExercise } from '@/types'
-
-// All exercises flattened into a single array with metadata
-export interface ExerciseWithMetadata extends BaseExercise {
-  id: string
-  level: number
-  levelName: string
-  category: 'Push' | 'Pull' | 'Squat'
-  difficulty: 'Foundation' | 'Beginner' | 'Novice' | 'Intermediate' | 'Advanced' | 'Expert'
-  tags: string[]
-}
+import type { ExerciseWithMetadata } from './types'
 
 // Comprehensive list of all exercises with metadata
 export const allExercises: ExerciseWithMetadata[] = [

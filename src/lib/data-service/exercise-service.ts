@@ -9,7 +9,8 @@ import { DATA_SOURCE_CONFIG } from './config'
 import { workoutLevels } from './mock-data/WorkoutLevels'
 
 // Import types
-import type { WorkoutLevels, BaseExercise, WorkoutLevel } from '@/types'
+import type { BaseExercise } from '@/types'
+import type { WorkoutLevels, WorkoutLevel } from './mock-data/WorkoutLevels/types'
 
 export class ExerciseService {
   /**

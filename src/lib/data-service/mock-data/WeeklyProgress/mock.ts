@@ -2,26 +2,7 @@
 // Raw data types and mock data for weekly progress tracking
 
 import type { BaseExercise } from '@/types'
-
-export interface WorkoutSession {
-  exercises: BaseExercise[]
-  duration: number // minutes
-  categories: ('Push' | 'Pull' | 'Squat')[]
-  level: number
-  date: Date // When the workout was completed or is planned
-}
-
-export interface WeekDay {
-  date: Date
-  completed: boolean
-  isToday: boolean
-  completedWorkout?: WorkoutSession // Completed workout data
-  todayWorkout?: WorkoutSession // What's planned for today/future
-}
-
-export interface WeeklyProgressData {
-  weekDays: WeekDay[]
-}
+import type { WorkoutSession, WeekDay, WeeklyProgressData } from './types'
 
 // Sample workout sessions for mock data
 const sampleWorkouts: WorkoutSession[] = [

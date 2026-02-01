@@ -1,7 +1,8 @@
 'use client'
 
 import { Badge, ExerciseCard } from '@/components/ui'
-import type { BaseExercise, BaseExerciseSet, WorkoutLevel } from '@/types'
+import type { BaseExercise, BaseExerciseSet } from '@/types'
+import type { WorkoutLevel } from '@/lib/data-service/mock-data/WorkoutLevels/types'
 import { workoutLevels } from '@/lib/data-service/mock-data/WorkoutLevels'
 import { currentLevelData } from '@/lib/data-service/mock-data/CurrentLevel'
 import './WorkoutLevels.css'

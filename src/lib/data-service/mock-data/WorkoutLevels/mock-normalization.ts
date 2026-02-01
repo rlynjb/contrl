@@ -1,4 +1,4 @@
-import type { WorkoutLevels } from '@/types'
+import type { WorkoutLevels } from './types'
 import { allExercises } from './mock'
 
 // Workout levels using the original structure but sourced from our exercise data

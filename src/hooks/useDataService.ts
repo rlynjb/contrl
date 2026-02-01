@@ -6,7 +6,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { dataService } from '@/lib/data-service'
-import type { WorkoutLevels, BaseExercise } from '@/types'
+import type { BaseExercise } from '@/types'
+import type { WorkoutLevels } from '@/lib/data-service/mock-data/WorkoutLevels/types'
 
 /**
  * Hook for fetching workout levels data

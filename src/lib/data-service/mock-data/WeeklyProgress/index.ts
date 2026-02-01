@@ -1,10 +1,13 @@
 // WeeklyProgress Module Exports
 // Clean export interface for WeeklyProgress data
 
-export type { 
-  WeekDay
-} from './mock'
+// Types
+export * from './types'
 
+// Raw data  
+export * from './mock'
+
+// Processed data
 export { 
   generateCompleteWeeklyProgress,
   weeklyProgressData

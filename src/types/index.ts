@@ -17,21 +17,6 @@ export interface BaseExercise {
   sets: BaseExerciseSet[]
 }
 
-// Workout levels structures
-export interface ExercisesByCategory {
-  Push: BaseExercise[]
-  Pull: BaseExercise[]
-  Squat: BaseExercise[]
-}
-
-export interface WorkoutLevel {
-  name: string
-  description?: string
-  exercises: ExercisesByCategory
-}
-
-export type WorkoutLevels = Record<string, WorkoutLevel>
-
 // Chat system types (exported from useChat for reuse)
 export interface ChatMessage {
   id: string

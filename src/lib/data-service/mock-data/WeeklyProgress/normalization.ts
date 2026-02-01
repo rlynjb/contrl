@@ -1,7 +1,8 @@
 // WeeklyProgress Normalization Functions
 // Business logic for processing weekly progress data
 
-import { WeekDay, WeeklyProgressData, sampleWorkouts, todaysTodayWorkout, WorkoutSession } from './mock'
+import { sampleWorkouts, todaysTodayWorkout } from './mock'
+import type { WeekDay, WeeklyProgressData, WorkoutSession } from './types'
 
 /**
  * Generate weekly progress data for the current week (Sunday to Saturday)
