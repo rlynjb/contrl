@@ -162,9 +162,7 @@ export class ResponseHandler {
         break
 
       case 'coach':
-        if (context.workoutPlan) {
-          enrichedMessage += `\n\n*Current workout: ${context.workoutPlan.duration || '20'} min session*`
-        }
+        // Workout context removed for simplicity
         break
 
       case 'gamification':
@@ -196,7 +194,6 @@ export class ResponseHandler {
       },
       dataPresence: {
         hasProfile: !!context.userProfile,
-        hasWorkoutPlan: !!context.workoutPlan,
         hasSessionData: !!context.sessionData
       }
     }

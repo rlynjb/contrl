@@ -4,7 +4,6 @@
 
 import { ExerciseService } from './ExerciseService'
 import { UserProgressService } from './UserProgressService'
-import { WorkoutPlanService } from './WorkoutPlanService'
 import { apiClient } from './api-client'
 import { DATA_SOURCE_CONFIG } from './config'
 
@@ -14,7 +13,6 @@ import { DATA_SOURCE_CONFIG } from './config'
 export const dataService = {
   exercises: ExerciseService,
   userProgress: UserProgressService,
-  workouts: WorkoutPlanService,
   
   // Utility methods
   isUsingMockData: () => DATA_SOURCE_CONFIG.USE_MOCK_DATA,

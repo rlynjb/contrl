@@ -54,7 +54,6 @@ export class Supervisor {
       // Update context
       context = StateMachine.updateContext(context, nextState, {
         userProfile: agentResponse.userProfile || context.userProfile,
-        workoutPlan: agentResponse.workoutPlan || context.workoutPlan,
         sessionData: { ...context.sessionData, ...agentResponse.sessionData }
       })
 
@@ -147,7 +146,6 @@ export class Supervisor {
     return {
       message: responseMessage,
       planReady: isPlanReady,
-      workoutPlan: isPlanReady ? { duration: 20, exercises: ['push-up', 'squat', 'plank'], difficulty: 'beginner' } : undefined,
       data: { agent: 'program', step: context.metadata.stepCount + 1 }
     }
   }
@@ -164,7 +162,7 @@ export class Supervisor {
       message: responseMessage,
       workoutComplete: isWorkoutComplete,
       sessionData: { 
-        currentExercise: context.workoutPlan?.exercises?.[0] || 'push-up', 
+        currentExercise: 'push-up', 
         setsCompleted: isWorkoutComplete ? 3 : 1,
         formFeedback: 'good'
       },

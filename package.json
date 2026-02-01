@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.9.5",
+    "@netlify/blobs": "^10.5.0",
     "@netlify/functions": "^2.4.0",
     "@openai/agents": "^0.1.0",
     "@radix-ui/react-slot": "^1.0.2",

@@ -7,7 +7,6 @@ export interface SessionContext {
   sessionId: string
   currentState: SessionState
   userProfile?: any
-  workoutPlan?: any
   sessionData?: any
   metadata: {
     startTime: string

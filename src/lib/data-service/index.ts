@@ -7,7 +7,6 @@
 // Core services
 export { ExerciseService } from './ExerciseService'
 export { UserProgressService } from './UserProgressService'
-export { WorkoutPlanService } from './WorkoutPlanService'
 
 // Main data service
 export { dataService } from './data-service'
