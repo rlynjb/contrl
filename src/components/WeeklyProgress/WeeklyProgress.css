@@ -191,6 +191,13 @@
   gap: 1rem;
 }
 
+.weekly-progress__empty-state {
+  text-align: center;
+  color: rgb(156 163 175);
+  font-size: 0.875rem;
+  padding: 2rem 0;
+}
+
 .weekly-progress__workout-section {
   display: flex;
   flex-direction: column;

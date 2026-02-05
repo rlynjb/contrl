@@ -60,7 +60,6 @@ export default function WeeklyProgress() {
             date: day.date // Keep the ISO string
           }
         })
-        console.log('Merged Week:', mergedWeek)
         setWeekDays(mergedWeek)
       } else {
         setWeekDays(generatedWeek)
@@ -71,11 +70,8 @@ export default function WeeklyProgress() {
   }, [])
 
   const handleDayClick = (day: WeekDay) => {
-    console.log('Clicked day:', day)
-    if (day.completedWorkout || day.todayWorkout) {
-      setSelectedDay(day)
-      setIsModalOpen(true)
-    }
+    setSelectedDay(day)
+    setIsModalOpen(true)
   }
 
   const closeModal = () => {
@@ -87,6 +83,10 @@ export default function WeeklyProgress() {
     return day.isToday ? 'weekly-progress__day--today' :
       day.isWorkoutDay ? 'weekly-progress__day--workout' : ''
   }
+
+  const modalTitle = selectedDay
+    ? `${new Date(selectedDay.date).toLocaleDateString('en-US', { weekday: 'short' })} (${new Date(selectedDay.date).getDate()}) - Workout Details`
+    : 'Workout Details'
 
   return (
     <div className="weekly-progress">
@@ -126,7 +126,7 @@ export default function WeeklyProgress() {
       <Modal 
         isOpen={isModalOpen} 
         onClose={closeModal}
-        title={selectedDay ? `${new Date(selectedDay.date).toLocaleDateString('en-US', { weekday: 'short' })} (${new Date(selectedDay.date).getDate()}) - Workout Details` : 'Workout Details'}
+        title={modalTitle}
       >
         {selectedDay && <WorkoutDetail selectedDay={selectedDay} />}
       </Modal>

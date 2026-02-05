@@ -18,6 +18,17 @@ import type { BaseExercise, WorkoutLevels, WorkoutLevel } from './mocks/types'
 type DataSource = 'mock' | 'api'
 
 export class ExerciseService {
+  private static customExercises: BaseExercise[] = []
+
+  static addExercise(exercise: BaseExercise): void {
+    const exists = this.customExercises.some(
+      e => e.name.toLowerCase() === exercise.name.toLowerCase()
+    )
+    if (!exists) {
+      this.customExercises.push(exercise)
+    }
+  }
+
   private static get dataSource(): DataSource {
     const envSource = process.env.NEXT_PUBLIC_EXERCISE_SOURCE as DataSource | undefined
     
@@ -92,10 +103,13 @@ export class ExerciseService {
 
     switch (dataSource) {
       case 'mock':
-        const allExercises: BaseExercise[] = Object.values(workoutLevels).flatMap((level: WorkoutLevel) => 
-          Object.values(level.exercises).flat()
-        ) as BaseExercise[]
-        return allExercises.filter((exercise: BaseExercise) => 
+        const allExercises: BaseExercise[] = [
+          ...this.customExercises,
+          ...Object.values(workoutLevels).flatMap((level: WorkoutLevel) =>
+            Object.values(level.exercises).flat()
+          ) as BaseExercise[]
+        ]
+        return allExercises.filter((exercise: BaseExercise) =>
           exercise.name.toLowerCase().includes(query.toLowerCase())
         )
 
@@ -104,10 +118,13 @@ export class ExerciseService {
           return await Api.searchExercises(query)
         } catch (error) {
           console.warn('API failed, falling back to mock:', error)
-          const fallbackExercises: BaseExercise[] = Object.values(workoutLevels).flatMap((level: WorkoutLevel) => 
-            Object.values(level.exercises).flat()
-          ) as BaseExercise[]
-          return fallbackExercises.filter((exercise: BaseExercise) => 
+          const fallbackExercises: BaseExercise[] = [
+            ...this.customExercises,
+            ...Object.values(workoutLevels).flatMap((level: WorkoutLevel) =>
+              Object.values(level.exercises).flat()
+            ) as BaseExercise[]
+          ]
+          return fallbackExercises.filter((exercise: BaseExercise) =>
             exercise.name.toLowerCase().includes(query.toLowerCase())
           )
         }
@@ -115,5 +132,21 @@ export class ExerciseService {
       default:
         return []
     }
+  }
+
+  /**
+   * Look up which level an exercise belongs to by name.
+   * Returns null for custom exercises or if not found.
+   */
+  static getExerciseLevel(exerciseName: string): { level: number, name: string, category: string } | null {
+    const entries = Object.entries(workoutLevels)
+    for (let i = 0; i < entries.length; i++) {
+      for (const [category, exercises] of Object.entries(entries[i][1].exercises)) {
+        if ((exercises as BaseExercise[]).some((e: BaseExercise) => e.name === exerciseName)) {
+          return { level: i, name: entries[i][1].name, category }
+        }
+      }
+    }
+    return null
   }
 }
