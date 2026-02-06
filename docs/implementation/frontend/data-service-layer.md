@@ -85,7 +85,6 @@ function MyComponent() {
 
 - `getCurrentLevels(userId?)` - Get user's current levels
 - `updateUserLevel(category, level, userId?)` - Update user level
-- `getWeeklyProgress(userId?)` - Get weekly progress data
 
 ### WorkoutPlanService
 
@@ -102,7 +101,6 @@ GET  /.netlify/functions/exercises            # Get exercises (with level/catego
 GET  /.netlify/functions/exercises/search     # Search exercises
 GET  /.netlify/functions/user/levels          # Get user levels
 PUT  /.netlify/functions/user/levels          # Update user level
-GET  /.netlify/functions/user/progress/weekly # Get weekly progress
 POST /.netlify/functions/workouts/recommend   # Get recommended workout
 POST /.netlify/functions/workouts/log         # Log workout session
 GET  /.netlify/functions/health               # Health check

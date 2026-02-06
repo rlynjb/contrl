@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Modal } from '@/components/ui'
 import type { WeekDay, WorkoutSession } from '@/lib/data-service/UserService/mocks/WeeklyProgress/types'
 import { dataService } from '@/lib/data-service'
+import { MOCK_UserData } from '@/lib/data-service/UserService/mocks/UserData'
 import WorkoutDetail from './WorkoutDetail'
 import './WeeklyProgress.css'
 
@@ -42,7 +43,14 @@ export default function WeeklyProgress() {
     // Fetch user data and merge with generated week
     const initializeWeeklyProgress = async () => {
       const generatedWeek = generateWeekDays()
-      const fetchedUserData = await dataService.userProgress.getUserData()
+      let fetchedUserData = await dataService.userProgress.getUserData()
+
+      // Initialize with mock data if no user data exists
+      if (!fetchedUserData) {
+        dataService.userProgress.updateUserData(MOCK_UserData)
+        fetchedUserData = MOCK_UserData
+      }
+
       const weeklyProgress = fetchedUserData?.weeklyProgress
 
       if (Array.isArray(weeklyProgress) && weeklyProgress.length > 0) {

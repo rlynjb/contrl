@@ -43,7 +43,7 @@ const isUsingMock = dataService.isUsingMockData();
 // Direct access to mock data (fallback/testing)
 import { workoutLevels } from "@/lib/data-service/mock-data/WorkoutLevels";
 import { currentLevelData } from "@/lib/data-service/mock-data/CurrentLevel";
-import { weeklyProgressData } from "@/lib/data-service/mock-data/WeeklyProgress";
+import { MOCK_weeklyWorkouts } from "@/lib/data-service/UserService/mocks/WeeklyProgress";
 ```
 
 ### With React Hooks
@@ -117,9 +117,6 @@ const success = await dataService.userProgress.updateUserLevel(
   2,
   "user123"
 );
-
-// Get weekly progress
-const progress = await dataService.userProgress.getWeeklyProgress("user123");
 ```
 
 ### WorkoutPlanService
@@ -148,7 +145,6 @@ GET  /.netlify/functions/exercises               # Get exercises (filtered)
 GET  /.netlify/functions/exercises/search        # Search exercises
 GET  /.netlify/functions/user/levels             # Get user levels
 PUT  /.netlify/functions/user/levels             # Update user level
-GET  /.netlify/functions/user/progress/weekly    # Get weekly progress
 POST /.netlify/functions/workouts/recommend      # Get workout recommendation
 POST /.netlify/functions/workouts/log            # Log workout session
 GET  /.netlify/functions/health                  # Health check

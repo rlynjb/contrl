@@ -7,7 +7,6 @@ import type { BaseExercise } from '@/lib/data-service/ExerciseService/mocks/type
 // Single workout session data
 export interface WorkoutSession {
   exercises: BaseExercise[]
-  duration: number // minutes
   categories: ('Push' | 'Pull' | 'Squat')[]
   level: number
   date: Date // When the workout was completed or is planned

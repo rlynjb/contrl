@@ -6,12 +6,12 @@
  */
 
 import type { CurrentUserLevels } from './mocks/CurrentLevel/types'
-import type { WeeklyProgressData } from './mocks/WeeklyProgress/types'
+import type { WorkoutSession } from './mocks/WeeklyProgress/types'
 
 export interface UserData {
   currentLevels: CurrentUserLevels
-  weeklyProgress?: WeeklyProgressData
   lastUpdated: string
+  weeklyProgress?: WorkoutSession[]
 }
 
 export class LocalStorage {
@@ -35,7 +35,7 @@ export class LocalStorage {
     if (typeof window === 'undefined') {
       return // Server-side rendering
     }
-    
+
     try {
       data.lastUpdated = new Date().toISOString()
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data))
@@ -43,10 +43,5 @@ export class LocalStorage {
       console.error('Failed to save to localStorage:', error)
       throw error
     }
-  }
-  
-  static async getWeeklyProgress(): Promise<WeeklyProgressData> {
-    const data = this.getUserData()
-    return data?.weeklyProgress || { weekDays: [] }
   }
 }

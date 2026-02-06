@@ -8,9 +8,6 @@
 
 import { LocalStorage, type UserData } from './localStorage'
 
-import { MOCK_CurrentUserLevel } from './mocks/CurrentLevel'
-import { weeklyProgressData, generateCompleteWeeklyProgress } from './mocks/WeeklyProgress'
-
 type DataSource = 'mock' | 'localStorage'
 
 export class UserService {
@@ -48,21 +45,6 @@ export class UserService {
       case 'mock':
       default:
         console.warn(`updateUserData not supported for ${dataSource}`)
-    }
-  }
-
-  static async getWeeklyProgress(): Promise<typeof weeklyProgressData> {
-    const dataSource = this.dataSource
-
-    switch (dataSource) {
-      case 'mock':
-        return generateCompleteWeeklyProgress()
-
-      case 'localStorage':
-        return await LocalStorage.getWeeklyProgress()
-
-      default:
-        return generateCompleteWeeklyProgress()
     }
   }
 }
