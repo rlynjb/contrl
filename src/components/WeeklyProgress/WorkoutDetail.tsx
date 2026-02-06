@@ -1,12 +1,40 @@
-import { ExerciseCard } from '@/components/ui'
+import { ExerciseCard, WorkoutExerciseCard } from '@/components/ui'
+import { api } from '@/api'
+import type { BaseExercise } from '@/api'
 import type { ExtendedWeekDay } from './WeeklyProgress'
 
 interface WorkoutDetailProps {
   selectedDay: ExtendedWeekDay
+  onWorkoutUpdate?: () => void
 }
 
-export default function WorkoutDetail({ selectedDay }: WorkoutDetailProps) {
+export default function WorkoutDetail({ selectedDay, onWorkoutUpdate }: WorkoutDetailProps) {
   const hasWorkouts = selectedDay.exercises?.length || selectedDay.todayWorkout
+
+  const handleExerciseChange = async (updatedExercise: BaseExercise, index: number) => {
+    // Get current user data
+    const userData = await api.user.getUserData()
+    if (!userData?.weeklyProgress) return
+
+    // Find and update the workout session for this day
+    const dayDate = new Date(selectedDay.date).toDateString()
+    const updatedProgress = userData.weeklyProgress.map(session => {
+      if (new Date(session.date).toDateString() === dayDate) {
+        const updatedExercises = [...session.exercises]
+        updatedExercises[index] = updatedExercise
+        return { ...session, exercises: updatedExercises }
+      }
+      return session
+    })
+
+    // Save updated data
+    await api.user.updateUserData({
+      ...userData,
+      weeklyProgress: updatedProgress
+    })
+
+    onWorkoutUpdate?.()
+  }
 
   if (!hasWorkouts) {
     return (
@@ -28,16 +56,17 @@ export default function WorkoutDetail({ selectedDay }: WorkoutDetailProps) {
         <div className="weekly-progress__workout-section weekly-progress__workout-section--completed">
           <div className="weekly-progress__exercise-list">
             {selectedDay.exercises.map((exercise, exIndex) => (
-              <ExerciseCard
+              <WorkoutExerciseCard
                 key={exIndex}
                 exercise={exercise}
+                onExerciseChange={(updated) => handleExerciseChange(updated, exIndex)}
                 className="weekly-progress__exercise-card"
               />
             ))}
           </div>
         </div>
       )}
-      
+
       {selectedDay.todayWorkout && (
         <div className="weekly-progress__workout-section weekly-progress__workout-section--planned">
           <div className="weekly-progress__workout-meta weekly-progress__workout-meta--planned">
@@ -53,9 +82,10 @@ export default function WorkoutDetail({ selectedDay }: WorkoutDetailProps) {
           </div>
           <div className="weekly-progress__exercise-list">
             {selectedDay.todayWorkout.exercises.map((exercise, exIndex) => (
-              <ExerciseCard 
+              <WorkoutExerciseCard
                 key={exIndex}
                 exercise={exercise}
+                onExerciseChange={(updated) => handleExerciseChange(updated, exIndex)}
                 className="weekly-progress__exercise-card"
               />
             ))}
