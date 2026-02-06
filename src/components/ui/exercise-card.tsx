@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Badge } from '@/components/ui/badge'
-import { ExerciseService } from '@/lib/data-service/ExerciseService'
-import type { BaseExercise } from '@/lib/data-service/ExerciseService/mocks/types'
+import { exerciseApi, type BaseExercise } from '@/api'
 import './exercise-card.css'
 
 interface ExerciseCardProps {
@@ -29,13 +28,19 @@ export default function ExerciseCard({ exercise, className = '', onExerciseChang
   const [tempoValue, setTempoValue] = useState(exercise.tempo || '')
   const [restValue, setRestValue] = useState(exercise.rest !== undefined ? `${exercise.rest}s` : '')
   const [notesValue, setNotesValue] = useState(exercise.notes || '')
-  const [levelInfo, setLevelInfo] = useState<{ level: number, name: string, category: string } | null>(
-    () => ExerciseService.getExerciseLevel(exercise.name)
-  )
+  const [levelInfo, setLevelInfo] = useState<{ level: number, name: string, category: string } | null>(null)
 
-  // Sync level info when the displayed exercise changes
+  // Fetch level info on mount and when exercise changes
   useEffect(() => {
-    setLevelInfo(displayExercise.name ? ExerciseService.getExerciseLevel(displayExercise.name) : null)
+    const fetchLevelInfo = async () => {
+      if (displayExercise.name) {
+        const info = await exerciseApi.getExerciseLevel(displayExercise.name)
+        setLevelInfo(info)
+      } else {
+        setLevelInfo(null)
+      }
+    }
+    fetchLevelInfo()
   }, [displayExercise.name])
 
   // Close dropdowns on outside click
@@ -62,7 +67,7 @@ export default function ExerciseCard({ exercise, className = '', onExerciseChang
     }
 
     const timer = setTimeout(async () => {
-      const found = await ExerciseService.searchExercises(inputValue)
+      const found = await exerciseApi.searchExercises(inputValue)
       setResults(found)
     }, 300)
 
@@ -80,9 +85,9 @@ export default function ExerciseCard({ exercise, className = '', onExerciseChang
     onExerciseChange?.(selected)
   }
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     const newExercise: BaseExercise = { name: inputValue.trim(), sets: [] }
-    ExerciseService.addExercise(newExercise)
+    await exerciseApi.addExercise(newExercise)
     setDisplayExercise(newExercise)
     setSetValues([])
     setTempoValue('')

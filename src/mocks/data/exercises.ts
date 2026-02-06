@@ -1,4 +1,8 @@
-import type { ExerciseWithMetadata } from './types'
+/**
+ * Exercise Mock Data
+ */
+
+import type { ExerciseWithMetadata, WorkoutLevels } from '@/api/exercises'
 
 // Comprehensive list of all exercises with metadata
 export const allExercises: ExerciseWithMetadata[] = [
@@ -648,3 +652,66 @@ export const allExercises: ExerciseWithMetadata[] = [
     tags: ["jump", "explosive", "plyometric", "alternating"]
   }
 ]
+
+// Helper to convert exercise to base format (strip metadata)
+const toBaseExercise = (ex: ExerciseWithMetadata) => ({
+  name: ex.name,
+  sets: ex.sets,
+  tempo: ex.tempo,
+  rest: ex.rest,
+  equipment: ex.equipment,
+  notes: ex.notes
+})
+
+// Workout levels organized by difficulty
+export const workoutLevels: WorkoutLevels = {
+  foundation: {
+    name: "Foundation",
+    description: "Stability, control, and knee-friendly movements",
+    exercises: {
+      Push: allExercises.filter(ex => ex.level === 0 && ex.category === 'Push').map(toBaseExercise),
+      Pull: allExercises.filter(ex => ex.level === 0 && ex.category === 'Pull').map(toBaseExercise),
+      Squat: allExercises.filter(ex => ex.level === 0 && ex.category === 'Squat').map(toBaseExercise)
+    }
+  },
+  beginner: {
+    name: "Beginner",
+    exercises: {
+      Push: allExercises.filter(ex => ex.level === 1 && ex.category === 'Push').map(toBaseExercise),
+      Pull: allExercises.filter(ex => ex.level === 1 && ex.category === 'Pull').map(toBaseExercise),
+      Squat: allExercises.filter(ex => ex.level === 1 && ex.category === 'Squat').map(toBaseExercise)
+    }
+  },
+  novice: {
+    name: "Novice",
+    exercises: {
+      Push: allExercises.filter(ex => ex.level === 2 && ex.category === 'Push').map(toBaseExercise),
+      Pull: allExercises.filter(ex => ex.level === 2 && ex.category === 'Pull').map(toBaseExercise),
+      Squat: allExercises.filter(ex => ex.level === 2 && ex.category === 'Squat').map(toBaseExercise)
+    }
+  },
+  intermediate: {
+    name: "Intermediate",
+    exercises: {
+      Push: allExercises.filter(ex => ex.level === 3 && ex.category === 'Push').map(toBaseExercise),
+      Pull: allExercises.filter(ex => ex.level === 3 && ex.category === 'Pull').map(toBaseExercise),
+      Squat: allExercises.filter(ex => ex.level === 3 && ex.category === 'Squat').map(toBaseExercise)
+    }
+  },
+  advanced: {
+    name: "Advanced",
+    exercises: {
+      Push: allExercises.filter(ex => ex.level === 4 && ex.category === 'Push').map(toBaseExercise),
+      Pull: allExercises.filter(ex => ex.level === 4 && ex.category === 'Pull').map(toBaseExercise),
+      Squat: allExercises.filter(ex => ex.level === 4 && ex.category === 'Squat').map(toBaseExercise)
+    }
+  },
+  expert: {
+    name: "Expert",
+    exercises: {
+      Push: allExercises.filter(ex => ex.level === 5 && ex.category === 'Push').map(toBaseExercise),
+      Pull: allExercises.filter(ex => ex.level === 5 && ex.category === 'Pull').map(toBaseExercise),
+      Squat: allExercises.filter(ex => ex.level === 5 && ex.category === 'Squat').map(toBaseExercise)
+    }
+  }
+}

@@ -1,5 +1,5 @@
 import { sql } from './connection';
-import { MOCK_CurrentUserLevel } from '../../../../../src/lib/data-service/mock-data/CurrentLevel/mock';
+import { MOCK_CurrentUserLevel } from '../../../../../src/mocks/data/user';
 
 export async function seedUserProgress() {
   try {

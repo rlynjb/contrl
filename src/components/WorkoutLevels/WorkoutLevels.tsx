@@ -2,14 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { Badge, ExerciseCard } from '@/components/ui'
-
-import { dataService } from "@/lib/data-service";
-import type { BaseExercise, WorkoutLevel } from '@/lib/data-service/ExerciseService/mocks/types'
-import type { UserData } from '@/lib/data-service/UserService/localStorage'
-
-import type { CurrentUserLevels } from '@/lib/data-service/UserService/mocks/CurrentLevel/types'
-import { MOCK_UserData } from '@/lib/data-service/UserService/mocks/UserData';
-
+import { api } from '@/api'
+import type { BaseExercise, WorkoutLevel, UserData, CurrentUserLevels } from '@/api'
+import { MOCK_UserData } from '@/mocks'
 import './WorkoutLevels.css'
 
 export default function WorkoutLevels() {
@@ -18,7 +13,7 @@ export default function WorkoutLevels() {
 
   useEffect(() => {
     const getExercises = async () => {
-      const res = await dataService.exercises.getWorkoutLevels();
+      const res = await api.exercises.getWorkoutLevels();
       setExercises(res);
     };
     
@@ -26,21 +21,21 @@ export default function WorkoutLevels() {
 
     /**
      * TODO:
-     * replace this with LevelCalculator logic to determine 
+     * replace this with LevelCalculator logic to determine
      * user's current level based on completed workout's sets, reps, etc.
      */
-    const updateUserData = async () => {
-      dataService.userProgress.updateUserData(MOCK_UserData as UserData);
-    
+    const initUserData = async () => {
+      let userData = await api.user.getUserData()
+
+      // Initialize with mock data if no user data exists
+      if (!userData) {
+        userData = await api.user.updateUserData(MOCK_UserData as UserData)
+      }
+
+      setCurrentLevels(userData?.currentLevels || { Push: 0, Pull: 0, Squat: 0 })
     }
-    updateUserData();
 
-    const getUserData = async () => {
-      const userData = await dataService.userProgress.getUserData();
-      setCurrentLevels(userData?.currentLevels || { Push: 0, Pull: 0, Squat: 0 });
-    };
-
-    getUserData();    
+    initUserData()    
   }, []);
   
   return (

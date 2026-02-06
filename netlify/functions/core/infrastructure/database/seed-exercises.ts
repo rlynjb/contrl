@@ -1,5 +1,5 @@
 import { sql } from './connection';
-import { allExercises } from '../../../../../src/lib/data-service/mock-data/WorkoutLevels/mock';
+import { allExercises } from '../../../../../src/mocks/data/exercises';
 import { randomUUID } from 'crypto';
 
 export async function seedExercises() {
