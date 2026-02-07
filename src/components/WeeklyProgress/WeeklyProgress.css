@@ -233,3 +233,131 @@
   border-left: 4px solid;
 }
 
+/* Workout Detail Category Select */
+.workout-detail__category-select {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.workout-detail__label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(156 163 175);
+}
+
+.workout-detail__dropdown {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  background-color: rgb(31 41 55);
+  border: 1px solid rgb(75 85 99);
+  border-radius: 0.5rem;
+  color: inherit;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.workout-detail__dropdown:hover {
+  border-color: rgb(107 114 128);
+}
+
+.workout-detail__dropdown:focus {
+  border-color: rgb(96 165 250);
+}
+
+.workout-detail__dropdown option {
+  background-color: rgb(31 41 55);
+  padding: 0.5rem;
+}
+
+.workout-detail__empty {
+  text-align: center;
+  color: rgb(156 163 175);
+  font-size: 0.875rem;
+  padding: 2rem 0;
+}
+
+.workout-detail__row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.workout-detail__row .workout-detail__dropdown {
+  flex: 1;
+}
+
+.workout-detail__add-btn {
+  padding: 0.75rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background-color: rgb(37 99 235);
+  border: none;
+  border-radius: 0.5rem;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.workout-detail__add-btn:hover:not(:disabled) {
+  background-color: rgb(29 78 216);
+}
+
+.workout-detail__add-btn:disabled {
+  background-color: rgb(75 85 99);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Category List */
+.workout-detail__category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.workout-detail__category-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: rgb(31 41 55);
+  border: 1px solid rgb(75 85 99);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.workout-detail__category-item:hover {
+  border-color: rgb(96 165 250);
+  background-color: rgb(55 65 81);
+}
+
+.workout-detail__category-item--active {
+  border-color: rgb(96 165 250);
+  background-color: rgb(30 58 138 / 0.3);
+}
+
+.workout-detail__category-name {
+  font-weight: 500;
+  font-size: 1rem;
+  color: white;
+}
+
+.workout-detail__category-level {
+  font-size: 0.875rem;
+  color: rgb(156 163 175);
+}
+
+.workout-detail__loading {
+  text-align: center;
+  color: rgb(156 163 175);
+  font-size: 0.875rem;
+  padding: 1rem 0;
+}
+

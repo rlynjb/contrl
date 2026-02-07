@@ -1,6 +1,9 @@
-import { ExerciseCard, WorkoutExerciseCard } from '@/components/ui'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { WorkoutExerciseCard } from '@/components/ui'
 import { api } from '@/api'
-import type { BaseExercise } from '@/api'
+import type { BaseExercise, CurrentUserLevels } from '@/api'
 import type { ExtendedWeekDay } from './WeeklyProgress'
 
 interface WorkoutDetailProps {
@@ -8,8 +11,45 @@ interface WorkoutDetailProps {
   onWorkoutUpdate?: () => void
 }
 
+type Category = keyof CurrentUserLevels
+
 export default function WorkoutDetail({ selectedDay, onWorkoutUpdate }: WorkoutDetailProps) {
-  const hasWorkouts = selectedDay.exercises?.length || selectedDay.todayWorkout
+  const [userLevels, setUserLevels] = useState<CurrentUserLevels | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
+  const [categoryExercises, setCategoryExercises] = useState<BaseExercise[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+
+  // Fetch user levels on mount
+  useEffect(() => {
+    const fetchLevels = async () => {
+      const levels = await api.user.getCurrentLevels()
+      setUserLevels(levels)
+    }
+    fetchLevels()
+  }, [])
+
+  // Handle category selection
+  const handleCategoryClick = async (category: Category) => {
+    if (selectedCategory === category) {
+      // Deselect if already selected
+      setSelectedCategory(null)
+      setCategoryExercises([])
+      return
+    }
+
+    if (!userLevels) return
+
+    setSelectedCategory(category)
+    setIsLoading(true)
+
+    try {
+      const level = userLevels[category]
+      const exercises = await api.exercises.getExercisesByLevel(level, category)
+      setCategoryExercises(exercises)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleExerciseChange = async (updatedExercise: BaseExercise, index: number) => {
     // Get current user data
@@ -36,25 +76,35 @@ export default function WorkoutDetail({ selectedDay, onWorkoutUpdate }: WorkoutD
     onWorkoutUpdate?.()
   }
 
-  if (!hasWorkouts) {
-    return (
-      <div className="weekly-progress__modal-content">
-        <div className="weekly-progress__exercise-list">
-          <ExerciseCard
-            exercise={{ name: '', sets: [] }}
-            onExerciseChange={() => {}}
-            className="weekly-progress__exercise-card"
-          />
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="weekly-progress__modal-content">
-      {selectedDay.exercises && selectedDay.exercises.length > 0 && (
-        <div className="weekly-progress__workout-section weekly-progress__workout-section--completed">
-          <div className="weekly-progress__exercise-list">
+      <div className="weekly-progress__exercise-list">
+        {/* Category exercises when selected */}
+        {isLoading && (
+          <p className="workout-detail__loading">Loading exercises...</p>
+        )}
+
+        {selectedCategory && !isLoading && categoryExercises.length > 0 && (
+          <>
+            {categoryExercises.map((exercise, exIndex) => (
+              <WorkoutExerciseCard
+                key={`category-${exIndex}`}
+                exercise={exercise}
+                className="weekly-progress__exercise-card"
+              />
+            ))}
+          </>
+        )}
+
+        {selectedCategory && !isLoading && categoryExercises.length === 0 && (
+          <p className="workout-detail__empty">
+            No exercises found for {selectedCategory} at level {userLevels?.[selectedCategory]}
+          </p>
+        )}
+
+        {/* Existing workout exercises */}
+        {selectedDay.exercises && selectedDay.exercises.length > 0 && (
+          <>
             {selectedDay.exercises.map((exercise, exIndex) => (
               <WorkoutExerciseCard
                 key={exIndex}
@@ -63,35 +113,39 @@ export default function WorkoutDetail({ selectedDay, onWorkoutUpdate }: WorkoutD
                 className="weekly-progress__exercise-card"
               />
             ))}
-          </div>
-        </div>
-      )}
+          </>
+        )}
 
-      {selectedDay.todayWorkout && (
-        <div className="weekly-progress__workout-section weekly-progress__workout-section--planned">
-          <div className="weekly-progress__workout-meta weekly-progress__workout-meta--planned">
-            Today: {new Date(selectedDay.todayWorkout.date).toLocaleString('en-US', {
-              weekday: 'short',
-              month: 'short',
-              day: 'numeric',
-              hour: 'numeric',
-              minute: '2-digit',
-              hour12: true
-            })} |
-            Categories: {(selectedDay.todayWorkout.categories ?? []).join(', ')}
-          </div>
-          <div className="weekly-progress__exercise-list">
+        {/* Today's workout */}
+        {selectedDay.todayWorkout && (
+          <>
             {selectedDay.todayWorkout.exercises.map((exercise, exIndex) => (
               <WorkoutExerciseCard
-                key={exIndex}
+                key={`today-${exIndex}`}
                 exercise={exercise}
                 onExerciseChange={(updated) => handleExerciseChange(updated, exIndex)}
                 className="weekly-progress__exercise-card"
               />
             ))}
-          </div>
+          </>
+        )}
+
+        {/* Category List - Always visible as last item */}
+        <div className="workout-detail__category-list">
+          {(['Push', 'Pull', 'Squat'] as Category[]).map((category) => (
+            <button
+              key={category}
+              className={`workout-detail__category-item ${selectedCategory === category ? 'workout-detail__category-item--active' : ''}`}
+              onClick={() => handleCategoryClick(category)}
+            >
+              <span className="workout-detail__category-name">{category}</span>
+              <span className="workout-detail__category-level">
+                Level {userLevels?.[category] ?? 0}
+              </span>
+            </button>
+          ))}
         </div>
-      )}
+      </div>
     </div>
   )
 }
