@@ -13,7 +13,7 @@ import {
   jsonResponse,
   errorResponse,
   handleCors
-} from '../core/infrastructure/blob'
+} from './core/infrastructure/blob'
 
 interface CurrentUserLevels {
   Push: number

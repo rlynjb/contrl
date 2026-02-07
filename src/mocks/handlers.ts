@@ -21,12 +21,12 @@ export const handlers = [
   // ============================================
 
   // GET /.netlify/functions/exercises/levels - Get all workout levels
-  http.get('*/.netlify/functions/exercises/levels', () => {
+  http.get('*/exercises/levels', () => {
     return HttpResponse.json<WorkoutLevels>(workoutLevels)
   }),
 
   // GET /.netlify/functions/exercises - Get exercises with optional filtering
-  http.get('*/.netlify/functions/exercises', ({ request }) => {
+  http.get('*/exercises', ({ request }) => {
     const url = new URL(request.url)
     const level = url.searchParams.get('level')
     const category = url.searchParams.get('category')
@@ -55,7 +55,7 @@ export const handlers = [
   }),
 
   // GET /.netlify/functions/exercises/search - Search exercises
-  http.get('*/.netlify/functions/exercises/search', ({ request }) => {
+  http.get('*/exercises/search', ({ request }) => {
     const url = new URL(request.url)
     const query = url.searchParams.get('q')?.toLowerCase() || ''
 
@@ -77,7 +77,7 @@ export const handlers = [
   }),
 
   // GET /.netlify/functions/exercises/level - Get exercise level info by name
-  http.get('*/.netlify/functions/exercises/level', ({ request }) => {
+  http.get('*/exercises/level', ({ request }) => {
     const url = new URL(request.url)
     const name = url.searchParams.get('name')
 
@@ -104,7 +104,7 @@ export const handlers = [
   }),
 
   // POST /.netlify/functions/exercises - Add a new exercise
-  http.post('*/.netlify/functions/exercises', async ({ request }) => {
+  http.post('*/exercises', async ({ request }) => {
     const body = await request.json() as BaseExercise
 
     if (!body.name) {
@@ -120,7 +120,7 @@ export const handlers = [
   // ============================================
 
   // GET /.netlify/functions/user/data - Get all user data
-  http.get('*/.netlify/functions/user/data', () => {
+  http.get('*/user/data', () => {
     if (!userData) {
       return HttpResponse.json(null, { status: 404 })
     }
@@ -128,7 +128,7 @@ export const handlers = [
   }),
 
   // PUT /.netlify/functions/user/data - Update all user data
-  http.put('*/.netlify/functions/user/data', async ({ request }) => {
+  http.put('*/user/data', async ({ request }) => {
     const body = await request.json() as UserData
 
     userData = {
@@ -140,7 +140,7 @@ export const handlers = [
   }),
 
   // GET /.netlify/functions/user/levels - Get user's current levels only
-  http.get('*/.netlify/functions/user/levels', () => {
+  http.get('*/user/levels', () => {
     if (!userData) {
       return HttpResponse.json({ Push: 0, Pull: 0, Squat: 0 })
     }
@@ -148,7 +148,7 @@ export const handlers = [
   }),
 
   // PUT /.netlify/functions/user/levels - Update a single level
-  http.put('*/.netlify/functions/user/levels', async ({ request }) => {
+  http.put('*/user/levels', async ({ request }) => {
     const body = await request.json() as { category: string; level: number }
 
     if (body.category && typeof body.level === 'number') {
@@ -176,7 +176,7 @@ export const handlers = [
   // ============================================
 
   // GET /.netlify/functions/health - Health check endpoint
-  http.get('*/.netlify/functions/health', () => {
+  http.get('*/health', () => {
     return HttpResponse.json({
       status: 'ok',
       timestamp: new Date().toISOString(),

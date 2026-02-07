@@ -20,7 +20,7 @@ export const api = {
 
   async healthCheck(): Promise<boolean> {
     try {
-      await apiClient.get('/.netlify/functions/health')
+      await apiClient.get('/health')
       return true
     } catch {
       return false

@@ -13,8 +13,8 @@ import {
   jsonResponse,
   errorResponse,
   handleCors
-} from '../core/infrastructure/blob'
-import { workoutLevels } from '../../../src/mocks/data/exercises'
+} from './core/infrastructure/blob'
+import { workoutLevels } from '../../src/mocks/data/exercises'
 
 export default async (req: Request, _context: Context) => {
   // Handle CORS preflight

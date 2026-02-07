@@ -208,6 +208,7 @@
 
 .exercise-card__meta-label {
   color: rgb(107 114 128);
+  margin-right: 0.5em;
 }
 
 .exercise-card__meta-label--spaced {

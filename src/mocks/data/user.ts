@@ -8,7 +8,7 @@ import { allExercises } from './exercises'
 
 // Mock user's current progress levels
 export const MOCK_CurrentUserLevel: CurrentUserLevels = {
-  Push: 1,
+  Push: 2,
   Pull: 1,
   Squat: 0
 }
@@ -29,16 +29,31 @@ const getExercisesForCategory = (
     }))
 }
 
+// Get dates for the current week (Monday, Tuesday, Wednesday)
+const getCurrentWeekWorkoutDates = (): Date[] => {
+  const now = new Date()
+  const day = now.getDay() // 0 = Sunday, 1 = Monday, etc.
+
+  // Calculate offset to get to Monday of current week
+  const mondayOffset = day === 0 ? -6 : 1 - day
+
+  const monday = new Date(now)
+  monday.setDate(now.getDate() + mondayOffset)
+  monday.setHours(9, 0, 0, 0)
+
+  const tuesday = new Date(monday)
+  tuesday.setDate(monday.getDate() + 1)
+
+  const wednesday = new Date(monday)
+  wednesday.setDate(monday.getDate() + 2)
+
+  return [monday, tuesday, wednesday]
+}
+
 // Generate workout sessions based on user's current levels
 const generateWorkoutSessions = (): WorkoutSession[] => {
   const categories = Object.keys(MOCK_CurrentUserLevel) as ('Push' | 'Pull' | 'Squat')[]
-
-  // Base dates for the week of Feb 2-8, 2026
-  const workoutDates = [
-    new Date("2026-02-03T09:00:00.000Z"), // Monday - Push
-    new Date("2026-02-04T09:00:00.000Z"), // Tuesday - Pull
-    new Date("2026-02-05T09:00:00.000Z"), // Wednesday - Squat
-  ]
+  const workoutDates = getCurrentWeekWorkoutDates()
 
   return categories.map((category, index) => {
     const level = MOCK_CurrentUserLevel[category]
@@ -65,7 +80,7 @@ export const todaysTodayWorkout: WorkoutSession = {
   ],
   categories: ['Push', 'Pull', 'Squat'],
   level: Math.max(MOCK_CurrentUserLevel.Push, MOCK_CurrentUserLevel.Pull, MOCK_CurrentUserLevel.Squat),
-  date: new Date("2026-02-02T18:00:00.000Z") // Sunday, Feb 2, 2026
+  date: new Date()
 }
 
 // Complete mock user data

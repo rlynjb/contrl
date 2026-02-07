@@ -13,7 +13,7 @@ import {
   jsonResponse,
   errorResponse,
   handleCors
-} from '../core/infrastructure/blob'
+} from './core/infrastructure/blob'
 
 // Type definitions matching src/api/user.ts
 interface CurrentUserLevels {

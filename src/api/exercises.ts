@@ -51,7 +51,7 @@ export interface ExerciseLevelInfo {
 // API functions
 export const exerciseApi = {
   async getWorkoutLevels(): Promise<WorkoutLevels> {
-    const response = await apiClient.get<WorkoutLevels>('/.netlify/functions/exercises/levels')
+    const response = await apiClient.get<WorkoutLevels>('/exercises/levels')
     return response.data
   },
 
@@ -59,12 +59,12 @@ export const exerciseApi = {
     const params: Record<string, string> = { level: level.toString() }
     if (category) params.category = category
 
-    const response = await apiClient.get<BaseExercise[]>('/.netlify/functions/exercises', params)
+    const response = await apiClient.get<BaseExercise[]>('/exercises', params)
     return response.data
   },
 
   async searchExercises(query: string): Promise<BaseExercise[]> {
-    const response = await apiClient.get<BaseExercise[]>('/.netlify/functions/exercises/search', {
+    const response = await apiClient.get<BaseExercise[]>('/exercises/search', {
       q: query
     })
     return response.data
@@ -72,7 +72,7 @@ export const exerciseApi = {
 
   async getExerciseLevel(name: string): Promise<ExerciseLevelInfo | null> {
     const response = await apiClient.get<ExerciseLevelInfo | null>(
-      '/.netlify/functions/exercises/level',
+      '/exercises/level',
       { name }
     )
     return response.data
@@ -80,7 +80,7 @@ export const exerciseApi = {
 
   async addExercise(exercise: BaseExercise): Promise<{ success: boolean; exercise?: BaseExercise }> {
     const response = await apiClient.post<{ success: boolean; exercise?: BaseExercise }>(
-      '/.netlify/functions/exercises',
+      '/exercises',
       exercise
     )
     return response.data

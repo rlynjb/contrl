@@ -14,9 +14,9 @@ import {
   jsonResponse,
   errorResponse,
   handleCors
-} from '../core/infrastructure/blob'
-import { allExercises } from '../../../src/mocks/data/exercises'
-import type { BaseExercise } from '../../../src/api/exercises'
+} from './core/infrastructure/blob'
+import { allExercises } from '../../src/mocks/data/exercises'
+import type { BaseExercise } from '../../src/api/exercises'
 
 export default async (req: Request, _context: Context) => {
   // Handle CORS preflight
