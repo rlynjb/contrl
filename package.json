@@ -16,7 +16,9 @@
     "db:seed": "tsx netlify/functions/core/infrastructure/database/seed-exercises.ts && tsx netlify/functions/core/infrastructure/database/seed-user-progress.ts",
     "db:test": "tsx netlify/functions/core/infrastructure/database/test-connection.ts",
     "db:verify": "tsx netlify/functions/core/infrastructure/database/verify.ts",
-    "db:test-queries": "tsx netlify/functions/core/infrastructure/database/test-queries.ts"
+    "db:test-queries": "tsx netlify/functions/core/infrastructure/database/test-queries.ts",
+    "sync:from-blob": "npx ts-node scripts/sync-from-blob.ts",
+    "sync:from-prod": "npx ts-node scripts/sync-from-blob.ts --url"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.9.5",
