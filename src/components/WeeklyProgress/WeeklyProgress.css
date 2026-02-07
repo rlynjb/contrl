@@ -76,10 +76,6 @@
 }
 
 /* Main Content */
-.weekly-progress__content {
-  width: 100%;
-}
-
 .weekly-progress__week-header {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -108,33 +104,36 @@
   align-items: center;
   padding: 0.75rem;
   border-radius: 0.5rem;
-  border: 2px solid;
+  border: 1px solid #3a3a3a;
   transition: all 0.2s ease-in-out;
   cursor: pointer;
 }
 
-.weekly-progress__day--default {
-  border-color: rgb(229 231 235);
-  background-color: hsl(var(--card));
-}
-
 .weekly-progress__day--today {
-  border-color: hsl(var(--primary));
-  background-color: hsl(var(--primary) / 0.1);
+  border-color: hsl(167.08deg 91.2% 59.8%);
+  background-color: hsl(133.14deg 74.07% 33.25% / 10%);
 }
 
-.weekly-progress__day--completed {
+.weekly-progress__day-indicator--today {
+  width: 0.75rem;
+  height: 0.75rem;
+  background-color: hsl(131.27deg 63.43% 29%);
+  border-radius: 50%;
+}
+
+.weekly-progress__day--workout {
+  border-color: rgb(37 99 235);
+  background-color: rgb(37 99 235 / 0.1);
+}
+
+/* .weekly-progress__day--completed {
   border-color: rgb(22 163 74);
   background-color: rgb(22 163 74 / 0.1);
 }
 
 .weekly-progress__day--completed:hover {
   background-color: rgb(22 163 74 / 0.2);
-}
-
-.weekly-progress__day--with-workout:hover {
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-}
+} */
 
 .weekly-progress__day-name {
   font-size: 0.75rem;
@@ -161,18 +160,15 @@
   font-size: 1.125rem;
 }
 
-.weekly-progress__day-indicator--today {
-  width: 0.75rem;
-  height: 0.75rem;
-  background-color: hsl(var(--primary));
-  border-radius: 50%;
-}
-
 .weekly-progress__day-indicator--default {
   width: 0.75rem;
   height: 0.75rem;
   border: 2px solid rgb(156 163 175 / 0.3);
   border-radius: 50%;
+}
+
+.weekly-progress__day-category {
+  font-size: 0.7em;
 }
 
 .weekly-progress__exercise-count {
@@ -195,6 +191,13 @@
   gap: 1rem;
 }
 
+.weekly-progress__empty-state {
+  text-align: center;
+  color: rgb(156 163 175);
+  font-size: 0.875rem;
+  padding: 2rem 0;
+}
+
 .weekly-progress__workout-section {
   display: flex;
   flex-direction: column;
@@ -206,11 +209,6 @@
   color: rgb(156 163 175);
   padding: 0.75rem;
   border-radius: 0.5rem;
-}
-
-.weekly-progress__workout-meta--completed {
-  background-color: rgb(20 83 45 / 0.2);
-  border: 1px solid rgb(34 197 94 / 0.3);
 }
 
 .weekly-progress__workout-meta--planned {
@@ -235,12 +233,3 @@
   border-left: 4px solid;
 }
 
-.weekly-progress__exercise-card--completed {
-  background-color: rgb(20 83 45 / 0.1);
-  border-left-color: rgb(34 197 94);
-}
-
-.weekly-progress__exercise-card--planned {
-  background-color: rgb(30 58 138 / 0.1);
-  border-left-color: rgb(96 165 250);
-}

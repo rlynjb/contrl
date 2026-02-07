@@ -1,0 +1,91 @@
+/**
+ * User Mock Data
+ */
+
+import type { CurrentUserLevels, WorkoutSession, UserData } from '@/api/user'
+import type { BaseExercise } from '@/api/exercises'
+import { allExercises } from './exercises'
+
+// Mock user's current progress levels
+export const MOCK_CurrentUserLevel: CurrentUserLevels = {
+  Push: 2,
+  Pull: 1,
+  Squat: 0
+}
+
+// Helper to filter exercises by category and level
+const getExercisesForCategory = (
+  category: 'Push' | 'Pull' | 'Squat',
+  level: number
+): BaseExercise[] => {
+  return allExercises
+    .filter(ex => ex.category === category && ex.level === level)
+    .map(({ name, sets, tempo, rest, equipment }) => ({
+      name,
+      sets,
+      tempo,
+      rest,
+      ...(equipment && { equipment })
+    }))
+}
+
+// Get dates for the current week (Monday, Tuesday, Wednesday)
+const getCurrentWeekWorkoutDates = (): Date[] => {
+  const now = new Date()
+  const day = now.getDay() // 0 = Sunday, 1 = Monday, etc.
+
+  // Calculate offset to get to Monday of current week
+  const mondayOffset = day === 0 ? -6 : 1 - day
+
+  const monday = new Date(now)
+  monday.setDate(now.getDate() + mondayOffset)
+  monday.setHours(9, 0, 0, 0)
+
+  const tuesday = new Date(monday)
+  tuesday.setDate(monday.getDate() + 1)
+
+  const wednesday = new Date(monday)
+  wednesday.setDate(monday.getDate() + 2)
+
+  return [monday, tuesday, wednesday]
+}
+
+// Generate workout sessions based on user's current levels
+const generateWorkoutSessions = (): WorkoutSession[] => {
+  const categories = Object.keys(MOCK_CurrentUserLevel) as ('Push' | 'Pull' | 'Squat')[]
+  const workoutDates = getCurrentWeekWorkoutDates()
+
+  return categories.map((category, index) => {
+    const level = MOCK_CurrentUserLevel[category]
+    const exercises = getExercisesForCategory(category, level)
+
+    return {
+      exercises,
+      categories: [category],
+      level,
+      date: workoutDates[index]
+    }
+  })
+}
+
+// Generated workout sessions based on MOCK_CurrentUserLevel
+export const MOCK_weeklyWorkouts: WorkoutSession[] = generateWorkoutSessions()
+
+// Today's planned workout - combines all categories
+export const todaysTodayWorkout: WorkoutSession = {
+  exercises: [
+    ...getExercisesForCategory('Push', MOCK_CurrentUserLevel.Push),
+    ...getExercisesForCategory('Pull', MOCK_CurrentUserLevel.Pull),
+    ...getExercisesForCategory('Squat', MOCK_CurrentUserLevel.Squat)
+  ],
+  categories: ['Push', 'Pull', 'Squat'],
+  level: Math.max(MOCK_CurrentUserLevel.Push, MOCK_CurrentUserLevel.Pull, MOCK_CurrentUserLevel.Squat),
+  date: new Date()
+}
+
+// Complete mock user data
+export const MOCK_UserData: UserData = {
+  currentLevels: MOCK_CurrentUserLevel,
+  weeklyProgress: MOCK_weeklyWorkouts,
+  lastUpdated: new Date().toISOString()
+}

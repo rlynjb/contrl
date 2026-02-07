@@ -1,13 +1,42 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Badge, ExerciseCard } from '@/components/ui'
-import type { BaseExercise, BaseExerciseSet, WorkoutLevel } from '@/types'
-import { workoutLevels } from '@/data/WorkoutLevels'
-import { currentLevelData } from '@/data/CurrentLevel'
+import { api } from '@/api'
+import type { BaseExercise, WorkoutLevel, UserData, CurrentUserLevels } from '@/api'
+import { MOCK_UserData } from '@/mocks'
 import './WorkoutLevels.css'
 
 export default function WorkoutLevels() {
-  const { currentLevels } = currentLevelData
+  const [ exercises, setExercises ] = useState<Record<string, WorkoutLevel>>({});
+  const [ currentLevels, setCurrentLevels ] = useState<CurrentUserLevels>({ Push: 0, Pull: 0, Squat: 0 });
+
+  useEffect(() => {
+    const getExercises = async () => {
+      const res = await api.exercises.getWorkoutLevels();
+      setExercises(res);
+    };
+    
+    getExercises();
+
+    /**
+     * TODO:
+     * replace this with LevelCalculator logic to determine
+     * user's current level based on completed workout's sets, reps, etc.
+     */
+    const initUserData = async () => {
+      let userData = await api.user.getUserData()
+
+      // Initialize with mock data if no user data exists
+      if (!userData) {
+        userData = await api.user.updateUserData(MOCK_UserData as UserData)
+      }
+
+      setCurrentLevels(userData?.currentLevels || { Push: 0, Pull: 0, Squat: 0 })
+    }
+
+    initUserData()    
+  }, []);
   
   return (
     <div className="workout-levels">
@@ -34,7 +63,7 @@ export default function WorkoutLevels() {
       </div>
       
       <div className="workout-levels__container">
-        {(Object.entries(workoutLevels) as [string, WorkoutLevel][]).map(([levelKey, level], levelIndex) => {
+        {(Object.entries(exercises) as [string, WorkoutLevel][]).map(([levelKey, level], levelIndex) => {
           // Check if this is a current level for any category
           const isCurrentLevel = Object.values(currentLevels).includes(levelIndex)
           
@@ -89,7 +118,7 @@ export default function WorkoutLevels() {
       </div>
       
       {/* Level Guidelines */}
-      <div className="workout-levels__guidelines">
+      {/* <div className="workout-levels__guidelines">
         <div className="workout-levels__guidelines-header">
           <div className="workout-levels__guidelines-icon">💡</div>
           <div className="workout-levels__guidelines-title">Progression Guidelines</div>
@@ -102,7 +131,7 @@ export default function WorkoutLevels() {
           <p className="workout-levels__guideline-item">• Rest adequately between workouts (48-72 hours for same muscle groups)</p>
           <p className="workout-levels__guideline-item">• If experiencing knee discomfort, start with Level 0 and progress slowly</p>
         </div>
-      </div>
+      </div> */}
     </div>
   )
 }

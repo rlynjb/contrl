@@ -4,6 +4,7 @@ import Link from 'next/link'
 import './globals.css'
 import { cn } from '@/lib/utils'
 import { APP_METADATA, APP_VIEWPORT } from '@/lib/constants'
+import { MSWProvider } from '@/mocks'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -22,18 +23,20 @@ export default function RootLayout({
         "min-h-screen bg-background font-sans antialiased text-foreground",
         inter.className
       )} suppressHydrationWarning>
-        <div className="relative flex min-h-screen flex-col">
-          <header className="border-b">
-            <div className="container mx-auto px-4 py-3">
-              <nav className="flex items-center justify-between">
-                <Link href="/" className="font-bold text-xl flex items-center gap-2">
-                  🤸‍♂️ CalisthenIQ
-                </Link>
-              </nav>
-            </div>
-          </header>
-          <div className="flex-1">{children}</div>
-        </div>
+        <MSWProvider>
+          <div className="relative flex min-h-screen flex-col">
+            <header className="border-b">
+              <div className="container mx-auto px-4 py-3">
+                <nav className="flex items-center justify-between">
+                  <Link href="/" className="font-bold text-xl flex items-center gap-2">
+                    🤸‍♂️ CalisthenIQ
+                  </Link>
+                </nav>
+              </div>
+            </header>
+            <div className="flex-1">{children}</div>
+          </div>
+        </MSWProvider>
       </body>
     </html>
   )

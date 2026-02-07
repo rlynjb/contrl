@@ -6,14 +6,85 @@
   padding: 0.75rem;
 }
 
-.exercise-card__name {
-  font-weight: 500;
-  font-size: 0.875rem;
+/* Level label */
+.exercise-card__level {
+  display: block;
+  font-size: 0.6875rem;
+  color: rgb(107 114 128);
+  margin-bottom: 0.125rem;
+}
+
+/* Name input + search dropdown */
+.exercise-card__name-wrapper {
+  position: relative;
   margin-bottom: 0.5rem;
 }
 
-.exercise-card__equipment-badge {
+.exercise-card__name-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid transparent;
+  color: inherit;
+  font-weight: 500;
+  font-size: 0.875rem;
+  padding: 0.25rem 0;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.exercise-card__name-input:focus {
+  border-bottom-color: rgb(96 165 250);
+}
+
+.exercise-card__name-input::placeholder {
+  color: rgb(107 114 128);
+}
+
+.exercise-card__dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background-color: rgb(31 41 55);
+  border: 1px solid rgb(75 85 99);
+  border-radius: 0.375rem;
+  margin-top: 0.25rem;
+  max-height: 12rem;
+  overflow-y: auto;
+  list-style: none;
+  padding: 0.25rem 0;
+}
+
+.exercise-card__dropdown-item {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  color: rgb(209 213 219);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.exercise-card__dropdown-item:hover {
+  background-color: rgb(55 65 81);
+}
+
+.exercise-card__dropdown-item--create {
+  color: rgb(96 165 250);
+  border-top: 1px solid rgb(75 85 99);
+  font-weight: 500;
+}
+
+/* Equipment select */
+.exercise-card__equipment-wrapper {
+  position: relative;
   margin-bottom: 0.5rem;
+}
+
+.exercise-card__equipment-trigger {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
 }
 
 .exercise-card__equipment-badge-inner {
@@ -23,22 +94,112 @@
   border-color: rgb(75 85 99);
 }
 
+.exercise-card__equipment-placeholder {
+  font-size: 0.75rem;
+  color: rgb(107 114 128);
+  transition: color 0.15s;
+}
+
+.exercise-card__equipment-trigger:hover .exercise-card__equipment-placeholder {
+  color: rgb(156 163 175);
+}
+
+.exercise-card__equipment-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 10;
+  background-color: rgb(31 41 55);
+  border: 1px solid rgb(75 85 99);
+  border-radius: 0.375rem;
+  margin-top: 0.25rem;
+  min-width: 10rem;
+  list-style: none;
+  padding: 0.25rem 0;
+}
+
+.exercise-card__equipment-item {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  color: rgb(209 213 219);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.exercise-card__equipment-item:hover {
+  background-color: rgb(55 65 81);
+}
+
+.exercise-card__equipment-item--active {
+  color: rgb(96 165 250);
+  font-weight: 500;
+}
+
 .exercise-card__sets-info {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
 }
 
+/* Sets inputs */
 .exercise-card__sets-row {
-  font-size: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
 }
 
 .exercise-card__sets-label {
   color: rgb(107 114 128);
+  font-size: 0.75rem;
 }
 
-.exercise-card__sets-list {
+.exercise-card__sets-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  align-items: center;
+}
+
+.exercise-card__set-input {
+  width: 3rem;
+  background: transparent;
+  border: 1px solid rgb(75 85 99);
+  border-radius: 0.25rem;
+  color: inherit;
+  font-size: 0.8125rem;
   font-weight: 500;
+  padding: 0.25rem 0.375rem;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.exercise-card__set-input:focus {
+  border-color: rgb(96 165 250);
+}
+
+.exercise-card__set-input::placeholder {
+  color: rgb(75 85 99);
+}
+
+.exercise-card__set-add {
+  background: transparent;
+  border: 1px dashed rgb(75 85 99);
+  border-radius: 0.25rem;
+  color: rgb(107 114 128);
+  width: 2rem;
+  height: 1.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.exercise-card__set-add:hover {
+  border-color: rgb(96 165 250);
+  color: rgb(96 165 250);
 }
 
 .exercise-card__exercise-meta {
@@ -47,22 +208,102 @@
 
 .exercise-card__meta-label {
   color: rgb(107 114 128);
+  margin-right: 0.5em;
 }
 
 .exercise-card__meta-label--spaced {
   margin-left: 0.75rem;
 }
 
-.exercise-card__meta-value {
+.exercise-card__meta-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid transparent;
+  color: inherit;
   font-weight: 500;
+  font-size: 0.75rem;
+  padding: 0;
+  width: 3rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.exercise-card__meta-input:focus {
+  border-bottom-color: rgb(96 165 250);
+}
+
+.exercise-card__meta-input::placeholder {
+  color: rgb(75 85 99);
 }
 
 .exercise-card__notes {
+  display: block;
+  width: 100%;
   margin-top: 0.5rem;
-  padding: 0.5rem;
-  background-color: rgb(31 41 55);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid transparent;
+  color: inherit;
+  font-weight: 500;
+  font-size: 0.875rem;
+  font-family: inherit;
+  padding: 0.25rem 0;
+  outline: none;
+  resize: vertical;
+  min-height: 2.5rem;
+  transition: border-color 0.2s;
+}
+
+.exercise-card__notes:focus {
+  border-bottom-color: rgb(96 165 250);
+}
+
+.exercise-card__notes::placeholder {
+  color: rgb(107 114 128);
+}
+
+/* Workout tracking styles (used by WorkoutExerciseCard) */
+.exercise-card--completed {
+  border: 1px solid rgb(34 197 94 / 0.4);
+  background-color: rgb(34 197 94 / 0.05);
+}
+
+.exercise-card__name-display {
+  display: block;
+  font-weight: 500;
+  font-size: 0.875rem;
+  padding: 0.25rem 0;
+}
+
+.exercise-card__set-group {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.exercise-card__set-check {
+  width: 1.25rem;
+  height: 1.25rem;
   border-radius: 0.25rem;
-  font-size: 0.75rem;
+  border: 1px solid rgb(75 85 99);
+  background: transparent;
   color: rgb(156 163 175);
-  border-left: 3px solid rgb(59 130 246);
+  font-size: 0.625rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.exercise-card__set-check:hover {
+  border-color: rgb(96 165 250);
+  color: rgb(96 165 250);
+}
+
+.exercise-card__set-check--done {
+  border-color: rgb(34 197 94);
+  background-color: rgb(34 197 94);
+  color: white;
 }

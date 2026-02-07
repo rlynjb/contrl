@@ -54,13 +54,13 @@ export default function DashboardPage() {
     <div className="container mx-auto px-4 py-6 max-w-4xl">
       <ProgressPanel />
 
-      <Card>
+      {/* <Card>
         <CardContent className="p-0">
           <div className="h-[600px]">
             <ChatInterface />
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
   )
 }
