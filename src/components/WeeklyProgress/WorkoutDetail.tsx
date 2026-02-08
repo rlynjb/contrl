@@ -18,6 +18,7 @@ export default function WorkoutDetail({ selectedDay, onWorkoutUpdate }: WorkoutD
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [categoryExercises, setCategoryExercises] = useState<BaseExercise[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [addedCategories, setAddedCategories] = useState<Category[]>([])
 
   // Fetch user levels on mount
   useEffect(() => {
@@ -28,7 +29,7 @@ export default function WorkoutDetail({ selectedDay, onWorkoutUpdate }: WorkoutD
     fetchLevels()
   }, [])
 
-  // Handle category selection
+  // Handle category selection - fetches exercises and saves to userData
   const handleCategoryClick = async (category: Category) => {
     if (selectedCategory === category) {
       // Deselect if already selected
@@ -46,6 +47,57 @@ export default function WorkoutDetail({ selectedDay, onWorkoutUpdate }: WorkoutD
       const level = userLevels[category]
       const exercises = await api.exercises.getExercisesByLevel(level, category)
       setCategoryExercises(exercises)
+
+      // Save exercises to userData
+      const userData = await api.user.getUserData()
+      if (!userData) return
+
+      const dayDate = new Date(selectedDay.date).toDateString()
+      const existingSession = userData.weeklyProgress?.find(
+        session => new Date(session.date).toDateString() === dayDate
+      )
+
+      let updatedProgress = userData.weeklyProgress || []
+
+      if (existingSession) {
+        // Update existing session - add exercises and category
+        updatedProgress = updatedProgress.map(session => {
+          if (new Date(session.date).toDateString() === dayDate) {
+            const existingCategories = session.categories || []
+            return {
+              ...session,
+              exercises: [...session.exercises, ...exercises],
+              categories: existingCategories.includes(category)
+                ? existingCategories
+                : [...existingCategories, category]
+            }
+          }
+          return session
+        })
+      } else {
+        // Create new session for this day
+        updatedProgress = [
+          ...updatedProgress,
+          {
+            exercises,
+            categories: [category],
+            level,
+            date: selectedDay.date
+          }
+        ]
+      }
+
+      // Save to Netlify Blob via API
+      await api.user.updateUserData({
+        ...userData,
+        weeklyProgress: updatedProgress
+      })
+
+      // Mark category as added to disable button immediately
+      setAddedCategories(prev => [...prev, category])
+
+      // Notify parent to refresh data
+      onWorkoutUpdate?.()
     } finally {
       setIsLoading(false)
     }
@@ -132,18 +184,22 @@ export default function WorkoutDetail({ selectedDay, onWorkoutUpdate }: WorkoutD
 
         {/* Category List - Always visible as last item */}
         <div className="workout-detail__category-list">
-          {(['Push', 'Pull', 'Squat'] as Category[]).map((category) => (
-            <button
-              key={category}
-              className={`workout-detail__category-item ${selectedCategory === category ? 'workout-detail__category-item--active' : ''}`}
-              onClick={() => handleCategoryClick(category)}
-            >
-              <span className="workout-detail__category-name">{category}</span>
-              <span className="workout-detail__category-level">
-                Level {userLevels?.[category] ?? 0}
-              </span>
-            </button>
-          ))}
+          {(['Push', 'Pull', 'Squat'] as Category[]).map((category) => {
+            const hasExercises = selectedDay.categories?.includes(category) || addedCategories.includes(category)
+            return (
+              <button
+                key={category}
+                className={`workout-detail__category-item workout-detail__category-item--${category.toLowerCase()} ${selectedCategory === category ? 'workout-detail__category-item--active' : ''} ${hasExercises ? 'workout-detail__category-item--disabled' : ''}`}
+                onClick={() => handleCategoryClick(category)}
+                disabled={hasExercises}
+              >
+                <span className="workout-detail__category-name">{category}</span>
+                <span className="workout-detail__category-level">
+                  Level {userLevels?.[category] ?? 0}
+                </span>
+              </button>
+            )
+          })}
         </div>
       </div>
     </div>

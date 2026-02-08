@@ -132,8 +132,10 @@ export default function ExerciseCard({ exercise, className = '', onExerciseChang
   )
   const showCreate = inputValue.trim() && !hasExactMatch
 
+  const categoryClass = levelInfo?.category ? `exercise-card--${levelInfo.category.toLowerCase()}` : ''
+
   return (
-    <div className={`exercise-card ${className}`}>
+    <div className={`exercise-card ${categoryClass} ${className}`}>
       {levelInfo && (
         <span className="exercise-card__level">Level {levelInfo.level} · {levelInfo.name} · {levelInfo.category}</span>
       )}

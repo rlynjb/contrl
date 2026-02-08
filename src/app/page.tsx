@@ -17,7 +17,7 @@ function ProgressPanel() {
           <div className="flex items-center justify-between border-b pb-4">
             {/* Left side - Weekly Progress title */}
             <div className="flex items-center gap-2">
-              <span className="text-lg font-medium">📅 Weekly Progress</span>
+              <span className="text-lg font-medium">Weekly Progress</span>
             </div>
             
             {/* Right side - Action buttons */}
@@ -26,7 +26,7 @@ function ProgressPanel() {
                 onClick={() => setIsWorkoutLevelsModalOpen(true)}
                 className="px-3 py-2 bg-secondary text-secondary-foreground rounded-md text-sm font-medium hover:bg-secondary/80 transition-colors"
               >
-                🏆 Workout Levels
+                Workout Levels
               </button>
             </div>
           </div>
@@ -41,7 +41,7 @@ function ProgressPanel() {
       <Modal 
         isOpen={isWorkoutLevelsModalOpen} 
         onClose={() => setIsWorkoutLevelsModalOpen(false)}
-        title="🏆 Workout Levels"
+        title="Workout Levels"
       >
         <WorkoutLevels />
       </Modal>

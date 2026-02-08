@@ -47,14 +47,13 @@ export default function WorkoutLevels() {
       {/* Current Levels Overview */}
       <div className="workout-levels__overview">
         <div className="workout-levels__overview-header">
-          <div className="workout-levels__overview-icon">📊</div>
           <div className="workout-levels__overview-title">Your Current Levels</div>
         </div>
         <div className="workout-levels__overview-grid">
           {Object.entries(currentLevels).map(([category, level]) => (
-            <div key={category} className="workout-levels__overview-item">
+            <div key={category} className={`workout-levels__overview-item workout-levels__overview-item--${category.toLowerCase()}`}>
               <div className="workout-levels__overview-category">{category}</div>
-              <Badge variant="default" className="workout-levels__overview-badge">
+              <Badge variant="default" className={`workout-levels__overview-badge workout-levels__overview-badge--${category.toLowerCase()}`}>
                 Level {level}
               </Badge>
             </div>

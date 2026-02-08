@@ -69,8 +69,10 @@ export default function WorkoutExerciseCard({
   const completedCount = setCompleted.filter(Boolean).length
   const allCompleted = completedCount === setValues.length && setValues.length > 0
 
+  const categoryClass = levelInfo?.category ? `exercise-card--${levelInfo.category.toLowerCase()}` : ''
+
   return (
-    <div className={`exercise-card ${allCompleted ? 'exercise-card--completed' : ''} ${className}`}>
+    <div className={`exercise-card ${categoryClass} ${allCompleted ? 'exercise-card--completed' : ''} ${className}`}>
       {levelInfo && (
         <span className="exercise-card__level">
           Level {levelInfo.level} · {levelInfo.name} · {levelInfo.category}
