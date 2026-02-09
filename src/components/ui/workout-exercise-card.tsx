@@ -16,10 +16,13 @@ export default function WorkoutExerciseCard({
   className = '',
   onExerciseChange
 }: WorkoutExerciseCardProps) {
-  // Match exercise-card format: "5" for reps, "30s" for duration
-  const [setValues, setSetValues] = useState<string[]>(
-    exercise.sets.map(set => 'reps' in set && set.reps ? String(set.reps) : `${set.duration}s`)
+  // Original target values from exercise definition
+  const targetValues = exercise.sets.map(set =>
+    'reps' in set && set.reps ? String(set.reps) : `${set.duration}s`
   )
+
+  // Match exercise-card format: "5" for reps, "30s" for duration
+  const [setValues, setSetValues] = useState<string[]>(targetValues)
   const [setCompleted, setSetCompleted] = useState<boolean[]>(
     exercise.completedSets || exercise.sets.map(() => false)
   )
@@ -121,21 +124,26 @@ export default function WorkoutExerciseCard({
           <div className="exercise-card__sets-inputs">
             {setValues.map((value, index) => (
               <div key={index} className="exercise-card__set-group">
-                <button
-                  type="button"
-                  className={`exercise-card__set-check ${setCompleted[index] ? 'exercise-card__set-check--done' : ''}`}
-                  onClick={() => toggleSet(index)}
-                  aria-label={setCompleted[index] ? 'Mark incomplete' : 'Mark complete'}
-                >
-                  {setCompleted[index] ? '✓' : ''}
-                </button>
-                <input
-                  className="exercise-card__set-input"
-                  value={value}
-                  onChange={(e) => updateSet(index, e.target.value)}
-                  onBlur={emitChange}
-                  placeholder="..."
-                />
+                <div className="exercise-card__set-row">
+                  <button
+                    type="button"
+                    className={`exercise-card__set-check ${setCompleted[index] ? 'exercise-card__set-check--done' : ''}`}
+                    onClick={() => toggleSet(index)}
+                    aria-label={setCompleted[index] ? 'Mark incomplete' : 'Mark complete'}
+                  >
+                    {setCompleted[index] ? '✓' : ''}
+                  </button>
+                  <input
+                    className="exercise-card__set-input"
+                    value={value}
+                    onChange={(e) => updateSet(index, e.target.value)}
+                    onBlur={emitChange}
+                    placeholder="..."
+                  />
+                </div>
+                <span className="exercise-card__set-target">
+                  Goal: {targetValues[index]}
+                </span>
               </div>
             ))}
           </div>

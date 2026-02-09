@@ -1,69 +1,47 @@
 /**
  * Netlify Function: Seed Data
  *
- * POST /seed - Initialize blob store with mock data
+ * POST /seed - Initialize blob store with dynamic mock data
+ * POST /seed?source=snapshot - Initialize from snapshot files
  *
- * This function populates the Netlify Blob store with initial data.
- * Uses the same mock data as MSW handlers for consistency.
+ * =============================================================================
+ * COMPLETE WORKFLOW: Mock ↔ Blob ↔ Snapshot
+ * =============================================================================
+ *
+ * 1. SEED FROM MOCK (dynamic dates):
+ *    curl -X POST http://localhost:8888/seed
+ *    → Uses src/mocks/data (user.ts, exercises.ts) with current week dates
+ *
+ * 2. SEED FROM SNAPSHOT (static data):
+ *    curl -X POST http://localhost:8888/seed?source=snapshot
+ *    → Uses src/mocks/data/snapshots/*.json (previously exported data)
+ *
+ * 3. EXPORT TO SNAPSHOT:
+ *    curl http://localhost:8888/export > export.json
+ *    cat export.json | jq '.data.userData' > src/mocks/data/snapshots/user-snapshot.json
+ *    cat export.json | jq '.data.workoutLevels' > src/mocks/data/snapshots/exercises-snapshot.json
+ *
+ * =============================================================================
  *
  * PREREQUISITES
  * -------------
- * 1. MSW must be disabled in .env.local:
- *    NEXT_PUBLIC_MSW_ENABLED=false
- *
- * 2. Netlify CLI must be installed:
- *    npm install -g netlify-cli
- *
- * LOCAL DEVELOPMENT
- * -----------------
- * 1. Start the Netlify dev server:
- *    netlify dev
- *
- * 2. Call the seed endpoint:
- *    curl -X POST http://localhost:8888/seed
- *
- * 3. Verify the data was seeded:
- *    curl http://localhost:8888/user/data
- *
- * PRODUCTION / DEPLOY PREVIEW
- * ---------------------------
- * After deploying to Netlify:
- *    curl -X POST https://your-site.netlify.app/seed
+ * 1. MSW must be disabled: NEXT_PUBLIC_MSW_ENABLED=false
+ * 2. Netlify CLI installed: npm install -g netlify-cli
+ * 3. Start server: netlify dev
  *
  * WHAT GETS SEEDED
  * ----------------
  * User Data (/user/data):
- *   - currentLevels: { Push: 1, Pull: 1, Squat: 0 }
- *   - weeklyProgress: Workouts for Mon/Tue/Wed of the current week
- *     - Monday: Push exercises
- *     - Tuesday: Pull exercises
- *     - Wednesday: Squat exercises
+ *   - currentLevels: { Push: 1, Pull: 1, Squat: 1 }
+ *   - weeklyProgress: Workouts for upcoming week
  *
  * Workout Levels (/exercises/levels):
- *   - Level 0: Foundation exercises
- *   - Level 1: Beginner exercises
- *   - Level 2-5: Novice through Expert
+ *   - Level 1-5: Beginner through Expert
  *
- * RE-SEEDING
- * ----------
- * To reset data to defaults, call the seed endpoint again:
- *    curl -X POST http://localhost:8888/seed
- *
- * This overwrites existing data with fresh mock data using current week dates.
- *
- * TROUBLESHOOTING
- * ---------------
- * "Method not allowed":
- *   Make sure you're using POST: curl -X POST http://localhost:8888/seed
- *
- * Empty response from /user/data:
- *   The seed function hasn't been called yet. Run the seed command.
- *
- * Data not showing in app:
- *   1. Check browser console for errors
- *   2. Verify MSW is disabled (NEXT_PUBLIC_MSW_ENABLED=false)
- *   3. Restart netlify dev after changing env variables
- *   4. Hard refresh the browser (Cmd+Shift+R or Ctrl+Shift+R)
+ * VERIFY
+ * ------
+ * curl http://localhost:8888/user/data
+ * curl http://localhost:8888/exercises/levels
  */
 
 import type { Context } from '@netlify/functions'
@@ -75,12 +53,16 @@ import {
   handleCors
 } from './core/infrastructure/blob'
 
-// Import mock data from src/mocks/data
+// Import dynamic mock data
 import {
   MOCK_CurrentUserLevel,
   MOCK_weeklyWorkouts,
   workoutLevels
 } from '../../src/mocks/data'
+
+// Import static snapshot data
+import userSnapshot from '../../src/mocks/data/snapshots/user-snapshot.json'
+import exercisesSnapshot from '../../src/mocks/data/snapshots/exercises-snapshot.json'
 
 export default async (req: Request, _context: Context) => {
   if (req.method === 'OPTIONS') {
@@ -92,26 +74,38 @@ export default async (req: Request, _context: Context) => {
   }
 
   try {
-    // Use mock data with current week dates
-    const userData = {
-      currentLevels: MOCK_CurrentUserLevel,
-      weeklyProgress: MOCK_weeklyWorkouts,
-      lastUpdated: new Date().toISOString()
+    const url = new URL(req.url)
+    const source = url.searchParams.get('source')
+    const useSnapshot = source === 'snapshot'
+
+    let userData
+    let exerciseLevels
+
+    if (useSnapshot) {
+      // Static snapshot data (previously exported)
+      userData = {
+        ...userSnapshot,
+        lastUpdated: new Date().toISOString()
+      }
+      exerciseLevels = exercisesSnapshot
+    } else {
+      // Dynamic mock data with current week dates
+      userData = {
+        currentLevels: MOCK_CurrentUserLevel,
+        weeklyProgress: MOCK_weeklyWorkouts,
+        lastUpdated: new Date().toISOString()
+      }
+      exerciseLevels = workoutLevels
     }
 
-    // Seed user data
     await userDataStore.set(userData)
-
-    // Seed exercise/workout levels
-    await exerciseDataStore.setWorkoutLevels(workoutLevels)
+    await exerciseDataStore.setWorkoutLevels(exerciseLevels)
 
     return jsonResponse({
       success: true,
-      message: 'Blob store seeded successfully',
-      data: {
-        userData,
-        workoutLevels
-      }
+      message: `Seeded from ${useSnapshot ? 'snapshot' : 'mock data'}`,
+      source: useSnapshot ? 'snapshot' : 'mock',
+      data: { userData, workoutLevels: exerciseLevels }
     })
 
   } catch (error) {
