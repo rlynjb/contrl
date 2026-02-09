@@ -48,6 +48,7 @@ export interface ExerciseLevelInfo {
   level: number
   name: string
   category: string
+  originalSets?: BaseExerciseSet[]
 }
 
 // API functions

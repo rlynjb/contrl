@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Badge } from '@/components/ui/badge'
-import { exerciseApi, type BaseExercise } from '@/api'
+import { exerciseApi, type BaseExercise, type BaseExerciseSet } from '@/api'
 import './exercise-card.css'
 
 interface WorkoutExerciseCardProps {
@@ -11,32 +11,37 @@ interface WorkoutExerciseCardProps {
   onExerciseChange?: (exercise: BaseExercise) => void
 }
 
+// Helper to format sets for display
+const formatSets = (sets: BaseExerciseSet[]): string[] =>
+  sets.map(set => 'reps' in set && set.reps ? String(set.reps) : `${set.duration}s`)
+
 export default function WorkoutExerciseCard({
   exercise,
   className = '',
   onExerciseChange
 }: WorkoutExerciseCardProps) {
-  // Original target values from exercise definition
-  const targetValues = exercise.sets.map(set =>
-    'reps' in set && set.reps ? String(set.reps) : `${set.duration}s`
-  )
-
   // Match exercise-card format: "5" for reps, "30s" for duration
-  const [setValues, setSetValues] = useState<string[]>(targetValues)
+  const [setValues, setSetValues] = useState<string[]>(() => formatSets(exercise.sets))
   const [setCompleted, setSetCompleted] = useState<boolean[]>(
     exercise.completedSets || exercise.sets.map(() => false)
   )
   const [tempoValue, setTempoValue] = useState(exercise.tempo || '')
   const [restValue, setRestValue] = useState(exercise.rest !== undefined ? `${exercise.rest}s` : '')
   const [notesValue, setNotesValue] = useState(exercise.notes || '')
-  const [levelInfo, setLevelInfo] = useState<{ level: number; name: string; category: string } | null>(null)
+  const [levelInfo, setLevelInfo] = useState<{ level: number; name: string; category: string; originalSets?: BaseExerciseSet[] } | null>(null)
+  // Original target values from exercise definition (fetched from API)
+  const [targetValues, setTargetValues] = useState<string[]>(() => formatSets(exercise.sets))
 
-  // Fetch level info on mount
+  // Fetch level info and original sets on mount
   useEffect(() => {
     const fetchLevelInfo = async () => {
       if (exercise.name) {
         const info = await exerciseApi.getExerciseLevel(exercise.name)
         setLevelInfo(info)
+        // Update target values with original sets from exercise definition
+        if (info?.originalSets) {
+          setTargetValues(formatSets(info.originalSets))
+        }
       }
     }
     fetchLevelInfo()

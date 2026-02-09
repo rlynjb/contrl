@@ -48,7 +48,8 @@ export default async (req: Request, _context: Context) => {
     return jsonResponse({
       level: exercise.level,
       name: levelName,
-      category: exercise.category
+      category: exercise.category,
+      originalSets: exercise.sets
     })
 
   } catch (error) {
