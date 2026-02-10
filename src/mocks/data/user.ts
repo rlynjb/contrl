@@ -29,31 +29,31 @@ const getExercisesForCategory = (
     }))
 }
 
-// Get dates for the upcoming week (Monday, Tuesday, Wednesday) as ISO strings
-const getUpcomingWeekWorkoutDates = (): string[] => {
+// Get dates for the current week (Monday, Wednesday, Friday) as ISO strings
+const getCurrentWeekWorkoutDates = (): string[] => {
   const now = new Date()
   const day = now.getDay() // 0 = Sunday, 1 = Monday, etc.
 
-  // Calculate offset to get to Monday of next week
-  const daysUntilNextMonday = day === 0 ? 1 : 8 - day
+  // Calculate offset to get to Monday of current week
+  const daysToMonday = day === 0 ? -6 : 1 - day
 
   const monday = new Date(now)
-  monday.setDate(now.getDate() + daysUntilNextMonday)
+  monday.setDate(now.getDate() + daysToMonday)
   monday.setHours(9, 0, 0, 0)
-
-  const tuesday = new Date(monday)
-  tuesday.setDate(monday.getDate() + 1)
 
   const wednesday = new Date(monday)
   wednesday.setDate(monday.getDate() + 2)
 
-  return [monday.toISOString(), tuesday.toISOString(), wednesday.toISOString()]
+  const friday = new Date(monday)
+  friday.setDate(monday.getDate() + 4)
+
+  return [monday.toISOString(), wednesday.toISOString(), friday.toISOString()]
 }
 
 // Generate workout sessions based on user's current levels
 const generateWorkoutSessions = (): WorkoutSession[] => {
   const categories = Object.keys(MOCK_CurrentUserLevel) as ('Push' | 'Pull' | 'Squat')[]
-  const workoutDates = getUpcomingWeekWorkoutDates()
+  const workoutDates = getCurrentWeekWorkoutDates()
 
   return categories.map((category, index) => {
     const level = MOCK_CurrentUserLevel[category]
