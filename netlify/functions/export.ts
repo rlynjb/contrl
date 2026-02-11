@@ -29,12 +29,17 @@
  *   3. export: Capture blob state to snapshot file
  *   4. Developer reviews snapshot, updates fixtures if needed
  *
- * USAGE
- * -----
- * curl http://localhost:8888/api/export
+ * LOCAL DEV SETUP
+ * ---------------
+ * Option 1: netlify dev (port 8888) — runs Next.js + functions together with /api/* redirects
+ *   netlify dev
+ *   curl http://localhost:8888/api/export > backup.json
  *
- * Save to file:
- * curl http://localhost:8888/api/export > backup.json
+ * Option 2: npm run dev + netlify functions:serve (port 9999) — runs them separately
+ *   npm run dev                              # Next.js on port 3000
+ *   netlify functions:serve --port 9999      # Functions on port 9999
+ *   curl http://localhost:9999/.netlify/functions/export > backup.json
+ *   Note: /api/* redirects are NOT available in this mode, use /.netlify/functions/* directly.
  */
 
 import type { Context } from '@netlify/functions'

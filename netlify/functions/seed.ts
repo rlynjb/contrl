@@ -33,14 +33,22 @@
  *   3. export: Capture blob state to snapshot file
  *   4. Developer reviews snapshot, updates fixtures if needed
  *
- * USAGE
- * -----
- * curl -X POST http://localhost:8888/api/seed
+ * LOCAL DEV SETUP
+ * ---------------
+ * Option 1: netlify dev (port 8888) — runs Next.js + functions together with /api/* redirects
+ *   netlify dev
+ *   curl -X POST http://localhost:8888/api/seed
+ *
+ * Option 2: npm run dev + netlify functions:serve (port 9999) — runs them separately
+ *   npm run dev                              # Next.js on port 3000
+ *   netlify functions:serve --port 9999      # Functions on port 9999
+ *   curl -X POST http://localhost:9999/.netlify/functions/seed
+ *   Note: /api/* redirects are NOT available in this mode, use /.netlify/functions/* directly.
  *
  * PREREQUISITES
  * -------------
  * 1. MSW disabled: NEXT_PUBLIC_MSW_ENABLED=false
- * 2. Server running: netlify dev
+ * 2. Server running (either option above)
  */
 
 import type { Context } from '@netlify/functions'

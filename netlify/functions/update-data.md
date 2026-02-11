@@ -62,6 +62,38 @@ This project uses the **Fixtures + Snapshots** pattern for managing data between
 
 ---
 
+## Local Dev Setup
+
+There are two ways to run the app locally. The URL you use for functions depends on which setup you choose.
+
+### Option 1: `netlify dev` (port 8888)
+
+Runs Next.js and Netlify Functions together. The `/api/*` redirects are active.
+
+```bash
+netlify dev
+# Functions available at: http://localhost:8888/api/*
+```
+
+### Option 2: `npm run dev` + `netlify functions:serve` (port 9999)
+
+Runs Next.js and functions separately. The `/api/*` redirects are **NOT** available — use `/.netlify/functions/*` directly.
+
+```bash
+npm run dev                              # Next.js on port 3000
+netlify functions:serve --port 9999      # Functions on port 9999
+# Functions available at: http://localhost:9999/.netlify/functions/*
+```
+
+| Setup | Function URL example |
+|-------|---------------------|
+| `netlify dev` | `http://localhost:8888/api/import` |
+| `functions:serve --port 9999` | `http://localhost:9999/.netlify/functions/import` |
+
+> The workflow examples below use Option 1 URLs. If using Option 2, replace accordingly.
+
+---
+
 ## Workflows
 
 ### 1. Initialize Local Development

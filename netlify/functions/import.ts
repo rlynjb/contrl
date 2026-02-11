@@ -11,29 +11,33 @@
  * ------------
  * Data flows: JSON input → Netlify Blob
  *
+ * LOCAL DEV SETUP
+ * ---------------
+ * Option 1: netlify dev (port 8888) — runs Next.js + functions together with /api/* redirects
+ *   netlify dev
+ *   curl -X POST http://localhost:8888/api/import -d @backup.json -H "Content-Type: application/json"
+ *
+ * Option 2: npm run dev + netlify functions:serve (port 9999) — runs them separately
+ *   npm run dev                              # Next.js on port 3000
+ *   netlify functions:serve --port 9999      # Functions on port 9999
+ *   curl -X POST http://localhost:9999/.netlify/functions/import -d @backup.json -H "Content-Type: application/json"
+ *   Note: /api/* redirects are NOT available in this mode, use /.netlify/functions/* directly.
+ *
  * SYNC WORKFLOWS
  * --------------
  * Pull prod → local:
  *   Step 1: Export from production
  *     curl https://your-site.netlify.app/api/export > backup.json
- *   Step 2: Import to local
+ *   Step 2: Import to local (use the URL matching your dev setup above)
  *     curl -X POST http://localhost:8888/api/import -d @backup.json -H "Content-Type: application/json"
  *
  * Push local → prod:
- *   Step 1: Export from local
+ *   Step 1: Export from local (use the URL matching your dev setup above)
  *     curl http://localhost:8888/api/export > backup.json
  *   Step 2: Import to production
  *     curl -X POST https://your-site.netlify.app/api/import -d @backup.json -H "Content-Type: application/json"
  *
  * IMPORTANT: You must run the export step first to create backup.json before importing.
- *
- * USAGE
- * -----
- * Step 1: Export data to file
- *   curl http://localhost:8888/api/export > backup.json
- *
- * Step 2: Import data from file
- *   curl -X POST http://localhost:8888/api/import -d @backup.json -H "Content-Type: application/json"
  */
 
 import type { Context } from '@netlify/functions'
