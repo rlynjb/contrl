@@ -120,10 +120,34 @@ export const handlers = [
   // ============================================
 
   // GET /.netlify/functions/user/data - Get all user data
-  http.get('*/user/data', () => {
+  // Optional: ?category=Push to filter weeklyProgress by category
+  http.get('*/user/data', ({ request }) => {
     if (!userData) {
       return HttpResponse.json(null, { status: 404 })
     }
+
+    // Clean up sessions beyond the current week (Sun-Sat)
+    if (userData.weeklyProgress) {
+      const now = new Date()
+      const endOfWeek = new Date(now)
+      endOfWeek.setDate(now.getDate() + (6 - now.getDay())) // Saturday
+      endOfWeek.setHours(23, 59, 59, 999)
+      userData.weeklyProgress = userData.weeklyProgress.filter(
+        session => new Date(session.date) <= endOfWeek
+      )
+    }
+
+    const url = new URL(request.url)
+    const category = url.searchParams.get('category')
+
+    if (category && userData.weeklyProgress) {
+      const filtered = [...userData.weeklyProgress]
+        .filter(session => session.categories?.includes(category as 'Push' | 'Pull' | 'Squat'))
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+      return HttpResponse.json<UserData>({ ...userData, weeklyProgress: filtered })
+    }
+
     return HttpResponse.json<UserData>(userData)
   }),
 

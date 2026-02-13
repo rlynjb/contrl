@@ -58,6 +58,8 @@ export default function WorkoutDetail({ selectedDay, onWorkoutUpdate }: WorkoutD
         .filter(session => new Date(session.date).toDateString() !== dayDate)
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
+      console.log(previousSessions)
+
       // Map exercises: use saved values from previous session if available
       const exercises = originalExercises.map(exercise => {
         // Look for this exercise in previous sessions

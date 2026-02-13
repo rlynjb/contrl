@@ -49,6 +49,32 @@ export default async (req: Request, _context: Context) => {
         return jsonResponse(DEFAULT_USER_DATA)
       }
 
+      // Clean up sessions beyond the current week (Sun-Sat)
+      if (data.weeklyProgress) {
+        const now = new Date()
+        const endOfWeek = new Date(now)
+        endOfWeek.setDate(now.getDate() + (6 - now.getDay())) // Saturday
+        endOfWeek.setHours(23, 59, 59, 999)
+        const cleaned = (data.weeklyProgress as Array<{ date: string; [key: string]: unknown }>)
+          .filter(session => new Date(session.date) <= endOfWeek)
+        if (cleaned.length !== data.weeklyProgress.length) {
+          data.weeklyProgress = cleaned
+          await userDataStore.set(data)
+        }
+      }
+
+      // Optional category filter: GET /user/data?category=Push
+      const url = new URL(req.url)
+      const category = url.searchParams.get('category')
+
+      if (category && data.weeklyProgress) {
+        const filtered = (data.weeklyProgress as Array<{ categories?: string[]; date: string; [key: string]: unknown }>)
+          .filter(session => session.categories?.includes(category))
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+        return jsonResponse({ ...data, weeklyProgress: filtered })
+      }
+
       return jsonResponse(data)
     }
 
