@@ -105,7 +105,15 @@ Seed mock data to local blob storage:
 # - NEXT_PUBLIC_MSW_ENABLED=false in .env.local
 # - netlify dev running
 
+# Option 1 (netlify dev):
 curl -X POST http://localhost:8888/api/seed
+curl -X POST "http://localhost:8888/api/seed?only=exercises"
+curl -X POST "http://localhost:8888/api/seed?only=user"
+
+# Option 2 (functions:serve --port 9999):
+curl -X POST http://localhost:9999/.netlify/functions/seed
+curl -X POST "http://localhost:9999/.netlify/functions/seed?only=exercises"
+curl -X POST "http://localhost:9999/.netlify/functions/seed?only=user"
 ```
 
 ### 2. Export Data to File

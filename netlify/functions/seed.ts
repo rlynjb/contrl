@@ -45,6 +45,17 @@
  *   curl -X POST http://localhost:9999/.netlify/functions/seed
  *   Note: /api/* redirects are NOT available in this mode, use /.netlify/functions/* directly.
  *
+ * SELECTIVE SEEDING
+ * -----------------
+ * Seed everything (default):
+ *   curl -X POST http://localhost:8888/api/seed
+ *
+ * Seed only exercises (won't touch user progress):
+ *   curl -X POST "http://localhost:8888/api/seed?only=exercises"
+ *
+ * Seed only user data:
+ *   curl -X POST "http://localhost:8888/api/seed?only=user"
+ *
  * PREREQUISITES
  * -------------
  * 1. MSW disabled: NEXT_PUBLIC_MSW_ENABLED=false
@@ -76,19 +87,32 @@ export default async (req: Request, _context: Context) => {
   }
 
   try {
-    const userData = {
-      currentLevels: MOCK_CurrentUserLevel,
-      weeklyProgress: MOCK_weeklyWorkouts,
-      lastUpdated: new Date().toISOString()
+    const url = new URL(req.url)
+    const only = url.searchParams.get('only')
+
+    const seedUser = !only || only === 'user'
+    const seedExercises = !only || only === 'exercises'
+
+    let userData = null
+    if (seedUser) {
+      userData = {
+        currentLevels: MOCK_CurrentUserLevel,
+        weeklyProgress: MOCK_weeklyWorkouts,
+        lastUpdated: new Date().toISOString()
+      }
+      await userDataStore.set(userData)
     }
 
-    await userDataStore.set(userData)
-    await exerciseDataStore.setWorkoutLevels(workoutLevels)
+    if (seedExercises) {
+      await exerciseDataStore.setWorkoutLevels(workoutLevels)
+    }
+
+    const seeded = [seedUser && 'user', seedExercises && 'exercises'].filter(Boolean).join(' and ')
 
     return jsonResponse({
       success: true,
-      message: 'Seeded user and exercises from mock data',
-      data: { userData, workoutLevels }
+      message: `Seeded ${seeded} from mock data`,
+      data: { userData, workoutLevels: seedExercises ? workoutLevels : null }
     })
 
   } catch (error) {
