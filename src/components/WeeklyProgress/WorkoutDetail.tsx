@@ -50,20 +50,12 @@ export default function WorkoutDetail({ selectedDay, onWorkoutUpdate }: WorkoutD
       // Get user data to find previous sessions with same exercises
       const userData = await api.user.getUserData()
       if (!userData) return
-
-      const dayDate = new Date(selectedDay.date).toDateString()
-
-      // Find the most recent session (before current date) with saved exercises
-      const previousSessions = (userData.weeklyProgress || [])
-        .filter(session => new Date(session.date).toDateString() !== dayDate)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-
-      console.log(previousSessions)
+      const usersWeeklyProgress = (userData.weeklyProgress || [])
 
       // Map exercises: use saved values from previous session if available
       const exercises = originalExercises.map(exercise => {
-        // Look for this exercise in previous sessions
-        for (const session of previousSessions) {
+        // Look for this exercise in User's weekly progress
+        for (const session of usersWeeklyProgress) {
           const savedExercise = session.exercises.find(e => e.name === exercise.name)
           if (savedExercise) {
             // Use saved sets, completedSets, tempo, rest, notes from previous session
@@ -84,6 +76,7 @@ export default function WorkoutDetail({ selectedDay, onWorkoutUpdate }: WorkoutD
 
       setCategoryExercises(exercises)
 
+      const dayDate = new Date(selectedDay.date).toDateString()
       const existingSession = userData.weeklyProgress?.find(
         session => new Date(session.date).toDateString() === dayDate
       )
