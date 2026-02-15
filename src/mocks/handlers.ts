@@ -99,7 +99,8 @@ export const handlers = [
     return HttpResponse.json({
       level: exercise.level,
       name: levelName,
-      category: exercise.category
+      category: exercise.category,
+      originalSets: exercise.sets
     })
   }),
 

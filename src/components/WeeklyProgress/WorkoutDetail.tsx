@@ -20,6 +20,7 @@ export default function WorkoutDetail({ selectedDay, onWorkoutUpdate }: WorkoutD
   const [isLoading, setIsLoading] = useState(false)
   const [addedCategories, setAddedCategories] = useState<Category[]>([])
   const [progressionNotes, setProgressionNotes] = useState<Record<string, ProgressionNotes>>({})
+  const [levelUpMessage, setLevelUpMessage] = useState<string | null>(null)
 
   // Fetch user levels and progression notes on mount
   useEffect(() => {
@@ -186,6 +187,51 @@ export default function WorkoutDetail({ selectedDay, onWorkoutUpdate }: WorkoutD
     onWorkoutUpdate?.()
   }
 
+  const checkAndLevelUp = async (category: Category) => {
+    if (!userLevels) return
+
+    const currentLevel = userLevels[category]
+    if (currentLevel >= 5) return // Already at max level
+
+    // Get this day's exercises for the category from latest userData
+    const userData = await api.user.getUserData()
+    if (!userData?.weeklyProgress) return
+
+    const dayDate = new Date(selectedDay.date).toDateString()
+    const session = userData.weeklyProgress.find(
+      s => new Date(s.date).toDateString() === dayDate
+    )
+    if (!session) return
+
+    const catExercises = session.exercises.filter(e => e.category === category)
+    if (catExercises.length === 0) return
+
+    // Check each exercise: all sets completed AND reps >= target
+    for (const exercise of catExercises) {
+      if (!exercise.completedSets?.every(Boolean)) return
+
+      const levelInfo = await api.exercises.getExerciseLevel(exercise.name)
+      if (!levelInfo?.originalSets) return
+
+      for (let i = 0; i < exercise.sets.length; i++) {
+        const actual = exercise.sets[i]
+        const target = levelInfo.originalSets[i]
+        if (!target) continue
+
+        if (target.reps && (!actual.reps || actual.reps < target.reps)) return
+        if (target.duration && (!actual.duration || actual.duration < target.duration)) return
+      }
+    }
+
+    // All exercises passed — level up!
+    const newLevel = currentLevel + 1
+    await api.user.updateLevel(category, newLevel)
+    setUserLevels(prev => prev ? { ...prev, [category]: newLevel } : prev)
+    setLevelUpMessage(`${category} leveled up to Level ${newLevel}!`)
+    setTimeout(() => setLevelUpMessage(null), 4000)
+    onWorkoutUpdate?.()
+  }
+
   const handleExerciseChange = async (updatedExercise: BaseExercise, index: number) => {
     // Get current user data
     const userData = await api.user.getUserData()
@@ -209,6 +255,12 @@ export default function WorkoutDetail({ selectedDay, onWorkoutUpdate }: WorkoutD
     })
 
     onWorkoutUpdate?.()
+
+    // Check if this category qualifies for level-up
+    const category = updatedExercise.category as Category | undefined
+    if (category) {
+      await checkAndLevelUp(category)
+    }
   }
 
   // Map level number to workout level key
@@ -235,6 +287,13 @@ export default function WorkoutDetail({ selectedDay, onWorkoutUpdate }: WorkoutD
 
   return (
     <div className="weekly-progress__modal-content">
+      {/* Level-up notification */}
+      {levelUpMessage && (
+        <div className="workout-detail__level-up">
+          {levelUpMessage}
+        </div>
+      )}
+
       {/* Loading state */}
       {isLoading && (
         <p className="workout-detail__loading">Loading exercises...</p>

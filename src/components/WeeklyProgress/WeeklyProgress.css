@@ -497,3 +497,27 @@
   color: rgb(250 204 21);
 }
 
+/* Level-up Notification */
+.workout-detail__level-up {
+  padding: 0.75rem 1rem;
+  background-color: rgb(22 163 74 / 0.15);
+  border: 1px solid rgb(34 197 94);
+  border-radius: 0.5rem;
+  color: rgb(74 222 128);
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-align: center;
+  animation: levelUpFadeIn 0.3s ease-out;
+}
+
+@keyframes levelUpFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
