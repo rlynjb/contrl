@@ -1,6 +1,6 @@
 {
   "success": true,
-  "exportedAt": "2026-02-11T14:20:56.190Z",
+  "exportedAt": "2026-02-14T22:56:15.761Z",
   "data": {
     "userData": {
       "currentLevels": {
@@ -15,135 +15,400 @@
               "name": "Wall Push-ups",
               "sets": [
                 {
-                  "reps": 8
+                  "reps": 4
                 },
                 {
-                  "reps": 6
+                  "reps": 4
                 },
                 {
-                  "reps": 5
+                  "reps": 4
                 }
               ],
               "tempo": "2-1-2-1",
-              "rest": 60
+              "rest": 60,
+              "completedSets": [
+                false,
+                false,
+                false
+              ],
+              "completed": false
             },
             {
               "name": "Incline Push-ups",
               "sets": [
                 {
-                  "reps": 5
+                  "reps": 4
                 },
                 {
                   "reps": 4
                 },
                 {
-                  "reps": 3
+                  "reps": 4
                 }
               ],
               "tempo": "2-1-2-1",
-              "rest": 60
-            }
-          ],
-          "categories": [
-            "Push"
-          ],
-          "level": 1,
-          "date": "2026-02-16T09:00:00.000Z"
-        },
-        {
-          "exercises": [
-            {
-              "name": "Dead Hang",
-              "sets": [
-                {
-                  "duration": 10
-                },
-                {
-                  "duration": 8
-                }
+              "rest": 60,
+              "completedSets": [
+                false,
+                false,
+                false
               ],
-              "tempo": "hold",
-              "rest": 60
+              "completed": false
             },
-            {
-              "name": "Inverted Rows (High Bar)",
-              "sets": [
-                {
-                  "reps": 5
-                },
-                {
-                  "reps": 4
-                },
-                {
-                  "reps": 3
-                }
-              ],
-              "tempo": "2-1-2-1",
-              "rest": 90
-            }
-          ],
-          "categories": [
-            "Pull"
-          ],
-          "level": 1,
-          "date": "2026-02-17T09:00:00.000Z"
-        },
-        {
-          "exercises": [
             {
               "name": "Deep squats",
               "sets": [
                 {
-                  "reps": 12
+                  "reps": 4
                 },
                 {
-                  "reps": 12
+                  "reps": 4
                 },
                 {
-                  "reps": 12
+                  "reps": 4
                 }
               ],
               "tempo": "2-0-1-0",
-              "rest": 0
+              "rest": 0,
+              "completedSets": [
+                false,
+                false,
+                false
+              ],
+              "completed": false
             },
             {
               "name": "Narrow stance squats",
               "sets": [
                 {
-                  "reps": 12
+                  "reps": 4
                 },
                 {
-                  "reps": 12
+                  "reps": 4
                 },
                 {
-                  "reps": 12
+                  "reps": 4
                 }
               ],
               "tempo": "2-0-1-0",
-              "rest": 0
+              "rest": 0,
+              "completedSets": [
+                false,
+                false,
+                false
+              ],
+              "completed": false
             },
             {
               "name": "Bodyweight Squats",
               "sets": [
                 {
-                  "reps": 15
+                  "reps": 4
                 },
                 {
-                  "reps": 15
+                  "reps": 4
                 },
                 {
-                  "reps": 15
+                  "reps": 4
                 }
               ],
               "tempo": "2-0-1-0",
-              "rest": 0
+              "rest": 0,
+              "completedSets": [
+                false,
+                false,
+                false
+              ],
+              "completed": false
             }
           ],
           "categories": [
+            "Push",
             "Squat"
           ],
           "level": 1,
-          "date": "2026-02-18T09:00:00.000Z"
+          "date": "2026-02-14T08:00:00.000Z"
+        },
+        {
+          "exercises": [
+            {
+              "name": "Wall Push-ups",
+              "sets": [
+                {
+                  "reps": 4
+                },
+                {
+                  "reps": 4
+                },
+                {
+                  "reps": 4
+                }
+              ],
+              "tempo": "2-1-2-1",
+              "rest": 60,
+              "completedSets": [
+                false,
+                false,
+                false
+              ],
+              "completed": false
+            },
+            {
+              "name": "Incline Push-ups",
+              "sets": [
+                {
+                  "reps": 4
+                },
+                {
+                  "reps": 4
+                },
+                {
+                  "reps": 4
+                }
+              ],
+              "tempo": "2-1-2-1",
+              "rest": 60,
+              "completedSets": [
+                false,
+                false,
+                false
+              ],
+              "completed": false
+            },
+            {
+              "name": "Deep squats",
+              "sets": [
+                {
+                  "reps": 4
+                },
+                {
+                  "reps": 4
+                },
+                {
+                  "reps": 4
+                }
+              ],
+              "tempo": "2-0-1-0",
+              "rest": 0,
+              "completedSets": [
+                false,
+                false,
+                false
+              ],
+              "completed": false
+            },
+            {
+              "name": "Narrow stance squats",
+              "sets": [
+                {
+                  "reps": 4
+                },
+                {
+                  "reps": 4
+                },
+                {
+                  "reps": 4
+                }
+              ],
+              "tempo": "2-0-1-0",
+              "rest": 0,
+              "completedSets": [
+                false,
+                false,
+                false
+              ],
+              "completed": false
+            },
+            {
+              "name": "Bodyweight Squats",
+              "sets": [
+                {
+                  "reps": 4
+                },
+                {
+                  "reps": 4
+                },
+                {
+                  "reps": 4
+                }
+              ],
+              "tempo": "2-0-1-0",
+              "rest": 0,
+              "completedSets": [
+                false,
+                false,
+                false
+              ],
+              "completed": false
+            }
+          ],
+          "categories": [
+            "Push",
+            "Squat"
+          ],
+          "level": 1,
+          "date": "2026-02-13T08:00:00.000Z"
+        },
+        {
+          "exercises": [
+            {
+              "name": "Wall Push-ups",
+              "sets": [
+                {
+                  "reps": 4
+                },
+                {
+                  "reps": 4
+                },
+                {
+                  "reps": 4
+                }
+              ],
+              "tempo": "2-1-2-1",
+              "rest": 60,
+              "completedSets": [
+                true,
+                true,
+                true
+              ],
+              "completed": true
+            },
+            {
+              "name": "Incline Push-ups",
+              "sets": [
+                {
+                  "reps": 4
+                },
+                {
+                  "reps": 4
+                },
+                {
+                  "reps": 4
+                }
+              ],
+              "tempo": "2-1-2-1",
+              "rest": 60,
+              "completedSets": [
+                true,
+                true,
+                true
+              ],
+              "completed": true
+            },
+            {
+              "name": "Dead Hang",
+              "sets": [
+                {
+                  "reps": 4
+                },
+                {
+                  "reps": 4
+                }
+              ],
+              "tempo": "hold",
+              "rest": 60,
+              "completedSets": [
+                true,
+                true
+              ],
+              "completed": true
+            },
+            {
+              "name": "Inverted Rows (High Bar)",
+              "sets": [
+                {
+                  "reps": 4
+                },
+                {
+                  "reps": 4
+                },
+                {
+                  "reps": 4
+                }
+              ],
+              "tempo": "2-1-2-1",
+              "rest": 90,
+              "completedSets": [
+                true,
+                true,
+                true
+              ],
+              "completed": true
+            },
+            {
+              "name": "Deep squats",
+              "sets": [
+                {
+                  "reps": 4
+                },
+                {
+                  "reps": 4
+                },
+                {
+                  "reps": 4
+                }
+              ],
+              "tempo": "2-0-1-0",
+              "rest": 0,
+              "completedSets": [
+                true,
+                true,
+                true
+              ],
+              "completed": true
+            },
+            {
+              "name": "Narrow stance squats",
+              "sets": [
+                {
+                  "reps": 4
+                },
+                {
+                  "reps": 4
+                },
+                {
+                  "reps": 4
+                }
+              ],
+              "tempo": "2-0-1-0",
+              "rest": 0,
+              "completedSets": [
+                true,
+                true,
+                true
+              ],
+              "completed": true
+            },
+            {
+              "name": "Bodyweight Squats",
+              "sets": [
+                {
+                  "reps": 4
+                },
+                {
+                  "reps": 4
+                },
+                {
+                  "reps": 4
+                }
+              ],
+              "tempo": "2-0-1-0",
+              "rest": 0,
+              "completedSets": [
+                true,
+                true,
+                true
+              ],
+              "completed": true
+            }
+          ],
+          "categories": [
+            "Push",
+            "Pull",
+            "Squat"
+          ],
+          "level": 1,
+          "date": "2026-02-12T08:00:00.000Z"
         },
         {
           "exercises": [
@@ -219,66 +484,9 @@
           ],
           "level": 1,
           "date": "2026-02-08T08:00:00.000Z"
-        },
-        {
-          "exercises": [
-            {
-              "name": "Deep squats",
-              "sets": [
-                {
-                  "reps": 12
-                },
-                {
-                  "reps": 12
-                },
-                {
-                  "reps": 12
-                }
-              ],
-              "tempo": "2-0-1-0",
-              "rest": 0
-            },
-            {
-              "name": "Narrow stance squats",
-              "sets": [
-                {
-                  "reps": 12
-                },
-                {
-                  "reps": 12
-                },
-                {
-                  "reps": 12
-                }
-              ],
-              "tempo": "2-0-1-0",
-              "rest": 0
-            },
-            {
-              "name": "Bodyweight Squats",
-              "sets": [
-                {
-                  "reps": 15
-                },
-                {
-                  "reps": 15
-                },
-                {
-                  "reps": 15
-                }
-              ],
-              "tempo": "2-0-1-0",
-              "rest": 0
-            }
-          ],
-          "categories": [
-            "Squat"
-          ],
-          "level": 1,
-          "date": "2026-02-14T08:00:00.000Z"
         }
       ],
-      "lastUpdated": "2026-02-09T02:03:00.869Z"
+      "lastUpdated": "2026-02-14T02:52:46.968Z"
     },
     "workoutLevels": {
       "beginner": {
@@ -286,67 +494,108 @@
         "exercises": {
           "Push": [
             {
-              "name": "Wall Push-ups",
+              "name": "Negative Push-ups",
               "sets": [
                 {
                   "reps": 8
                 },
                 {
-                  "reps": 6
+                  "reps": 8
                 },
                 {
-                  "reps": 5
+                  "reps": 8
                 }
               ],
-              "tempo": "2-1-2-1",
+              "tempo": "4-2-0-0",
               "rest": 60
             },
             {
-              "name": "Incline Push-ups",
+              "name": "Scapula Push-ups",
               "sets": [
                 {
-                  "reps": 5
+                  "reps": 8
                 },
                 {
-                  "reps": 4
+                  "reps": 8
                 },
                 {
-                  "reps": 3
+                  "reps": 8
+                },
+                {
+                  "reps": 8
                 }
               ],
-              "tempo": "2-1-2-1",
+              "tempo": "2-0-1-0",
+              "rest": 60
+            },
+            {
+              "name": "Plank Hold",
+              "sets": [
+                {
+                  "duration": 60
+                },
+                {
+                  "duration": 60
+                },
+                {
+                  "duration": 60
+                },
+                {
+                  "duration": 60
+                }
+              ],
+              "tempo": "",
               "rest": 60
             }
           ],
           "Pull": [
             {
-              "name": "Dead Hang",
+              "name": "TRX Lat Pull-down",
               "sets": [
                 {
-                  "duration": 10
+                  "reps": 8
                 },
                 {
-                  "duration": 8
+                  "reps": 8
+                },
+                {
+                  "reps": 8
                 }
               ],
-              "tempo": "hold",
-              "rest": 60
+              "tempo": "",
+              "rest": 0
             },
             {
-              "name": "Inverted Rows (High Bar)",
+              "name": "TRX Inverted Row (Australian Pull-ups)",
               "sets": [
                 {
-                  "reps": 5
+                  "reps": 15
                 },
                 {
-                  "reps": 4
+                  "reps": 15
                 },
                 {
-                  "reps": 3
+                  "reps": 15
                 }
               ],
-              "tempo": "2-1-2-1",
-              "rest": 90
+              "tempo": "2-0-1-0",
+              "rest": 0
+            },
+            {
+              "name": "TRX Passive Hang",
+              "sets": [
+                {
+                  "duration": 60
+                },
+                {
+                  "duration": 60
+                },
+                {
+                  "duration": 60
+                }
+              ],
+              "tempo": "",
+              "rest": 0
             }
           ],
           "Squat": [
@@ -406,103 +655,157 @@
         "exercises": {
           "Push": [
             {
-              "name": "Knee Push-ups",
-              "sets": [
-                {
-                  "reps": 10
-                },
-                {
-                  "reps": 8
-                },
-                {
-                  "reps": 6
-                }
-              ],
-              "tempo": "2-1-2-1",
-              "rest": 60
-            },
-            {
-              "name": "Pike Push-ups",
-              "sets": [
-                {
-                  "reps": 5
-                },
-                {
-                  "reps": 4
-                },
-                {
-                  "reps": 3
-                }
-              ],
-              "tempo": "2-1-2-1",
-              "rest": 90
-            }
-          ],
-          "Pull": [
-            {
-              "name": "Dead Hang",
-              "sets": [
-                {
-                  "duration": 20
-                },
-                {
-                  "duration": 15
-                },
-                {
-                  "duration": 10
-                }
-              ],
-              "tempo": "hold",
-              "rest": 60
-            },
-            {
-              "name": "Inverted Rows",
-              "sets": [
-                {
-                  "reps": 8
-                },
-                {
-                  "reps": 6
-                },
-                {
-                  "reps": 5
-                }
-              ],
-              "tempo": "2-1-2-1",
-              "rest": 90
-            }
-          ],
-          "Squat": [
-            {
-              "name": "Bodyweight Squats",
+              "name": "Normal Push-ups",
               "sets": [
                 {
                   "reps": 12
                 },
                 {
-                  "reps": 10
+                  "reps": 12
+                },
+                {
+                  "reps": 12
+                }
+              ],
+              "tempo": "2-0-1-0",
+              "rest": 60
+            },
+            {
+              "name": "Negative Push-ups",
+              "sets": [
+                {
+                  "reps": 8
+                },
+                {
+                  "reps": 8
                 },
                 {
                   "reps": 8
                 }
               ],
-              "tempo": "2-1-2-1",
+              "tempo": "4-2-0-0",
+              "rest": 90
+            },
+            {
+              "name": "Scapula Pushups",
+              "sets": [
+                {
+                  "reps": 8
+                },
+                {
+                  "reps": 8
+                },
+                {
+                  "reps": 8
+                },
+                {
+                  "reps": 8
+                }
+              ],
+              "tempo": "2-0-1-0",
               "rest": 60
             },
             {
-              "name": "Lunges",
+              "name": "Plank Hold",
+              "sets": [
+                {
+                  "duration": 60
+                },
+                {
+                  "duration": 60
+                },
+                {
+                  "duration": 60
+                },
+                {
+                  "duration": 60
+                }
+              ],
+              "tempo": "hold",
+              "rest": 90
+            }
+          ],
+          "Pull": [
+            {
+              "name": "TRX Inverted Row (straight legs)",
+              "sets": [
+                {
+                  "reps": 12
+                },
+                {
+                  "reps": 12
+                },
+                {
+                  "reps": 12
+                }
+              ],
+              "tempo": "2-0-1-0",
+              "rest": 90
+            },
+            {
+              "name": "TRX Scapula Pullups",
+              "sets": [
+                {
+                  "reps": 12
+                },
+                {
+                  "reps": 12
+                },
+                {
+                  "reps": 12
+                }
+              ],
+              "tempo": "2-0-1-0",
+              "rest": 90
+            }
+          ],
+          "Squat": [
+            {
+              "name": "TRX Bulgarian Squats",
               "sets": [
                 {
                   "reps": 6
                 },
                 {
-                  "reps": 5
+                  "reps": 6
                 },
                 {
-                  "reps": 4
+                  "reps": 6
                 }
               ],
-              "tempo": "2-1-2-1",
+              "tempo": "3-0-1-0",
+              "rest": 60
+            },
+            {
+              "name": "Narrow Stance Squats",
+              "sets": [
+                {
+                  "reps": 10
+                },
+                {
+                  "reps": 10
+                },
+                {
+                  "reps": 10
+                }
+              ],
+              "tempo": "4-1-4-0",
+              "rest": 60
+            },
+            {
+              "name": "Deep Squats",
+              "sets": [
+                {
+                  "reps": 10
+                },
+                {
+                  "reps": 10
+                },
+                {
+                  "reps": 10
+                }
+              ],
+              "tempo": "3-0-1-0",
               "rest": 60
             }
           ]
@@ -513,151 +816,205 @@
         "exercises": {
           "Push": [
             {
-              "name": "Push-ups",
+              "name": "Tricep Extensions",
               "sets": [
                 {
-                  "reps": 12
+                  "reps": 8
                 },
                 {
-                  "reps": 10
+                  "reps": 8
                 },
                 {
                   "reps": 8
                 }
               ],
-              "tempo": "2-1-2-1",
+              "tempo": "2-0-1-0",
               "rest": 60
-            },
-            {
-              "name": "Pike Push-ups",
-              "sets": [
-                {
-                  "reps": 8
-                },
-                {
-                  "reps": 6
-                },
-                {
-                  "reps": 5
-                }
-              ],
-              "tempo": "2-1-2-1",
-              "rest": 90
             },
             {
               "name": "Diamond Push-ups",
               "sets": [
                 {
-                  "reps": 5
+                  "reps": 15
                 },
                 {
-                  "reps": 4
+                  "reps": 15
                 },
                 {
-                  "reps": 3
+                  "reps": 15
                 }
               ],
-              "tempo": "2-1-2-1",
+              "tempo": "2-0-1-0",
+              "rest": 90
+            },
+            {
+              "name": "Wide Push-ups",
+              "sets": [
+                {
+                  "reps": 6
+                },
+                {
+                  "reps": 6
+                },
+                {
+                  "reps": 6
+                }
+              ],
+              "tempo": "2-0-1-0",
+              "rest": 90
+            },
+            {
+              "name": "Normal Push-ups",
+              "sets": [
+                {
+                  "reps": 8
+                },
+                {
+                  "reps": 8
+                },
+                {
+                  "reps": 8
+                }
+              ],
+              "tempo": "2-0-1-0",
+              "rest": 90
+            },
+            {
+              "name": "Normal Push-ups",
+              "sets": [
+                {
+                  "reps": 8
+                },
+                {
+                  "reps": 8
+                },
+                {
+                  "reps": 8
+                }
+              ],
+              "tempo": "4-2",
               "rest": 90
             }
           ],
           "Pull": [
             {
-              "name": "Dead Hang",
+              "name": "TRX Pullups Band Assisted",
               "sets": [
                 {
-                  "duration": 30
+                  "reps": 6
                 },
                 {
-                  "duration": 25
+                  "reps": 6
                 },
                 {
-                  "duration": 20
+                  "reps": 6
                 }
               ],
-              "tempo": "hold",
+              "tempo": "2010",
               "rest": 60
             },
             {
-              "name": "Negative Pull-ups",
-              "sets": [
-                {
-                  "reps": 5
-                },
-                {
-                  "reps": 4
-                },
-                {
-                  "reps": 3
-                }
-              ],
-              "tempo": "1-1-5-1",
-              "rest": 120
-            },
-            {
-              "name": "Inverted Rows",
+              "name": "TRX Inverted Row",
               "sets": [
                 {
                   "reps": 12
                 },
                 {
-                  "reps": 10
+                  "reps": 12
                 },
                 {
-                  "reps": 8
+                  "reps": 12
+                },
+                {
+                  "reps": 12
                 }
               ],
-              "tempo": "2-1-2-1",
-              "rest": 90
+              "tempo": "2010",
+              "rest": 60
+            },
+            {
+              "name": "TRX Scapula Pullups",
+              "sets": [
+                {
+                  "reps": 12
+                },
+                {
+                  "reps": 12
+                },
+                {
+                  "reps": 12
+                },
+                {
+                  "reps": 12
+                }
+              ],
+              "tempo": "2010",
+              "rest": 60
             }
           ],
           "Squat": [
             {
-              "name": "Bodyweight Squats",
+              "name": "Cossack Squats",
               "sets": [
                 {
-                  "reps": 15
+                  "reps": 6
                 },
                 {
-                  "reps": 12
+                  "reps": 6
                 },
                 {
-                  "reps": 10
+                  "reps": 6
                 }
               ],
-              "tempo": "2-1-2-1",
+              "tempo": "2010",
               "rest": 60
             },
             {
-              "name": "Jump Squats",
+              "name": "Bulgarian Split Squats",
               "sets": [
                 {
                   "reps": 8
                 },
                 {
-                  "reps": 6
+                  "reps": 8
                 },
                 {
-                  "reps": 5
+                  "reps": 8
                 }
               ],
-              "tempo": "2-1-X-1",
+              "tempo": "2010",
               "rest": 90
             },
             {
-              "name": "Single Leg Glute Bridges",
+              "name": "Narrow Stance Squats",
               "sets": [
                 {
-                  "reps": 10
+                  "reps": 8
                 },
                 {
                   "reps": 8
                 },
                 {
-                  "reps": 6
+                  "reps": 8
                 }
               ],
-              "tempo": "2-1-2-1",
+              "tempo": "2010",
+              "rest": 60
+            },
+            {
+              "name": "Deep Squats",
+              "sets": [
+                {
+                  "reps": 8
+                },
+                {
+                  "reps": 8
+                },
+                {
+                  "reps": 8
+                }
+              ],
+              "tempo": "3010",
               "rest": 60
             }
           ]
@@ -668,170 +1025,231 @@
         "exercises": {
           "Push": [
             {
-              "name": "Push-ups",
+              "name": "Archer Pushups",
               "sets": [
                 {
-                  "reps": 15
+                  "reps": 2
                 },
                 {
-                  "reps": 12
+                  "reps": 2
+                },
+                {
+                  "reps": 2
+                }
+              ],
+              "tempo": "2-0-1-0",
+              "rest": 60
+            },
+            {
+              "name": "Explosive Pushups",
+              "sets": [
+                {
+                  "reps": 6
+                },
+                {
+                  "reps": 6
+                }
+              ],
+              "tempo": "2-0-1-0",
+              "rest": 120
+            },
+            {
+              "name": "Diamond Pushups",
+              "sets": [
+                {
+                  "reps": 10
+                },
+                {
+                  "reps": 10
+                }
+              ],
+              "tempo": "2-0-1-0",
+              "rest": 90
+            },
+            {
+              "name": "Normal Pushups",
+              "sets": [
+                {
+                  "reps": 10
                 },
                 {
                   "reps": 10
                 },
                 {
-                  "reps": 8
+                  "reps": 10
                 }
               ],
-              "tempo": "2-1-2-1",
-              "rest": 60
-            },
-            {
-              "name": "Handstand Push-ups (Wall)",
-              "sets": [
-                {
-                  "reps": 3
-                },
-                {
-                  "reps": 2
-                },
-                {
-                  "reps": 2
-                }
-              ],
-              "tempo": "2-1-2-1",
-              "rest": 120
-            },
-            {
-              "name": "Archer Push-ups",
-              "sets": [
-                {
-                  "reps": 5
-                },
-                {
-                  "reps": 4
-                },
-                {
-                  "reps": 3
-                }
-              ],
-              "tempo": "2-1-2-1",
+              "tempo": "2-0-1-0",
               "rest": 90
             },
             {
-              "name": "Dips",
+              "name": "Plank Hold",
               "sets": [
                 {
-                  "reps": 8
+                  "duration": 60
                 },
                 {
-                  "reps": 6
+                  "duration": 60
                 },
                 {
-                  "reps": 5
-                }
-              ],
-              "tempo": "2-1-2-1",
-              "rest": 90
-            }
-          ],
-          "Pull": [
-            {
-              "name": "Pull-ups",
-              "sets": [
-                {
-                  "reps": 6
-                },
-                {
-                  "reps": 5
-                },
-                {
-                  "reps": 4
-                }
-              ],
-              "tempo": "2-1-2-1",
-              "rest": 120
-            },
-            {
-              "name": "Chin-ups",
-              "sets": [
-                {
-                  "reps": 8
-                },
-                {
-                  "reps": 6
-                },
-                {
-                  "reps": 5
-                }
-              ],
-              "tempo": "2-1-2-1",
-              "rest": 120
-            },
-            {
-              "name": "L-Hang",
-              "sets": [
-                {
-                  "duration": 15
-                },
-                {
-                  "duration": 12
-                },
-                {
-                  "duration": 10
+                  "duration": 60
                 }
               ],
               "tempo": "hold",
               "rest": 90
             }
           ],
-          "Squat": [
+          "Pull": [
             {
-              "name": "Pistol Squat Progression",
+              "name": "TRX Negative Pullups",
               "sets": [
                 {
-                  "reps": 5
+                  "reps": 1
                 },
                 {
-                  "reps": 4
+                  "reps": 1
                 },
                 {
-                  "reps": 3
+                  "reps": 1
+                },
+                {
+                  "reps": 1
+                },
+                {
+                  "reps": 1
                 }
               ],
-              "tempo": "2-1-2-1",
-              "rest": 90
+              "tempo": "10s",
+              "rest": 120
             },
             {
-              "name": "Bulgarian Split Squats",
+              "name": "TRX Pullups Band Assisted",
               "sets": [
                 {
-                  "reps": 10
+                  "reps": 6
                 },
                 {
-                  "reps": 8
+                  "reps": 6
                 },
                 {
                   "reps": 6
                 }
               ],
-              "tempo": "2-1-2-1",
-              "rest": 75
+              "tempo": "2010",
+              "rest": 120
             },
             {
-              "name": "Single Leg Calf Raises",
+              "name": "TRX Inverted Row",
               "sets": [
                 {
-                  "reps": 12
+                  "reps": 8
                 },
                 {
-                  "reps": 10
+                  "reps": 8
                 },
                 {
                   "reps": 8
                 }
               ],
-              "tempo": "2-1-1-1",
+              "tempo": "2010",
+              "rest": 90
+            },
+            {
+              "name": "TRX Passive Hang",
+              "sets": [
+                {
+                  "duration": 30
+                },
+                {
+                  "duration": 30
+                },
+                {
+                  "duration": 30
+                }
+              ],
+              "tempo": "hold",
+              "rest": 90
+            },
+            {
+              "name": "TRX Scapula Pullups",
+              "sets": [
+                {
+                  "reps": 5
+                },
+                {
+                  "reps": 5
+                },
+                {
+                  "reps": 5
+                }
+              ],
+              "tempo": "2010",
+              "rest": 90
+            }
+          ],
+          "Squat": [
+            {
+              "name": "Assisted Pistol Squat",
+              "sets": [
+                {
+                  "reps": 10
+                },
+                {
+                  "reps": 10
+                },
+                {
+                  "reps": 10
+                }
+              ],
+              "tempo": "3010",
+              "rest": 90
+            },
+            {
+              "name": "Cossack Squats",
+              "sets": [
+                {
+                  "reps": 8
+                },
+                {
+                  "reps": 8
+                },
+                {
+                  "reps": 8
+                }
+              ],
+              "tempo": "2010",
+              "rest": 90
+            },
+            {
+              "name": "TRX Bulgarian Split Squats",
+              "sets": [
+                {
+                  "reps": 10
+                },
+                {
+                  "reps": 10
+                },
+                {
+                  "reps": 10
+                }
+              ],
+              "tempo": "2-0-1-0",
+              "rest": 75
+            },
+            {
+              "name": "Deep Squats",
+              "sets": [
+                {
+                  "reps": 12
+                },
+                {
+                  "reps": 12
+                },
+                {
+                  "reps": 12
+                }
+              ],
+              "tempo": "3-0-1-0",
               "rest": 60
             }
           ]
@@ -842,136 +1260,183 @@
         "exercises": {
           "Push": [
             {
-              "name": "One Arm Push-up Progression",
+              "name": "One Arm Push-ups",
               "sets": [
                 {
-                  "reps": 3
+                  "reps": 1
                 },
                 {
-                  "reps": 2
+                  "reps": 1
                 },
                 {
-                  "reps": 2
+                  "reps": 1
                 }
               ],
-              "tempo": "2-1-2-1",
+              "tempo": "2010",
               "rest": 150
             },
             {
-              "name": "Handstand Push-ups",
+              "name": "Archer Push-ups",
               "sets": [
                 {
-                  "reps": 6
+                  "reps": 4
                 },
                 {
-                  "reps": 5
+                  "reps": 4
+                },
+                {
+                  "reps": 4
+                },
+                {
+                  "reps": 4
                 },
                 {
                   "reps": 4
                 }
               ],
-              "tempo": "2-1-2-1",
+              "tempo": "2-0-1-0",
               "rest": 120
             },
             {
-              "name": "Planche Push-ups",
+              "name": "Normal Pushups",
               "sets": [
                 {
-                  "reps": 3
+                  "reps": 6
                 },
                 {
-                  "reps": 2
+                  "reps": 6
                 },
                 {
-                  "reps": 2
+                  "reps": 6
+                },
+                {
+                  "reps": 6
+                },
+                {
+                  "reps": 6
                 }
               ],
-              "tempo": "2-1-2-1",
+              "tempo": "2-0-1-0",
               "rest": 150
             },
             {
               "name": "Ring Dips",
               "sets": [
                 {
-                  "reps": 10
+                  "reps": 5
                 },
                 {
-                  "reps": 8
+                  "reps": 5
                 },
                 {
-                  "reps": 6
+                  "reps": 5
+                },
+                {
+                  "reps": 5
                 }
               ],
-              "tempo": "2-1-2-1",
+              "tempo": "2-0-1-0",
+              "rest": 90
+            },
+            {
+              "name": "Wide Pushups",
+              "sets": [
+                {
+                  "reps": 5
+                },
+                {
+                  "reps": 5
+                },
+                {
+                  "reps": 5
+                },
+                {
+                  "reps": 5
+                }
+              ],
+              "tempo": "2-0-1-0",
               "rest": 90
             }
           ],
           "Pull": [
             {
-              "name": "Pull-ups",
+              "name": "TRX Pullups",
               "sets": [
                 {
-                  "reps": 12
+                  "reps": 3
+                },
+                {
+                  "reps": 3
+                },
+                {
+                  "reps": 3
+                }
+              ],
+              "tempo": "2-0-1-0",
+              "rest": 120
+            },
+            {
+              "name": "TRX Pullups Band Assisted",
+              "sets": [
+                {
+                  "reps": 10
                 },
                 {
                   "reps": 10
                 },
                 {
-                  "reps": 8
-                },
-                {
-                  "reps": 6
+                  "reps": 10
                 }
               ],
-              "tempo": "2-1-2-1",
-              "rest": 120
-            },
-            {
-              "name": "Muscle-ups",
-              "sets": [
-                {
-                  "reps": 3
-                },
-                {
-                  "reps": 2
-                },
-                {
-                  "reps": 2
-                }
-              ],
-              "tempo": "2-1-2-1",
+              "tempo": "2-0-1-0",
               "rest": 180
             },
             {
-              "name": "Front Lever Progression",
+              "name": "TRX Inverted Row",
               "sets": [
                 {
-                  "duration": 10
+                  "reps": 8
                 },
                 {
-                  "duration": 8
+                  "reps": 8
                 },
                 {
-                  "duration": 6
+                  "reps": 8
                 }
               ],
-              "tempo": "hold",
+              "tempo": "2010",
               "rest": 120
             },
             {
-              "name": "Archer Pull-ups",
+              "name": "TRX Scapula Pullups",
               "sets": [
                 {
-                  "reps": 4
+                  "reps": 5
                 },
                 {
-                  "reps": 3
+                  "reps": 5
                 },
                 {
-                  "reps": 2
+                  "reps": 5
                 }
               ],
-              "tempo": "2-1-2-1",
+              "tempo": "2010",
+              "rest": 150
+            },
+            {
+              "name": "TRX Passive Hang",
+              "sets": [
+                {
+                  "duration": 30
+                },
+                {
+                  "duration": 30
+                },
+                {
+                  "duration": 30
+                }
+              ],
+              "tempo": "hold",
               "rest": 150
             }
           ],
@@ -980,48 +1445,77 @@
               "name": "Pistol Squats",
               "sets": [
                 {
-                  "reps": 8
+                  "reps": 3
                 },
-                {
-                  "reps": 6
-                },
-                {
-                  "reps": 5
-                }
-              ],
-              "tempo": "2-1-2-1",
-              "rest": 90
-            },
-            {
-              "name": "Shrimp Squats",
-              "sets": [
                 {
                   "reps": 3
                 },
                 {
-                  "reps": 2
-                },
-                {
-                  "reps": 2
+                  "reps": 3
                 }
               ],
-              "tempo": "2-1-2-1",
+              "tempo": "2020",
+              "rest": 90
+            },
+            {
+              "name": "TRX Assisted Pistol Squats",
+              "sets": [
+                {
+                  "reps": 6
+                },
+                {
+                  "reps": 6
+                }
+              ],
+              "tempo": "3010",
               "rest": 120
             },
             {
-              "name": "Jump Lunges",
+              "name": "Cossack Squats",
               "sets": [
                 {
-                  "reps": 12
+                  "reps": 8
+                },
+                {
+                  "reps": 8
+                },
+                {
+                  "reps": 8
+                }
+              ],
+              "tempo": "2010",
+              "rest": 75
+            },
+            {
+              "name": "TRX Bulgarian Split Squats",
+              "sets": [
+                {
+                  "reps": 10
                 },
                 {
                   "reps": 10
                 },
                 {
-                  "reps": 8
+                  "reps": 10
                 }
               ],
-              "tempo": "2-1-X-1",
+              "tempo": "2010",
+              "rest": 75
+            },
+            {
+              "name": "Deep Squats",
+              "sets": [
+                {
+                  "reps": 10
+                },
+                {
+                  "reps": 10
+                },
+                {
+                  "reps": 10
+                }
+              ],
+              "tempo": "3010",
               "rest": 75
             }
           ]
