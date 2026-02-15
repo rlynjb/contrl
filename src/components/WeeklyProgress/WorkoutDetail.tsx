@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { WorkoutExerciseCard } from '@/components/ui'
 import { api } from '@/api'
-import type { BaseExercise, CurrentUserLevels, ProgressionNotes } from '@/api'
+import type { BaseExercise, CurrentUserLevels, ProgressionNotes, WorkoutSession } from '@/api'
 import type { ExtendedWeekDay } from './WeeklyProgress'
 
 interface WorkoutDetailProps {
@@ -187,49 +187,51 @@ export default function WorkoutDetail({ selectedDay, onWorkoutUpdate }: WorkoutD
     onWorkoutUpdate?.()
   }
 
-  const checkAndLevelUp = async (category: Category) => {
-    if (!userLevels) return
+  const checkAndLevelUp = async (category: Category, updatedProgress: WorkoutSession[]) => {
+    if (!userLevels) return false
 
     const currentLevel = userLevels[category]
-    if (currentLevel >= 5) return // Already at max level
-
-    // Get this day's exercises for the category from latest userData
-    const userData = await api.user.getUserData()
-    if (!userData?.weeklyProgress) return
+    if (currentLevel >= 5) return false // Already at max level
 
     const dayDate = new Date(selectedDay.date).toDateString()
-    const session = userData.weeklyProgress.find(
-      s => new Date(s.date).toDateString() === dayDate
-    )
-    if (!session) return
+    const session = updatedProgress.find(s => new Date(s.date).toDateString() === dayDate)
+    if (!session) return false
 
     const catExercises = session.exercises.filter(e => e.category === category)
-    if (catExercises.length === 0) return
+    if (catExercises.length === 0) return false
 
     // Check each exercise: all sets completed AND reps >= target
     for (const exercise of catExercises) {
-      if (!exercise.completedSets?.every(Boolean)) return
+      if (!exercise.completedSets?.every(Boolean)) return false
 
-      const levelInfo = await api.exercises.getExerciseLevel(exercise.name)
-      if (!levelInfo?.originalSets) return
+      try {
+        const levelInfo = await api.exercises.getExerciseLevel(exercise.name)
+        if (!levelInfo?.originalSets) return false
 
-      for (let i = 0; i < exercise.sets.length; i++) {
-        const actual = exercise.sets[i]
-        const target = levelInfo.originalSets[i]
-        if (!target) continue
+        for (let i = 0; i < exercise.sets.length; i++) {
+          const actual = exercise.sets[i]
+          const target = levelInfo.originalSets[i]
+          if (!target) continue
 
-        if (target.reps && (!actual.reps || actual.reps < target.reps)) return
-        if (target.duration && (!actual.duration || actual.duration < target.duration)) return
+          if (target.reps && (!actual.reps || actual.reps < target.reps)) return false
+          if (target.duration && (!actual.duration || actual.duration < target.duration)) return false
+        }
+      } catch {
+        return false
       }
     }
 
     // All exercises passed — level up!
     const newLevel = currentLevel + 1
-    await api.user.updateLevel(category, newLevel)
-    setUserLevels(prev => prev ? { ...prev, [category]: newLevel } : prev)
-    setLevelUpMessage(`${category} leveled up to Level ${newLevel}!`)
-    setTimeout(() => setLevelUpMessage(null), 4000)
-    onWorkoutUpdate?.()
+    try {
+      await api.user.updateLevel(category, newLevel)
+      setUserLevels(prev => prev ? { ...prev, [category]: newLevel } : prev)
+      setLevelUpMessage(`${category} leveled up to Level ${newLevel}!`)
+      setTimeout(() => setLevelUpMessage(null), 4000)
+    } catch {
+      // Ignore if aborted
+    }
+    return true
   }
 
   const handleExerciseChange = async (updatedExercise: BaseExercise, index: number) => {
@@ -254,13 +256,13 @@ export default function WorkoutDetail({ selectedDay, onWorkoutUpdate }: WorkoutD
       weeklyProgress: updatedProgress
     })
 
-    onWorkoutUpdate?.()
-
-    // Check if this category qualifies for level-up
+    // Check if this category qualifies for level-up (before triggering parent re-render)
     const category = updatedExercise.category as Category | undefined
     if (category) {
-      await checkAndLevelUp(category)
+      await checkAndLevelUp(category, updatedProgress)
     }
+
+    onWorkoutUpdate?.()
   }
 
   // Map level number to workout level key
