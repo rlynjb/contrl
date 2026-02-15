@@ -19,6 +19,7 @@ export interface BaseExercise {
   sets: BaseExerciseSet[]
   completed?: boolean
   completedSets?: boolean[]
+  category?: 'Push' | 'Pull' | 'Squat'
 }
 
 export interface ExerciseWithMetadata extends BaseExercise {
@@ -36,10 +37,17 @@ export interface ExercisesByCategory {
   Squat: BaseExercise[]
 }
 
+export interface ProgressionNotes {
+  Push?: string
+  Pull?: string
+  Squat?: string
+}
+
 export interface WorkoutLevel {
   name: string
   description?: string
   exercises: ExercisesByCategory
+  progressionNotes?: ProgressionNotes
 }
 
 export type WorkoutLevels = Record<string, WorkoutLevel>

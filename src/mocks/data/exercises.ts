@@ -884,6 +884,11 @@ export const workoutLevels: WorkoutLevels = {
       Push: allExercises.filter(ex => ex.level === 1 && ex.category === 'Push').map(toBaseExercise),
       Pull: allExercises.filter(ex => ex.level === 1 && ex.category === 'Pull').map(toBaseExercise),
       Squat: allExercises.filter(ex => ex.level === 1 && ex.category === 'Squat').map(toBaseExercise)
+    },
+    progressionNotes: {
+      Push: "Focus on controlled negatives — aim for a slow 4-second lowering phase before progressing to full push-ups.",
+      Pull: "Build grip endurance and scapular awareness. Hold passive hangs for 60s before moving to active pulling.",
+      Squat: "Prioritize depth and ankle mobility. Keep heels grounded and work toward full range of motion."
     }
   },
   novice: {
@@ -892,6 +897,11 @@ export const workoutLevels: WorkoutLevels = {
       Push: allExercises.filter(ex => ex.level === 2 && ex.category === 'Push').map(toBaseExercise),
       Pull: allExercises.filter(ex => ex.level === 2 && ex.category === 'Pull').map(toBaseExercise),
       Squat: allExercises.filter(ex => ex.level === 2 && ex.category === 'Squat').map(toBaseExercise)
+    },
+    progressionNotes: {
+      Push: "Maintain full range of motion on standard push-ups. Scapula push-ups should feel controlled at the top.",
+      Pull: "Straighten legs on inverted rows. Scapula pull-ups should show clear retraction and depression.",
+      Squat: "Introduce single-leg stability with Bulgarian squats. Use a slower tempo to build control."
     }
   },
   intermediate: {
@@ -900,6 +910,11 @@ export const workoutLevels: WorkoutLevels = {
       Push: allExercises.filter(ex => ex.level === 3 && ex.category === 'Push').map(toBaseExercise),
       Pull: allExercises.filter(ex => ex.level === 3 && ex.category === 'Pull').map(toBaseExercise),
       Squat: allExercises.filter(ex => ex.level === 3 && ex.category === 'Squat').map(toBaseExercise)
+    },
+    progressionNotes: {
+      Push: "Train all push-up variations with consistent tempo. Diamond and wide push-ups build the base for one-arm work.",
+      Pull: "Band-assisted pull-ups should be strict — no kipping. Reduce band resistance as strength builds.",
+      Squat: "Cossack squats develop lateral mobility. Bulgarian splits should reach parallel depth on every rep."
     }
   },
   advanced: {
@@ -908,6 +923,11 @@ export const workoutLevels: WorkoutLevels = {
       Push: allExercises.filter(ex => ex.level === 4 && ex.category === 'Push').map(toBaseExercise),
       Pull: allExercises.filter(ex => ex.level === 4 && ex.category === 'Pull').map(toBaseExercise),
       Squat: allExercises.filter(ex => ex.level === 4 && ex.category === 'Squat').map(toBaseExercise)
+    },
+    progressionNotes: {
+      Push: "Archer push-ups train unilateral strength. Keep the straight arm locked and control the full range.",
+      Pull: "Negative pull-ups should last 10 seconds minimum. Band-assisted reps should be clean with full extension.",
+      Squat: "Assisted pistol squats build single-leg strength. Focus on a controlled descent before removing assistance."
     }
   },
   expert: {
@@ -916,6 +936,11 @@ export const workoutLevels: WorkoutLevels = {
       Push: allExercises.filter(ex => ex.level === 5 && ex.category === 'Push').map(toBaseExercise),
       Pull: allExercises.filter(ex => ex.level === 5 && ex.category === 'Pull').map(toBaseExercise),
       Squat: allExercises.filter(ex => ex.level === 5 && ex.category === 'Squat').map(toBaseExercise)
+    },
+    progressionNotes: {
+      Push: "One-arm push-ups require total body tension. Keep hips square and lower with full control.",
+      Pull: "Strict pull-ups with no momentum. Aim for chin clearly over the bar on every rep.",
+      Squat: "Full pistol squats with no assistance. Maintain heel contact and upright torso throughout."
     }
   }
 }

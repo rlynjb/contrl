@@ -39,6 +39,7 @@ export type {
   BaseExerciseSet,
   ExerciseWithMetadata,
   ExercisesByCategory,
+  ProgressionNotes,
   WorkoutLevel,
   WorkoutLevels,
   ExerciseLevelInfo
