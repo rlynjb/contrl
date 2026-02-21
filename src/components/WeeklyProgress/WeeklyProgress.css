@@ -521,3 +521,41 @@
   }
 }
 
+/* Save Status Indicator */
+.weekly-progress__save-status {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: center;
+  border-radius: 0.375rem;
+  margin-bottom: 0.5rem;
+  transition: opacity 0.2s ease-out;
+}
+
+.weekly-progress__save-status--saving {
+  background-color: rgb(37 99 235 / 0.15);
+  border: 1px solid rgb(96 165 250 / 0.3);
+  color: rgb(147 197 253);
+}
+
+.weekly-progress__save-status--saved {
+  background-color: rgb(22 163 74 / 0.15);
+  border: 1px solid rgb(34 197 94 / 0.3);
+  color: rgb(74 222 128);
+  animation: saveStatusFadeIn 0.2s ease-out;
+}
+
+.weekly-progress__save-status--error {
+  background-color: rgb(220 38 38 / 0.15);
+  border: 1px solid rgb(248 113 113 / 0.3);
+  color: rgb(252 165 165);
+}
+
+@keyframes saveStatusFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+

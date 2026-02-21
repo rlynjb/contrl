@@ -12,7 +12,7 @@ interface WorkoutDetailProps {
   weeklyProgress: WorkoutSession[]
   onAddCategory: (date: Date, category: Category, exercises: BaseExercise[], level: number) => Promise<void>
   onRemoveCategory: (date: Date, category: Category) => Promise<void>
-  onUpdateExercise: (date: Date, exerciseIndex: number, exercise: BaseExercise) => Promise<void>
+  onUpdateExercise: (date: Date, exerciseIndex: number, exercise: BaseExercise) => void
   onLevelUp: (category: Category, newLevel: number) => Promise<boolean>
 }
 
@@ -157,14 +157,14 @@ export default function WorkoutDetail({
     return success
   }
 
-  const handleExerciseChange = async (updatedExercise: BaseExercise, index: number) => {
-    // Delegate write to the hook (serialized via write queue)
-    await onUpdateExercise(selectedDay.date, index, updatedExercise)
+  const handleExerciseChange = (updatedExercise: BaseExercise, index: number) => {
+    // Delegate write to the hook (debounced + serialized via write queue)
+    onUpdateExercise(selectedDay.date, index, updatedExercise)
 
     // Check level-up after update
     const category = updatedExercise.category as Category | undefined
     if (category) {
-      await checkAndLevelUp(category)
+      checkAndLevelUp(category)
     }
   }
 

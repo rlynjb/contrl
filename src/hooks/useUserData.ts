@@ -11,6 +11,7 @@ import type {
 } from '@/api'
 
 export type AsyncStatus = 'idle' | 'loading' | 'error' | 'success'
+export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 export type Category = keyof CurrentUserLevels
 
 export type ExtendedWeekDay = WeekDay & Partial<WorkoutSession>
@@ -63,11 +64,44 @@ function mergeWeekDays(
   })
 }
 
+// Apply a weeklyProgress update optimistically to weekDays state
+function applyProgressToWeekDays(
+  currentWeekDays: ExtendedWeekDay[],
+  updatedProgress: WorkoutSession[]
+): ExtendedWeekDay[] {
+  return currentWeekDays.map(day => {
+    const weekDay = day.date.toDateString()
+    const workoutDay = updatedProgress.find(
+      wp => new Date(wp.date).toDateString() === weekDay
+    )
+
+    if (workoutDay) {
+      return {
+        ...day,
+        isWorkoutDay: Boolean(workoutDay.exercises?.length),
+        ...workoutDay,
+        date: day.date
+      }
+    }
+
+    // No workout for this day — clear any previous workout data
+    return {
+      date: day.date,
+      isToday: day.isToday,
+      completed: false,
+      completedWorkout: undefined,
+      todayWorkout: undefined,
+      isWorkoutDay: false
+    }
+  })
+}
+
 export interface UseUserDataReturn {
   userData: UserData | null
   currentLevels: CurrentUserLevels | null
   weekDays: ExtendedWeekDay[]
   status: AsyncStatus
+  saveStatus: SaveStatus
   error: string | null
   refreshAll: () => Promise<void>
   addCategoryToDay: (
@@ -81,28 +115,49 @@ export interface UseUserDataReturn {
     date: Date,
     exerciseIndex: number,
     updatedExercise: BaseExercise
-  ) => Promise<void>
+  ) => void
   levelUp: (category: Category, newLevel: number) => Promise<boolean>
 }
+
+// Debounce delay for exercise updates (ms)
+const EXERCISE_SAVE_DELAY = 600
+// Auto-hide "Saved" indicator after this many ms
+const SAVED_DISPLAY_DURATION = 2000
 
 export function useUserData(): UseUserDataReturn {
   const [userData, setUserData] = useState<UserData | null>(null)
   const [currentLevels, setCurrentLevels] = useState<CurrentUserLevels | null>(null)
   const [weekDays, setWeekDays] = useState<ExtendedWeekDay[]>([])
   const [status, setStatus] = useState<AsyncStatus>('idle')
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [error, setError] = useState<string | null>(null)
 
   // Write queue: serializes all async mutations so they don't interleave
   const writeQueueRef = useRef<Promise<void>>(Promise.resolve())
+  // Debounce timer for exercise updates
+  const exerciseDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Pending exercise update (accumulated during debounce window)
+  const pendingExerciseRef = useRef<{
+    date: Date
+    exerciseIndex: number
+    updatedExercise: BaseExercise
+  } | null>(null)
+  // Timer for auto-hiding "Saved" status
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const enqueue = useCallback(<T,>(fn: () => Promise<T>): Promise<T> => {
     const task = writeQueueRef.current.then(fn, fn)
-    // Keep the chain going regardless of success/failure
     writeQueueRef.current = task.then(
       () => {},
       () => {}
     )
     return task
+  }, [])
+
+  const showSaved = useCallback(() => {
+    setSaveStatus('saved')
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
+    savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), SAVED_DISPLAY_DURATION)
   }, [])
 
   const refreshAll = useCallback(async () => {
@@ -129,6 +184,14 @@ export function useUserData(): UseUserDataReturn {
     refreshAll()
   }, [refreshAll])
 
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (exerciseDebounceRef.current) clearTimeout(exerciseDebounceRef.current)
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
+    }
+  }, [])
+
   const addCategoryToDay = useCallback(
     async (
       date: Date,
@@ -136,110 +199,197 @@ export function useUserData(): UseUserDataReturn {
       exercises: BaseExercise[],
       level: number
     ) => {
-      await enqueue(async () => {
-        const latest = await api.user.getUserData()
-        if (!latest) return
-
+      // Optimistic: update weekDays immediately
+      setWeekDays(prev => {
         const dayDate = new Date(date).toDateString()
-        const existingSession = latest.weeklyProgress?.find(
-          session => new Date(session.date).toDateString() === dayDate
-        )
-
-        let updatedProgress = latest.weeklyProgress || []
-
-        if (existingSession) {
-          updatedProgress = updatedProgress.map(session => {
-            if (new Date(session.date).toDateString() === dayDate) {
-              const existingCategories = session.categories || []
-              return {
-                ...session,
-                exercises: [...session.exercises, ...exercises],
-                categories: existingCategories.includes(category)
-                  ? existingCategories
-                  : [...existingCategories, category]
-              }
-            }
-            return session
-          })
-        } else {
-          updatedProgress = [
-            ...updatedProgress,
-            {
-              exercises,
-              categories: [category],
-              level,
-              date
-            }
-          ]
-        }
-
-        await api.user.updateUserData({
-          ...latest,
-          weeklyProgress: updatedProgress
+        return prev.map(day => {
+          if (day.date.toDateString() !== dayDate) return day
+          const existingExercises = day.exercises || []
+          const existingCategories = (day.categories || []) as Category[]
+          return {
+            ...day,
+            exercises: [...existingExercises, ...exercises],
+            categories: existingCategories.includes(category)
+              ? existingCategories
+              : [...existingCategories, category],
+            isWorkoutDay: true
+          }
         })
       })
-      await refreshAll()
+
+      setSaveStatus('saving')
+      try {
+        await enqueue(async () => {
+          const latest = await api.user.getUserData()
+          if (!latest) return
+
+          const dayDate = new Date(date).toDateString()
+          const existingSession = latest.weeklyProgress?.find(
+            session => new Date(session.date).toDateString() === dayDate
+          )
+
+          let updatedProgress = latest.weeklyProgress || []
+
+          if (existingSession) {
+            updatedProgress = updatedProgress.map(session => {
+              if (new Date(session.date).toDateString() === dayDate) {
+                const existingCategories = session.categories || []
+                return {
+                  ...session,
+                  exercises: [...session.exercises, ...exercises],
+                  categories: existingCategories.includes(category)
+                    ? existingCategories
+                    : [...existingCategories, category]
+                }
+              }
+              return session
+            })
+          } else {
+            updatedProgress = [
+              ...updatedProgress,
+              {
+                exercises,
+                categories: [category],
+                level,
+                date
+              }
+            ]
+          }
+
+          const saved = await api.user.updateUserData({
+            ...latest,
+            weeklyProgress: updatedProgress
+          })
+          // Reconcile with server response
+          setUserData(saved)
+          setWeekDays(prev => applyProgressToWeekDays(prev, saved.weeklyProgress || []))
+        })
+        showSaved()
+      } catch {
+        setSaveStatus('error')
+        // Revert on failure
+        await refreshAll()
+      }
     },
-    [enqueue, refreshAll]
+    [enqueue, refreshAll, showSaved]
   )
 
   const removeCategoryFromDay = useCallback(
     async (date: Date, category: Category) => {
-      await enqueue(async () => {
-        const latest = await api.user.getUserData()
-        if (!latest?.weeklyProgress) return
-
+      // Optimistic: update weekDays immediately
+      setWeekDays(prev => {
         const dayDate = new Date(date).toDateString()
-
-        const updatedProgress = latest.weeklyProgress.map(session => {
-          if (new Date(session.date).toDateString() === dayDate) {
-            return {
-              ...session,
-              exercises: session.exercises.filter(e => e.category !== category),
-              categories: (session.categories || []).filter(c => c !== category)
-            }
+        return prev.map(day => {
+          if (day.date.toDateString() !== dayDate) return day
+          const filteredExercises = (day.exercises || []).filter(e => e.category !== category)
+          const filteredCategories = ((day.categories || []) as Category[]).filter(c => c !== category)
+          return {
+            ...day,
+            exercises: filteredExercises,
+            categories: filteredCategories,
+            isWorkoutDay: filteredExercises.length > 0
           }
-          return session
-        })
-
-        await api.user.updateUserData({
-          ...latest,
-          weeklyProgress: updatedProgress
         })
       })
-      await refreshAll()
+
+      setSaveStatus('saving')
+      try {
+        await enqueue(async () => {
+          const latest = await api.user.getUserData()
+          if (!latest?.weeklyProgress) return
+
+          const dayDate = new Date(date).toDateString()
+          const updatedProgress = latest.weeklyProgress.map(session => {
+            if (new Date(session.date).toDateString() === dayDate) {
+              return {
+                ...session,
+                exercises: session.exercises.filter(e => e.category !== category),
+                categories: (session.categories || []).filter(c => c !== category)
+              }
+            }
+            return session
+          })
+
+          const saved = await api.user.updateUserData({
+            ...latest,
+            weeklyProgress: updatedProgress
+          })
+          setUserData(saved)
+          setWeekDays(prev => applyProgressToWeekDays(prev, saved.weeklyProgress || []))
+        })
+        showSaved()
+      } catch {
+        setSaveStatus('error')
+        await refreshAll()
+      }
     },
-    [enqueue, refreshAll]
+    [enqueue, refreshAll, showSaved]
   )
 
-  const updateExercise = useCallback(
-    async (
-      date: Date,
-      exerciseIndex: number,
-      updatedExercise: BaseExercise
-    ) => {
+  // Flush the pending exercise update to the server
+  const flushExerciseUpdate = useCallback(async () => {
+    const pending = pendingExerciseRef.current
+    if (!pending) return
+    pendingExerciseRef.current = null
+
+    setSaveStatus('saving')
+    try {
       await enqueue(async () => {
         const latest = await api.user.getUserData()
         if (!latest?.weeklyProgress) return
 
-        const dayDate = new Date(date).toDateString()
+        const dayDate = new Date(pending.date).toDateString()
         const updatedProgress = latest.weeklyProgress.map(session => {
           if (new Date(session.date).toDateString() === dayDate) {
             const updatedExercises = [...session.exercises]
-            updatedExercises[exerciseIndex] = updatedExercise
+            updatedExercises[pending.exerciseIndex] = pending.updatedExercise
             return { ...session, exercises: updatedExercises }
           }
           return session
         })
 
-        await api.user.updateUserData({
+        const saved = await api.user.updateUserData({
           ...latest,
           weeklyProgress: updatedProgress
         })
+        setUserData(saved)
+        setWeekDays(prev => applyProgressToWeekDays(prev, saved.weeklyProgress || []))
       })
+      showSaved()
+    } catch {
+      setSaveStatus('error')
       await refreshAll()
+    }
+  }, [enqueue, refreshAll, showSaved])
+
+  // Debounced exercise update: updates UI instantly, batches API calls
+  const updateExercise = useCallback(
+    (
+      date: Date,
+      exerciseIndex: number,
+      updatedExercise: BaseExercise
+    ) => {
+      // Optimistic: update weekDays immediately
+      setWeekDays(prev => {
+        const dayDate = new Date(date).toDateString()
+        return prev.map(day => {
+          if (day.date.toDateString() !== dayDate) return day
+          const updatedExercises = [...(day.exercises || [])]
+          updatedExercises[exerciseIndex] = updatedExercise
+          return { ...day, exercises: updatedExercises }
+        })
+      })
+
+      // Store the latest pending update
+      pendingExerciseRef.current = { date, exerciseIndex, updatedExercise }
+
+      // Reset debounce timer
+      if (exerciseDebounceRef.current) clearTimeout(exerciseDebounceRef.current)
+      exerciseDebounceRef.current = setTimeout(() => {
+        flushExerciseUpdate()
+      }, EXERCISE_SAVE_DELAY)
     },
-    [enqueue, refreshAll]
+    [flushExerciseUpdate]
   )
 
   const levelUp = useCallback(
@@ -260,6 +410,7 @@ export function useUserData(): UseUserDataReturn {
     currentLevels,
     weekDays,
     status,
+    saveStatus,
     error,
     refreshAll,
     addCategoryToDay,

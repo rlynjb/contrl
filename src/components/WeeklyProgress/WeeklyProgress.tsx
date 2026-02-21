@@ -13,6 +13,7 @@ export default function WeeklyProgress() {
   const {
     weekDays,
     status,
+    saveStatus,
     error,
     currentLevels,
     userData,
@@ -113,6 +114,17 @@ export default function WeeklyProgress() {
         onClose={closeModal}
         title={modalTitle}
       >
+        {saveStatus !== 'idle' && (
+          <div
+            className={`weekly-progress__save-status weekly-progress__save-status--${saveStatus}`}
+            role="status"
+            aria-live="polite"
+          >
+            {saveStatus === 'saving' && 'Saving...'}
+            {saveStatus === 'saved' && 'Saved'}
+            {saveStatus === 'error' && 'Failed to save'}
+          </div>
+        )}
         {selectedDay && (
           <WorkoutDetail
             selectedDay={selectedDay}
