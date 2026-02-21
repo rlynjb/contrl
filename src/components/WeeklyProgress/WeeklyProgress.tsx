@@ -1,95 +1,50 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { Modal } from '@/components/ui'
-import { api } from '@/api'
-import type { WeekDay, WorkoutSession } from '@/api'
+import { useUserData } from '@/hooks/useUserData'
+import type { ExtendedWeekDay } from '@/hooks/useUserData'
 import WorkoutDetail from './WorkoutDetail'
 import './WeeklyProgress.css'
 
-export type ExtendedWeekDay = WeekDay & Partial<WorkoutSession>
-
-// Generate week days based on current date
-const generateWeekDays = (): WeekDay[] => {
-  const today = new Date()
-  const currentDay = today.getDay() // 0 = Sunday, 6 = Saturday
-  const weekStart = new Date(today)
-  weekStart.setDate(today.getDate() - currentDay) // Go to Sunday
-  weekStart.setHours(0, 0, 0, 0) // Reset to midnight
-
-  return Array.from({ length: 7 }, (_, i) => {
-    const date = new Date(weekStart)
-    date.setDate(weekStart.getDate() + i)
-    const dateISO = date.toISOString()
-    const isToday = date.toDateString() === today.toDateString()
-
-    return {
-      date: new Date(dateISO),
-      isToday,
-      completed: false,
-      completedWorkout: undefined,
-      todayWorkout: undefined
-    }
-  })
-}
+export type { ExtendedWeekDay } from '@/hooks/useUserData'
 
 export default function WeeklyProgress() {
-  const [weekDays, setWeekDays] = useState<ExtendedWeekDay[]>([])
-  const [selectedDay, setSelectedDay] = useState<ExtendedWeekDay | null>(null)
+  const {
+    weekDays,
+    status,
+    error,
+    currentLevels,
+    userData,
+    refreshAll,
+    addCategoryToDay,
+    removeCategoryFromDay,
+    updateExercise,
+    levelUp
+  } = useUserData()
+
+  const [selectedDayDate, setSelectedDayDate] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  // Fetch user data and merge with generated week
-  const refreshWeeklyProgress = useCallback(async () => {
-    const generatedWeek = generateWeekDays()
-    const fetchedUserData = await api.user.getUserData()
-    const weeklyProgress = fetchedUserData?.weeklyProgress
+  // Derive selectedDay from weekDays — auto-updates when weekDays changes after mutation
+  const selectedDay = useMemo<ExtendedWeekDay | null>(
+    () => selectedDayDate
+      ? weekDays.find(d => d.date.toDateString() === selectedDayDate) ?? null
+      : null,
+    [weekDays, selectedDayDate]
+  )
 
-    if (Array.isArray(weeklyProgress) && weeklyProgress.length > 0) {
-      const mergedWeek = generatedWeek.map(day => {
-        const weekDay = day.date.toDateString()
-
-        const workoutDay = weeklyProgress.find(
-          wp => new Date(wp.date).toDateString() === weekDay
-        )
-
-        return {
-          ...day,
-          isWorkoutDay: Boolean(workoutDay?.exercises?.length),
-          ...(workoutDay || {}),
-          date: day.date // Keep the date object
-        }
-      })
-      setWeekDays(mergedWeek)
-
-      // Update selectedDay if it exists to reflect changes
-      if (selectedDay) {
-        const updatedSelectedDay = mergedWeek.find(
-          day => day.date.toDateString() === new Date(selectedDay.date).toDateString()
-        )
-        if (updatedSelectedDay) {
-          setSelectedDay(updatedSelectedDay)
-        }
-      }
-    } else {
-      setWeekDays(generatedWeek)
-    }
-  }, [selectedDay])
-
-  useEffect(() => {
-    refreshWeeklyProgress()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleDayClick = (day: WeekDay) => {
-    setSelectedDay(day)
+  const handleDayClick = useCallback((day: ExtendedWeekDay) => {
+    setSelectedDayDate(day.date.toDateString())
     setIsModalOpen(true)
-  }
+  }, [])
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setIsModalOpen(false)
-    setSelectedDay(null)
-  }
+    setSelectedDayDate(null)
+  }, [])
 
-  const hightlightDay = (day: WeekDay) => {
+  const highlightDay = (day: ExtendedWeekDay) => {
     return day.isToday ? 'weekly-progress__day--today' :
       day.isWorkoutDay ? 'weekly-progress__day--workout' : ''
   }
@@ -108,13 +63,33 @@ export default function WeeklyProgress() {
           </div>
         ))}
       </div>
-          
-      <div className="weekly-progress__grid">
+
+      <div className="weekly-progress__grid" role="grid" aria-label="Weekly workout calendar">
+        {status === 'loading' && weekDays.length === 0 && (
+          <p className="weekly-progress__loading">Loading...</p>
+        )}
+
+        {status === 'error' && (
+          <div className="weekly-progress__error">
+            <p>{error || 'Failed to load data'}</p>
+            <button onClick={refreshAll}>Retry</button>
+          </div>
+        )}
+
+        {status === 'success' && weekDays.length === 0 && (
+          <p className="weekly-progress__empty">No workout data for this week</p>
+        )}
+
         {weekDays.map((day, index) => (
           <div
             key={index}
-            className={`weekly-progress__day ${hightlightDay(day)}`}
+            role="gridcell"
+            tabIndex={0}
+            aria-label={`${new Date(day.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}${day.isWorkoutDay ? ', has workout' : ''}${day.isToday ? ', today' : ''}`}
+            aria-selected={selectedDayDate === day.date.toDateString()}
+            className={`weekly-progress__day ${highlightDay(day)}`}
             onClick={() => handleDayClick(day)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleDayClick(day) } }}
           >
             <div className="weekly-progress__day-name">{new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}</div>
             <div className="weekly-progress__day-number">{new Date(day.date).getDate()}</div>
@@ -131,17 +106,22 @@ export default function WeeklyProgress() {
           </div>
         ))}
       </div>
-      
+
       {/* Exercise Details Modal */}
-      <Modal 
-        isOpen={isModalOpen} 
+      <Modal
+        isOpen={isModalOpen}
         onClose={closeModal}
         title={modalTitle}
       >
         {selectedDay && (
           <WorkoutDetail
             selectedDay={selectedDay}
-            onWorkoutUpdate={refreshWeeklyProgress}
+            currentLevels={currentLevels}
+            weeklyProgress={userData?.weeklyProgress || []}
+            onAddCategory={addCategoryToDay}
+            onRemoveCategory={removeCategoryFromDay}
+            onUpdateExercise={updateExercise}
+            onLevelUp={levelUp}
           />
         )}
       </Modal>

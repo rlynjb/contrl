@@ -15,41 +15,31 @@ interface WorkoutExerciseCardProps {
 const formatSets = (sets: BaseExerciseSet[]): string[] =>
   sets.map(set => 'reps' in set && set.reps ? String(set.reps) : `${set.duration}s`)
 
+// Helper to parse set string back to BaseExerciseSet
+const parseSets = (values: string[]): BaseExerciseSet[] =>
+  values.map(val => {
+    if (val.endsWith('s')) {
+      return { duration: parseInt(val) || 0 }
+    }
+    return { reps: parseInt(val) || 0 }
+  })
+
 export default function WorkoutExerciseCard({
   exercise,
   className = '',
   onExerciseChange
 }: WorkoutExerciseCardProps) {
-  // Match exercise-card format: "5" for reps, "30s" for duration
+  // Uncontrolled-after-mount: initialize from props, local state is authoritative.
+  // Parent uses React `key` prop to force remount when exercise identity changes.
   const [setValues, setSetValues] = useState<string[]>(() => formatSets(exercise.sets))
   const [setCompleted, setSetCompleted] = useState<boolean[]>(
-    exercise.completedSets || exercise.sets.map(() => false)
+    () => exercise.completedSets || exercise.sets.map(() => false)
   )
-  const [tempoValue, setTempoValue] = useState(exercise.tempo || '')
-  const [restValue, setRestValue] = useState(exercise.rest !== undefined ? `${exercise.rest}s` : '')
-  const [notesValue, setNotesValue] = useState(exercise.notes || '')
+  const [tempoValue, setTempoValue] = useState(() => exercise.tempo || '')
+  const [restValue, setRestValue] = useState(() => exercise.rest !== undefined ? `${exercise.rest}s` : '')
+  const [notesValue, setNotesValue] = useState(() => exercise.notes || '')
   const [levelInfo, setLevelInfo] = useState<{ level: number; name: string; category: string; originalSets?: BaseExerciseSet[] } | null>(null)
-  // Original target values from exercise definition (fetched from API)
   const [targetValues, setTargetValues] = useState<string[]>(() => formatSets(exercise.sets))
-
-  // Create a stable key from exercise data for dependency tracking
-  const exerciseKey = JSON.stringify({
-    name: exercise.name,
-    sets: exercise.sets,
-    completedSets: exercise.completedSets,
-    tempo: exercise.tempo,
-    rest: exercise.rest,
-    notes: exercise.notes
-  })
-
-  // Sync state when exercise data changes (e.g., loading from user data)
-  useEffect(() => {
-    setSetValues(formatSets(exercise.sets))
-    setSetCompleted(exercise.completedSets || exercise.sets.map(() => false))
-    setTempoValue(exercise.tempo || '')
-    setRestValue(exercise.rest !== undefined ? `${exercise.rest}s` : '')
-    setNotesValue(exercise.notes || '')
-  }, [exerciseKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch level info and original sets on mount
   useEffect(() => {
@@ -57,7 +47,6 @@ export default function WorkoutExerciseCard({
       if (exercise.name) {
         const info = await exerciseApi.getExerciseLevel(exercise.name)
         setLevelInfo(info)
-        // Update target values with original sets from exercise definition
         if (info?.originalSets) {
           setTargetValues(formatSets(info.originalSets))
         }
@@ -66,29 +55,29 @@ export default function WorkoutExerciseCard({
     fetchLevelInfo()
   }, [exercise.name])
 
+  const buildExercise = (
+    sets: BaseExerciseSet[],
+    completed: boolean[],
+    overrides?: Partial<Pick<BaseExercise, 'tempo' | 'rest' | 'notes'>>
+  ): BaseExercise => {
+    const allDone = completed.every(Boolean) && completed.length > 0
+    return {
+      ...exercise,
+      sets,
+      tempo: (overrides?.tempo ?? tempoValue) || undefined,
+      rest: overrides?.rest ?? (restValue ? parseInt(restValue) : undefined),
+      notes: (overrides?.notes ?? notesValue) || undefined,
+      completed: allDone,
+      completedSets: completed
+    }
+  }
+
   const toggleSet = (index: number) => {
     const newCompleted = setCompleted.map((v, i) => i === index ? !v : v)
     setSetCompleted(newCompleted)
 
-    // Emit change with completion status
     if (onExerciseChange) {
-      const updatedSets = setValues.map(val => {
-        if (val.endsWith('s')) {
-          return { duration: parseInt(val) || 0 }
-        }
-        return { reps: parseInt(val) || 0 }
-      })
-
-      const allDone = newCompleted.every(Boolean) && newCompleted.length > 0
-      onExerciseChange({
-        ...exercise,
-        sets: updatedSets,
-        tempo: tempoValue || undefined,
-        rest: restValue ? parseInt(restValue) : undefined,
-        notes: notesValue || undefined,
-        completed: allDone,
-        completedSets: newCompleted
-      })
+      onExerciseChange(buildExercise(parseSets(setValues), newCompleted))
     }
   }
 
@@ -98,20 +87,7 @@ export default function WorkoutExerciseCard({
 
   const emitChange = () => {
     if (onExerciseChange) {
-      // Convert string values back to BaseExerciseSet format
-      const updatedSets = setValues.map(val => {
-        if (val.endsWith('s')) {
-          return { duration: parseInt(val) || 0 }
-        }
-        return { reps: parseInt(val) || 0 }
-      })
-      onExerciseChange({
-        ...exercise,
-        sets: updatedSets,
-        tempo: tempoValue || undefined,
-        rest: restValue ? parseInt(restValue) : undefined,
-        notes: notesValue || undefined
-      })
+      onExerciseChange(buildExercise(parseSets(setValues), setCompleted))
     }
   }
 
@@ -121,7 +97,11 @@ export default function WorkoutExerciseCard({
   const categoryClass = levelInfo?.category ? `exercise-card--${levelInfo.category.toLowerCase()}` : ''
 
   return (
-    <div className={`exercise-card ${categoryClass} ${allCompleted ? 'exercise-card--completed' : ''} ${className}`}>
+    <div
+      className={`exercise-card ${categoryClass} ${allCompleted ? 'exercise-card--completed' : ''} ${className}`}
+      role="article"
+      aria-label={`Exercise: ${exercise.name}`}
+    >
       {levelInfo && (
         <span className="exercise-card__level">
           Level {levelInfo.level} · {levelInfo.name} · {levelInfo.category}
@@ -153,7 +133,7 @@ export default function WorkoutExerciseCard({
                     type="button"
                     className={`exercise-card__set-check ${setCompleted[index] ? 'exercise-card__set-check--done' : ''}`}
                     onClick={() => toggleSet(index)}
-                    aria-label={setCompleted[index] ? 'Mark incomplete' : 'Mark complete'}
+                    aria-label={`Set ${index + 1}: ${setCompleted[index] ? 'Mark incomplete' : 'Mark complete'}`}
                   >
                     {setCompleted[index] ? '✓' : ''}
                   </button>
@@ -163,6 +143,8 @@ export default function WorkoutExerciseCard({
                     onChange={(e) => updateSet(index, e.target.value)}
                     onBlur={emitChange}
                     placeholder="..."
+                    aria-label={`Set ${index + 1} reps`}
+                    inputMode="numeric"
                   />
                 </div>
                 <span className="exercise-card__set-target">
@@ -179,14 +161,18 @@ export default function WorkoutExerciseCard({
             className="exercise-card__meta-input"
             value={tempoValue}
             onChange={(e) => setTempoValue(e.target.value)}
+            onBlur={emitChange}
             placeholder="..."
+            aria-label="Tempo"
           />
           <span className="exercise-card__meta-label exercise-card__meta-label--spaced">Rest:</span>
           <input
             className="exercise-card__meta-input"
             value={restValue}
             onChange={(e) => setRestValue(e.target.value)}
+            onBlur={emitChange}
             placeholder="..."
+            aria-label="Rest period"
           />
         </div>
       </div>
@@ -195,7 +181,9 @@ export default function WorkoutExerciseCard({
         className="exercise-card__notes"
         value={notesValue}
         onChange={(e) => setNotesValue(e.target.value)}
+        onBlur={emitChange}
         placeholder="Add notes..."
+        aria-label="Exercise notes"
       />
     </div>
   )
