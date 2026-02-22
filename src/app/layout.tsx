@@ -35,7 +35,7 @@ export default function RootLayout({
                     href="/workout-levels"
                     className="px-3 py-1.5 bg-secondary text-secondary-foreground rounded-md text-sm font-medium hover:bg-secondary/80 transition-colors"
                   >
-                    Workout Levels
+                    Progression Levels
                   </Link>
                 </nav>
               </div>
