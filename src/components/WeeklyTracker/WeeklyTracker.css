@@ -1,0 +1,46 @@
+@import url('https://fonts.googleapis.com/css2?family=Anybody:wght@400;500;600;700;800&display=swap');
+
+.weekly-tracker__label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #4a4a5a;
+  font-family: 'Anybody', monospace;
+}
+
+.weekly-tracker__sublabel {
+  font-size: 10px;
+  font-weight: 700;
+  color: #505068;
+  font-family: 'Anybody', monospace;
+}
+
+.weekly-tracker__day-label {
+  font-size: 9px;
+  font-weight: 700;
+  font-family: 'Anybody', monospace;
+  letter-spacing: 0.04em;
+}
+
+.weekly-tracker__sets-count {
+  font-size: 8px;
+  font-weight: 700;
+  color: #4a4a5a;
+  font-family: 'Anybody', monospace;
+  line-height: 1;
+}
+
+.weekly-tracker__total-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: #333340;
+  font-family: 'Anybody', monospace;
+  letter-spacing: 0.06em;
+}
+
+.weekly-tracker__total-value {
+  font-size: 12px;
+  font-weight: 800;
+  color: #7a7a90;
+  font-family: 'Anybody', monospace;
+}
