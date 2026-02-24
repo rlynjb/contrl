@@ -864,7 +864,8 @@ const toBaseExercise = (ex: ExerciseWithMetadata) => ({
   tempo: ex.tempo,
   rest: ex.rest,
   equipment: ex.equipment,
-  notes: ex.notes
+  notes: ex.notes,
+  category: ex.category
 })
 
 // Workout levels organized by difficulty

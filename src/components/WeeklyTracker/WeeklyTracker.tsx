@@ -1,13 +1,8 @@
 'use client'
 
 import type { ExtendedWeekDay } from '@/hooks/useUserData'
+import { CATEGORY_COLORS } from '@/lib/constants'
 import './WeeklyTracker.css'
-
-const CATS: Record<string, { color: string }> = {
-  Push:  { color: "#F97316" },
-  Pull:  { color: "#06B6D4" },
-  Squat: { color: "#D946EF" },
-}
 
 const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
@@ -52,8 +47,8 @@ export default function WeeklyTracker({ weekDays }: WeeklyTrackerProps) {
                         key={ci}
                         className="weekly-tracker__dot"
                         style={{
-                          background: CATS[cat]?.color || "#888",
-                          boxShadow: `0 0 6px ${CATS[cat]?.color || "#888"}50`,
+                          background: CATEGORY_COLORS[cat]?.color || "#888",
+                          boxShadow: `0 0 6px ${CATEGORY_COLORS[cat]?.color || "#888"}50`,
                         }}
                       />
                     ))}

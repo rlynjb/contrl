@@ -11,6 +11,4 @@ export { allExercises, workoutLevels } from './exercises'
 export {
   MOCK_CurrentUserLevel,
   MOCK_weeklyWorkouts,
-  todaysTodayWorkout,
-  MOCK_UserData
 } from './user'

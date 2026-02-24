@@ -42,11 +42,12 @@ export default async (req: Request, _context: Context) => {
       }
 
       // Map to BaseExercise (strip metadata like level, category, tags)
-      const baseExercises: BaseExercise[] = exercises.map(({ name, sets, tempo, rest, equipment, notes }) => ({
+      const baseExercises: BaseExercise[] = exercises.map(({ name, sets, tempo, rest, equipment, notes, category: cat }) => ({
         name,
         sets,
         tempo,
         rest,
+        category: cat,
         ...(equipment && { equipment }),
         ...(notes && { notes })
       }))

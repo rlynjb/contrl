@@ -1,15 +1,22 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import type { CurrentUserLevels, WorkoutLevel, BaseExercise, BaseExerciseSet, ProgressionNotes } from '@/api'
+import type { CurrentUserLevels, WorkoutLevel, BaseExercise, ProgressionNotes } from '@/api'
+import { CATEGORY_COLORS } from '@/lib/constants'
+import ProgressRing from './ProgressRing'
+import LevelMarker from './LevelMarker'
+import SkillCard from './SkillCard'
+import type { Skill, CatInfo } from './types'
 import './SkillTree.css'
 import '../ui/exercise-card.css'
 
-const CATS: Record<string, { label: string; icon: string; color: string; bg: string; border: string; glow: string }> = {
-  Push:  { label: "PUSH",  icon: "\u2197", color: "#F97316", bg: "#F9731610", border: "#F9731628", glow: "0 0 24px #F9731635" },
-  Pull:  { label: "PULL",  icon: "\u2199", color: "#06B6D4", bg: "#06B6D410", border: "#06B6D428", glow: "0 0 24px #06B6D435" },
-  Squat: { label: "SQUAT", icon: "\u2193", color: "#D946EF", bg: "#D946EF10", border: "#D946EF28", glow: "0 0 24px #D946EF35" },
-}
+const CATS: Record<string, CatInfo> = Object.fromEntries(
+  Object.entries(CATEGORY_COLORS).map(([key, val]) => [key, {
+    ...val,
+    label: key.toUpperCase(),
+    icon: key === 'Push' ? "\u2197" : key === 'Pull' ? "\u2199" : "\u2193",
+  }])
+)
 
 const LEVEL_MAP: Record<string, { lv: number; name: string }> = {
   beginner:     { lv: 1, name: "Beginner" },
@@ -21,17 +28,6 @@ const LEVEL_MAP: Record<string, { lv: number; name: string }> = {
 
 const LEVEL_ORDER = ["beginner", "novice", "intermediate", "advanced", "expert"]
 
-interface Skill {
-  id: string
-  cat: string
-  lv: number
-  name: string
-  sets: string
-  exercise: BaseExercise
-  done: boolean
-  open: boolean
-}
-
 interface SkillTreeProps {
   currentLevels: CurrentUserLevels | null
   workoutLevels: Record<string, WorkoutLevel>
@@ -40,7 +36,6 @@ interface SkillTreeProps {
   onExerciseChange?: (exercise: BaseExercise) => void
 }
 
-// Convert API workout levels to flat skill list, merging with today's tracked data
 function buildSkills(
   workoutLevels: Record<string, WorkoutLevel>,
   currentLevels: CurrentUserLevels | null,
@@ -85,200 +80,6 @@ function buildSkills(
   return skills
 }
 
-// ── Progress Ring ──
-function ProgressRing({ done, total, color, size = 34 }: { done: number; total: number; color: string; size?: number }) {
-  const s = 2.5, r = (size - s) / 2, c = 2 * Math.PI * r
-  return (
-    <svg className="progress-ring" width={size} height={size}>
-      <circle className="progress-ring__track" cx={size/2} cy={size/2} r={r} fill="none" stroke="#141420" strokeWidth={s} />
-      <circle className="progress-ring__fill" cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={s}
-        strokeDasharray={c} strokeDashoffset={c * (1 - (total ? done/total : 0))}
-        strokeLinecap="round" />
-    </svg>
-  )
-}
-
-// ── Level Marker ──
-function LevelMarker({ lv, filled, color }: { lv: number; filled: boolean; color: string }) {
-  return (
-    <div
-      className={`level-marker${filled ? ' level-marker--filled' : ''}`}
-      style={filled ? {
-        background: color,
-        borderColor: color,
-        boxShadow: `0 0 12px ${color}40`,
-      } : undefined}
-    >{lv}</div>
-  )
-}
-
-// ── Helpers ──
-const formatSets = (sets: BaseExerciseSet[]): string[] =>
-  sets.map(set => 'reps' in set && set.reps ? String(set.reps) : `${set.duration}s`)
-
-const parseSets = (values: string[]): BaseExerciseSet[] =>
-  values.map(val => {
-    if (val.endsWith('s')) {
-      return { duration: parseInt(val) || 0 }
-    }
-    return { reps: parseInt(val) || 0 }
-  })
-
-// ── Skill Card ──
-function SkillCard({ skill, cat, isOpen, onTap, onExerciseChange }: {
-  skill: Skill
-  cat: typeof CATS[string]
-  isOpen: boolean
-  onTap: () => void
-  onExerciseChange?: (exercise: BaseExercise) => void
-}) {
-  const locked = !skill.open
-  const [setValues, setSetValues] = useState<string[]>(() => formatSets(skill.exercise.sets))
-  const [setCompleted, setSetCompleted] = useState<boolean[]>(
-    () => skill.exercise.completedSets || skill.exercise.sets.map(() => false)
-  )
-  const [tempoValue, setTempoValue] = useState(() => skill.exercise.tempo || '')
-  const [restValue, setRestValue] = useState(() => skill.exercise.rest !== undefined ? `${skill.exercise.rest}s` : '')
-  const [targetValues] = useState<string[]>(() => formatSets(skill.exercise.sets))
-
-  const buildExercise = (
-    sets: BaseExerciseSet[],
-    completed: boolean[],
-    overrides?: Partial<Pick<BaseExercise, 'tempo' | 'rest'>>
-  ): BaseExercise => {
-    const allDone = completed.every(Boolean) && completed.length > 0
-    return {
-      ...skill.exercise,
-      sets,
-      tempo: (overrides?.tempo ?? tempoValue) || undefined,
-      rest: overrides?.rest ?? (restValue ? parseInt(restValue) : undefined),
-      completed: allDone,
-      completedSets: completed,
-    }
-  }
-
-  const toggleSet = (index: number) => {
-    const newCompleted = setCompleted.map((v, i) => i === index ? !v : v)
-    setSetCompleted(newCompleted)
-    onExerciseChange?.(buildExercise(parseSets(setValues), newCompleted))
-  }
-
-  const updateSet = (index: number, value: string) => {
-    setSetValues(prev => prev.map((v, i) => i === index ? value : v))
-  }
-
-  const emitChange = () => {
-    onExerciseChange?.(buildExercise(parseSets(setValues), setCompleted))
-  }
-
-  const completedCount = setCompleted.filter(Boolean).length
-
-  return (
-    <div
-      className={`skill-card${locked ? ' skill-card--locked' : ''}${isOpen ? ' skill-card--open' : ''}`}
-      onClick={() => !locked && onTap()}
-      style={!locked ? {
-        borderColor: isOpen ? cat.color + "50" : undefined,
-        background: isOpen ? `linear-gradient(160deg, ${cat.bg}, #0c0c18 70%)` : undefined,
-        boxShadow: isOpen ? cat.glow : undefined,
-      } : undefined}
-    >
-      <div className="skill-card__header">
-        <div
-          className="skill-card__dot"
-          style={{
-            background: skill.done ? cat.color : undefined,
-            borderColor: skill.done ? cat.color : skill.open ? cat.color + "50" : undefined,
-            boxShadow: skill.done ? `0 0 6px ${cat.color}50` : undefined,
-          }}
-        />
-        <div className="skill-card__name-wrap">
-          <div className="skill-card__name">{skill.name}</div>
-        </div>
-        <span className="skill-card__sets">{skill.sets}</span>
-        {locked && <span className="skill-card__lock">&#128274;</span>}
-        {skill.done && (
-          <div className="skill-card__check" style={{ background: cat.color, boxShadow: `0 2px 6px ${cat.color}40` }}>
-            &check;
-          </div>
-        )}
-        {!locked && !skill.done && (
-          <svg className={`skill-card__chevron${isOpen ? ' skill-card__chevron--open' : ''}`} width="16" height="16" viewBox="0 0 16 16">
-            <path d="M4 6l4 4 4-4" fill="none" stroke="#888" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-        )}
-      </div>
-
-      {isOpen && (
-        <div className="skill-card__details" onClick={e => e.stopPropagation()}>
-          <div className="skill-card__divider" style={{ background: `linear-gradient(90deg, ${cat.color}18, transparent)` }} />
-          <div className="exercise-card__sets-info">
-            <div className="exercise-card__sets-row">
-              <span className="exercise-card__sets-label">
-                {completedCount}/{setValues.length} Sets
-              </span>
-              <div className="exercise-card__sets-inputs">
-                {setValues.map((value, index) => (
-                  <div key={index} className="exercise-card__set-group">
-                    <div className="exercise-card__set-row">
-                      <button
-                        type="button"
-                        className={`exercise-card__set-check ${setCompleted[index] ? 'exercise-card__set-check--done' : ''}`}
-                        onClick={() => toggleSet(index)}
-                        aria-label={`Set ${index + 1}: ${setCompleted[index] ? 'Mark incomplete' : 'Mark complete'}`}
-                      >
-                        {setCompleted[index] ? '\u2713' : ''}
-                      </button>
-                      <input
-                        className="exercise-card__set-input"
-                        value={value}
-                        onChange={(e) => updateSet(index, e.target.value)}
-                        onBlur={emitChange}
-                        placeholder="..."
-                        aria-label={`Set ${index + 1} reps`}
-                        inputMode="numeric"
-                      />
-                    </div>
-                    <span className="exercise-card__set-target">
-                      Goal: {targetValues[index]}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="exercise-card__exercise-meta">
-              <span className="exercise-card__meta-label">Tempo:</span>
-              <input
-                className="exercise-card__meta-input"
-                value={tempoValue}
-                onChange={(e) => setTempoValue(e.target.value)}
-                onBlur={emitChange}
-                placeholder="..."
-                aria-label="Tempo"
-              />
-              <span className="exercise-card__meta-label exercise-card__meta-label--spaced">Rest:</span>
-              <input
-                className="exercise-card__meta-input"
-                value={restValue}
-                onChange={(e) => setRestValue(e.target.value)}
-                onBlur={emitChange}
-                placeholder="..."
-                aria-label="Rest period"
-              />
-            </div>
-          </div>
-          {skill.done && (
-            <div className="skill-card__completed" style={{ color: cat.color }}>
-              &loz; COMPLETED &loz;
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ── Main SkillTree ──
 export default function SkillTree({ currentLevels, workoutLevels, todayExercises, saveStatus = 'idle', onExerciseChange }: SkillTreeProps) {
   const [tab, setTab] = useState<string>("Push")
   const [openId, setOpenId] = useState<string | null>(null)

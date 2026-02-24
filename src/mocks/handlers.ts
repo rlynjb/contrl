@@ -42,11 +42,12 @@ export const handlers = [
     }
 
     // Map to BaseExercise (strip metadata)
-    const baseExercises: BaseExercise[] = exercises.map(({ name, sets, tempo, rest, equipment, notes }) => ({
+    const baseExercises: BaseExercise[] = exercises.map(({ name, sets, tempo, rest, equipment, notes, category }) => ({
       name,
       sets,
       tempo,
       rest,
+      category,
       ...(equipment && { equipment }),
       ...(notes && { notes })
     }))
@@ -64,11 +65,12 @@ export const handlers = [
       e.tags?.some(tag => tag.toLowerCase().includes(query))
     )
 
-    const baseExercises: BaseExercise[] = results.map(({ name, sets, tempo, rest, equipment, notes }) => ({
+    const baseExercises: BaseExercise[] = results.map(({ name, sets, tempo, rest, equipment, notes, category }) => ({
       name,
       sets,
       tempo,
       rest,
+      category,
       ...(equipment && { equipment }),
       ...(notes && { notes })
     }))

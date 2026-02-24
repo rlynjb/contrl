@@ -2,7 +2,7 @@
  * User Mock Data
  */
 
-import type { CurrentUserLevels, WorkoutSession, UserData } from '@/api/user'
+import type { CurrentUserLevels, WorkoutSession } from '@/api/user'
 import type { BaseExercise } from '@/api/exercises'
 import { allExercises } from './exercises'
 
@@ -20,11 +20,12 @@ const getExercisesForCategory = (
 ): BaseExercise[] => {
   return allExercises
     .filter(ex => ex.category === category && ex.level === level)
-    .map(({ name, sets, tempo, rest, equipment }) => ({
+    .map(({ name, sets, tempo, rest, equipment, category: cat }) => ({
       name,
       sets,
       tempo,
       rest,
+      category: cat,
       ...(equipment && { equipment })
     }))
 }
@@ -70,22 +71,3 @@ const generateWorkoutSessions = (): WorkoutSession[] => {
 
 // Generated workout sessions based on MOCK_CurrentUserLevel
 export const MOCK_weeklyWorkouts: WorkoutSession[] = generateWorkoutSessions()
-
-// Today's planned workout - combines all categories
-export const todaysTodayWorkout: WorkoutSession = {
-  exercises: [
-    ...getExercisesForCategory('Push', MOCK_CurrentUserLevel.Push),
-    ...getExercisesForCategory('Pull', MOCK_CurrentUserLevel.Pull),
-    ...getExercisesForCategory('Squat', MOCK_CurrentUserLevel.Squat)
-  ],
-  categories: ['Push', 'Pull', 'Squat'],
-  level: Math.max(MOCK_CurrentUserLevel.Push, MOCK_CurrentUserLevel.Pull, MOCK_CurrentUserLevel.Squat),
-  date: new Date()
-}
-
-// Complete mock user data
-export const MOCK_UserData: UserData = {
-  currentLevels: MOCK_CurrentUserLevel,
-  weeklyProgress: MOCK_weeklyWorkouts,
-  lastUpdated: new Date().toISOString()
-}

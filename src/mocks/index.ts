@@ -13,7 +13,6 @@ export {
   workoutLevels,
   MOCK_CurrentUserLevel,
   MOCK_weeklyWorkouts,
-  MOCK_UserData
 } from './data'
 
 // Re-export types for convenience

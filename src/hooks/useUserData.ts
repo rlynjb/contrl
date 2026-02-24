@@ -12,7 +12,6 @@ import type {
 
 export type AsyncStatus = 'idle' | 'loading' | 'error' | 'success'
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
-export type Category = keyof CurrentUserLevels
 
 export type ExtendedWeekDay = WeekDay & Partial<WorkoutSession>
 
@@ -104,19 +103,11 @@ export interface UseUserDataReturn {
   saveStatus: SaveStatus
   error: string | null
   refreshAll: () => Promise<void>
-  addCategoryToDay: (
-    date: Date,
-    category: Category,
-    exercises: BaseExercise[],
-    level: number
-  ) => Promise<void>
-  removeCategoryFromDay: (date: Date, category: Category) => Promise<void>
   updateExercise: (
     date: Date,
     exerciseIndex: number,
     updatedExercise: BaseExercise
   ) => void
-  levelUp: (category: Category, newLevel: number) => Promise<boolean>
 }
 
 // Debounce delay for exercise updates (ms)
@@ -192,140 +183,6 @@ export function useUserData(): UseUserDataReturn {
     }
   }, [])
 
-  const addCategoryToDay = useCallback(
-    async (
-      date: Date,
-      category: Category,
-      exercises: BaseExercise[],
-      level: number
-    ) => {
-      // Optimistic: update weekDays immediately
-      setWeekDays(prev => {
-        const dayDate = new Date(date).toDateString()
-        return prev.map(day => {
-          if (day.date.toDateString() !== dayDate) return day
-          const existingExercises = day.exercises || []
-          const existingCategories = (day.categories || []) as Category[]
-          return {
-            ...day,
-            exercises: [...existingExercises, ...exercises],
-            categories: existingCategories.includes(category)
-              ? existingCategories
-              : [...existingCategories, category],
-            isWorkoutDay: true
-          }
-        })
-      })
-
-      setSaveStatus('saving')
-      try {
-        await enqueue(async () => {
-          const latest = await api.user.getUserData()
-          if (!latest) return
-
-          const dayDate = new Date(date).toDateString()
-          const existingSession = latest.weeklyProgress?.find(
-            session => new Date(session.date).toDateString() === dayDate
-          )
-
-          let updatedProgress = latest.weeklyProgress || []
-
-          if (existingSession) {
-            updatedProgress = updatedProgress.map(session => {
-              if (new Date(session.date).toDateString() === dayDate) {
-                const existingCategories = session.categories || []
-                return {
-                  ...session,
-                  exercises: [...session.exercises, ...exercises],
-                  categories: existingCategories.includes(category)
-                    ? existingCategories
-                    : [...existingCategories, category]
-                }
-              }
-              return session
-            })
-          } else {
-            updatedProgress = [
-              ...updatedProgress,
-              {
-                exercises,
-                categories: [category],
-                level,
-                date
-              }
-            ]
-          }
-
-          const saved = await api.user.updateUserData({
-            ...latest,
-            weeklyProgress: updatedProgress
-          })
-          // Reconcile with server response
-          setUserData(saved)
-          setWeekDays(prev => applyProgressToWeekDays(prev, saved.weeklyProgress || []))
-        })
-        showSaved()
-      } catch {
-        setSaveStatus('error')
-        // Revert on failure
-        await refreshAll()
-      }
-    },
-    [enqueue, refreshAll, showSaved]
-  )
-
-  const removeCategoryFromDay = useCallback(
-    async (date: Date, category: Category) => {
-      // Optimistic: update weekDays immediately
-      setWeekDays(prev => {
-        const dayDate = new Date(date).toDateString()
-        return prev.map(day => {
-          if (day.date.toDateString() !== dayDate) return day
-          const filteredExercises = (day.exercises || []).filter(e => e.category !== category)
-          const filteredCategories = ((day.categories || []) as Category[]).filter(c => c !== category)
-          return {
-            ...day,
-            exercises: filteredExercises,
-            categories: filteredCategories,
-            isWorkoutDay: filteredExercises.length > 0
-          }
-        })
-      })
-
-      setSaveStatus('saving')
-      try {
-        await enqueue(async () => {
-          const latest = await api.user.getUserData()
-          if (!latest?.weeklyProgress) return
-
-          const dayDate = new Date(date).toDateString()
-          const updatedProgress = latest.weeklyProgress.map(session => {
-            if (new Date(session.date).toDateString() === dayDate) {
-              return {
-                ...session,
-                exercises: session.exercises.filter(e => e.category !== category),
-                categories: (session.categories || []).filter(c => c !== category)
-              }
-            }
-            return session
-          })
-
-          const saved = await api.user.updateUserData({
-            ...latest,
-            weeklyProgress: updatedProgress
-          })
-          setUserData(saved)
-          setWeekDays(prev => applyProgressToWeekDays(prev, saved.weeklyProgress || []))
-        })
-        showSaved()
-      } catch {
-        setSaveStatus('error')
-        await refreshAll()
-      }
-    },
-    [enqueue, refreshAll, showSaved]
-  )
-
   // Flush the pending exercise update to the server
   const flushExerciseUpdate = useCallback(async () => {
     const pending = pendingExerciseRef.current
@@ -392,19 +249,6 @@ export function useUserData(): UseUserDataReturn {
     [flushExerciseUpdate]
   )
 
-  const levelUp = useCallback(
-    async (category: Category, newLevel: number): Promise<boolean> => {
-      const success = await api.user.updateLevel(category, newLevel)
-      if (success) {
-        setCurrentLevels(prev =>
-          prev ? { ...prev, [category]: newLevel } : prev
-        )
-      }
-      return success
-    },
-    []
-  )
-
   return {
     userData,
     currentLevels,
@@ -413,9 +257,6 @@ export function useUserData(): UseUserDataReturn {
     saveStatus,
     error,
     refreshAll,
-    addCategoryToDay,
-    removeCategoryFromDay,
     updateExercise,
-    levelUp
   }
 }

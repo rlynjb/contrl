@@ -19,7 +19,7 @@ export interface BaseExercise {
   sets: BaseExerciseSet[]
   completed?: boolean
   completedSets?: boolean[]
-  category?: 'Push' | 'Pull' | 'Squat'
+  category: 'Push' | 'Pull' | 'Squat'
 }
 
 export interface ExerciseWithMetadata extends BaseExercise {

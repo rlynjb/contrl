@@ -6,6 +6,7 @@ import type { WorkoutLevel, BaseExercise } from '@/api'
 import { api } from '@/api'
 import WeeklyTracker from '@/components/WeeklyTracker'
 import SkillTree from '@/components/SkillTree'
+import './page.css'
 
 export default function DashboardPage() {
   const {
@@ -20,7 +21,6 @@ export default function DashboardPage() {
 
   const [workoutLevels, setWorkoutLevels] = useState<Record<string, WorkoutLevel>>({})
 
-  // Fetch workout levels for skill tree
   useEffect(() => {
     const fetchLevels = async () => {
       const levels = await api.exercises.getWorkoutLevels()
@@ -44,11 +44,7 @@ export default function DashboardPage() {
 
   if (status === 'loading' && weekDays.length === 0) {
     return (
-      <div style={{
-        width: "100%", minHeight: "100vh", maxWidth: 480, margin: "0 auto",
-        background: "#08080f", display: "flex", alignItems: "center", justifyContent: "center",
-        color: "#3a3a50", fontFamily: "'Anybody', monospace", fontSize: 12,
-      }}>
+      <div className="app-container app-loading">
         Loading...
       </div>
     )
@@ -56,27 +52,15 @@ export default function DashboardPage() {
 
   if (status === 'error') {
     return (
-      <div style={{
-        width: "100%", minHeight: "100vh", maxWidth: 480, margin: "0 auto",
-        background: "#08080f", display: "flex", flexDirection: "column",
-        alignItems: "center", justifyContent: "center", gap: 12,
-        color: "#3a3a50", fontFamily: "'Anybody', monospace", fontSize: 12,
-      }}>
+      <div className="app-container app-error">
         <p>{error || 'Failed to load data'}</p>
-        <button onClick={refreshAll} style={{
-          padding: "8px 16px", borderRadius: 8, border: "1px solid #222234",
-          background: "transparent", color: "#e0e0e0", cursor: "pointer",
-        }}>Retry</button>
+        <button onClick={refreshAll} className="app-error__retry">Retry</button>
       </div>
     )
   }
 
   return (
-    <div style={{
-      width: "100%", minHeight: "100vh", maxWidth: 480, margin: "0 auto",
-      background: "#08080f", color: "#e0e0e0",
-      fontFamily: "'Anybody', -apple-system, sans-serif", overflowX: "hidden",
-    }}>
+    <div className="app-container">
       <WeeklyTracker weekDays={weekDays} />
       <SkillTree
         currentLevels={currentLevels}
