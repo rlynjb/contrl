@@ -1,5 +1,26 @@
 @import url('https://fonts.googleapis.com/css2?family=Anybody:wght@400;500;600;700;800&display=swap');
 
+/* ── Block: weekly-tracker ── */
+
+.weekly-tracker {
+  background: #0c0c16;
+  border-bottom: 1px solid #14141e;
+  padding: 14px 20px 16px;
+}
+
+.weekly-tracker__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.weekly-tracker__header-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .weekly-tracker__label {
   font-size: 10px;
   font-weight: 800;
@@ -15,11 +36,72 @@
   font-family: 'Anybody', monospace;
 }
 
+/* Days grid */
+
+.weekly-tracker__days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.weekly-tracker__day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
 .weekly-tracker__day-label {
   font-size: 9px;
   font-weight: 700;
   font-family: 'Anybody', monospace;
   letter-spacing: 0.04em;
+  color: #333340;
+}
+
+.weekly-tracker__day-label--today {
+  color: #e0e0e0;
+}
+
+/* Dot area */
+
+.weekly-tracker__dot-area {
+  width: 36px;
+  min-height: 36px;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 5px 0;
+  transition: all 0.2s ease;
+}
+
+.weekly-tracker__dot-area--today {
+  background: #14142a;
+  border-color: #222240;
+}
+
+.weekly-tracker__dots {
+  display: flex;
+  gap: 3px;
+}
+
+.weekly-tracker__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.weekly-tracker__dot--future {
+  border: 1.5px dashed #1e1e2e;
+}
+
+.weekly-tracker__dot--rest {
+  background: #1a1a28;
 }
 
 .weekly-tracker__sets-count {
@@ -28,6 +110,22 @@
   color: #4a4a5a;
   font-family: 'Anybody', monospace;
   line-height: 1;
+}
+
+/* Totals bar */
+
+.weekly-tracker__totals {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #12121e;
+}
+
+.weekly-tracker__total-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .weekly-tracker__total-label {
@@ -42,5 +140,29 @@
   font-size: 12px;
   font-weight: 800;
   color: #7a7a90;
+  font-family: 'Anybody', monospace;
+}
+
+.weekly-tracker__spacer {
+  flex: 1;
+}
+
+/* Category breakdown */
+
+.weekly-tracker__cat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.weekly-tracker__cat-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.weekly-tracker__cat-count {
+  font-size: 9px;
+  font-weight: 700;
   font-family: 'Anybody', monospace;
 }

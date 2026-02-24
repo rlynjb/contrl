@@ -13,40 +13,29 @@ const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
 interface WeeklyTrackerProps {
   weekDays: ExtendedWeekDay[]
-  onDayClick: (day: ExtendedWeekDay) => void
 }
 
-export default function WeeklyTracker({ weekDays, onDayClick }: WeeklyTrackerProps) {
+export default function WeeklyTracker({ weekDays }: WeeklyTrackerProps) {
   const todayIdx = new Date().getDay()
   const workoutDayCount = weekDays.filter(d => d.isWorkoutDay).length
 
-  // Compute weekly totals from exercises
   const weekSets = weekDays.reduce((acc, d) => {
     if (!d.exercises) return acc
     return acc + d.exercises.reduce((s, ex) => s + (ex.sets?.length || 0), 0)
   }, 0)
 
   return (
-    <div style={{
-      background: "#0c0c16",
-      borderBottom: "1px solid #14141e",
-      padding: "14px 20px 16px",
-    }}>
+    <div className="weekly-tracker">
       {/* Top row: week label + day count */}
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        marginBottom: 14,
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div className="weekly-tracker__header">
+        <div className="weekly-tracker__header-info">
           <span className="weekly-tracker__label">THIS WEEK</span>
           <span className="weekly-tracker__sublabel">{workoutDayCount}/7 days</span>
         </div>
       </div>
 
       {/* Day columns */}
-      <div style={{
-        display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4,
-      }}>
+      <div className="weekly-tracker__days">
         {WEEK_DAYS.map((dayLabel, i) => {
           const day = weekDays[i]
           const hasWorkout = day?.isWorkoutDay
@@ -55,53 +44,31 @@ export default function WeeklyTracker({ weekDays, onDayClick }: WeeklyTrackerPro
           const categories = (day?.categories || []) as string[]
 
           return (
-            <div
-              key={i}
-              onClick={() => day && onDayClick(day)}
-              style={{
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
-                cursor: "pointer", WebkitTapHighlightColor: "transparent",
-              }}
-            >
-              {/* Day label */}
-              <span className="weekly-tracker__day-label" style={{
-                color: isToday ? "#e0e0e0" : "#333340",
-              }}>{dayLabel}</span>
+            <div key={i} className="weekly-tracker__day">
+              <span className={`weekly-tracker__day-label${isToday ? ' weekly-tracker__day-label--today' : ''}`}>
+                {dayLabel}
+              </span>
 
-              {/* Dot area */}
-              <div style={{
-                width: 36, minHeight: 36,
-                borderRadius: 10,
-                background: isToday ? "#14142a" : "transparent",
-                border: isToday ? "1px solid #222240" : "1px solid transparent",
-                display: "flex", flexDirection: "column",
-                alignItems: "center", justifyContent: "center",
-                gap: 3, padding: "5px 0",
-                transition: "all 0.2s ease",
-              }}>
+              <div className={`weekly-tracker__dot-area${isToday ? ' weekly-tracker__dot-area--today' : ''}`}>
                 {hasWorkout ? (
-                  <div style={{ display: "flex", gap: 3 }}>
+                  <div className="weekly-tracker__dots">
                     {categories.map((cat, ci) => (
-                      <div key={ci} style={{
-                        width: 8, height: 8, borderRadius: "50%",
-                        background: CATS[cat]?.color || "#888",
-                        boxShadow: `0 0 6px ${CATS[cat]?.color || "#888"}50`,
-                      }} />
+                      <div
+                        key={ci}
+                        className="weekly-tracker__dot"
+                        style={{
+                          background: CATS[cat]?.color || "#888",
+                          boxShadow: `0 0 6px ${CATS[cat]?.color || "#888"}50`,
+                        }}
+                      />
                     ))}
                   </div>
                 ) : isFuture ? (
-                  <div style={{
-                    width: 8, height: 8, borderRadius: "50%",
-                    border: "1.5px dashed #1e1e2e",
-                  }} />
+                  <div className="weekly-tracker__dot weekly-tracker__dot--future" />
                 ) : (
-                  <div style={{
-                    width: 8, height: 8, borderRadius: "50%",
-                    background: "#1a1a28",
-                  }} />
+                  <div className="weekly-tracker__dot weekly-tracker__dot--rest" />
                 )}
 
-                {/* Sets count under dot */}
                 {hasWorkout && day?.exercises && (
                   <span className="weekly-tracker__sets-count">
                     {day.exercises.reduce((s, ex) => s + (ex.sets?.length || 0), 0)}s
@@ -114,24 +81,21 @@ export default function WeeklyTracker({ weekDays, onDayClick }: WeeklyTrackerPro
       </div>
 
       {/* Weekly totals bar */}
-      <div style={{
-        display: "flex", gap: 16, marginTop: 12,
-        paddingTop: 10,
-        borderTop: "1px solid #12121e",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+      <div className="weekly-tracker__totals">
+        <div className="weekly-tracker__total-group">
           <span className="weekly-tracker__total-label">SETS</span>
           <span className="weekly-tracker__total-value">{weekSets}</span>
         </div>
-        <div style={{ flex: 1 }} />
-        {/* Mini category breakdown */}
+        <div className="weekly-tracker__spacer" />
         {Object.entries(CATS).map(([key, c]) => {
           const daysTrained = weekDays.filter(d => ((d.categories || []) as string[]).includes(key)).length
           if (!daysTrained) return null
           return (
-            <div key={key} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <div style={{ width: 6, height: 6, borderRadius: "50%", background: c.color }} />
-              <span style={{ fontSize: 9, fontWeight: 700, color: c.color + "90", fontFamily: "'Anybody', monospace" }}>&times;{daysTrained}</span>
+            <div key={key} className="weekly-tracker__cat-item">
+              <div className="weekly-tracker__cat-dot" style={{ background: c.color }} />
+              <span className="weekly-tracker__cat-count" style={{ color: c.color + "90" }}>
+                &times;{daysTrained}
+              </span>
             </div>
           )
         })}

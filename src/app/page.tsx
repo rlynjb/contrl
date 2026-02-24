@@ -1,14 +1,11 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Modal } from '@/components/ui'
 import { useUserData } from '@/hooks/useUserData'
-import type { ExtendedWeekDay } from '@/hooks/useUserData'
-import type { WorkoutLevel } from '@/api'
+import type { WorkoutLevel, BaseExercise } from '@/api'
 import { api } from '@/api'
 import WeeklyTracker from '@/components/WeeklyTracker'
 import SkillTree from '@/components/SkillTree'
-import WorkoutDetail from '@/components/WorkoutDetail'
 
 export default function DashboardPage() {
   const {
@@ -17,17 +14,11 @@ export default function DashboardPage() {
     saveStatus,
     error,
     currentLevels,
-    userData,
     refreshAll,
-    addCategoryToDay,
-    removeCategoryFromDay,
     updateExercise,
-    levelUp
   } = useUserData()
 
   const [workoutLevels, setWorkoutLevels] = useState<Record<string, WorkoutLevel>>({})
-  const [selectedDayDate, setSelectedDayDate] = useState<string | null>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
 
   // Fetch workout levels for skill tree
   useEffect(() => {
@@ -38,27 +29,18 @@ export default function DashboardPage() {
     fetchLevels()
   }, [])
 
-  // Derive selectedDay from weekDays
-  const selectedDay = useMemo<ExtendedWeekDay | null>(
-    () => selectedDayDate
-      ? weekDays.find(d => d.date.toDateString() === selectedDayDate) ?? null
-      : null,
-    [weekDays, selectedDayDate]
-  )
+  const todayExercises = useMemo(() => {
+    const today = weekDays.find(d => d.isToday)
+    return today?.exercises
+  }, [weekDays])
 
-  const handleDayClick = useCallback((day: ExtendedWeekDay) => {
-    setSelectedDayDate(day.date.toDateString())
-    setIsModalOpen(true)
-  }, [])
-
-  const closeModal = useCallback(() => {
-    setIsModalOpen(false)
-    setSelectedDayDate(null)
-  }, [])
-
-  const modalTitle = selectedDay
-    ? `${new Date(selectedDay.date).toLocaleDateString('en-US', { weekday: 'short' })} (${new Date(selectedDay.date).getDate()}) - Workout Details`
-    : 'Workout Details'
+  const handleSkillTreeChange = useCallback((exercise: BaseExercise) => {
+    const today = weekDays.find(d => d.isToday)
+    if (!today?.exercises) return
+    const index = today.exercises.findIndex(e => e.name === exercise.name)
+    if (index < 0) return
+    updateExercise(today.date, index, exercise)
+  }, [weekDays, updateExercise])
 
   if (status === 'loading' && weekDays.length === 0) {
     return (
@@ -95,38 +77,14 @@ export default function DashboardPage() {
       background: "#08080f", color: "#e0e0e0",
       fontFamily: "'Anybody', -apple-system, sans-serif", overflowX: "hidden",
     }}>
-      <WeeklyTracker weekDays={weekDays} onDayClick={handleDayClick} />
-      <SkillTree currentLevels={currentLevels} workoutLevels={workoutLevels} />
-
-      {/* Workout Detail Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        title={modalTitle}
-      >
-        {saveStatus !== 'idle' && (
-          <div
-            className={`weekly-progress__save-status weekly-progress__save-status--${saveStatus}`}
-            role="status"
-            aria-live="polite"
-          >
-            {saveStatus === 'saving' && 'Saving...'}
-            {saveStatus === 'saved' && 'Saved'}
-            {saveStatus === 'error' && 'Failed to save'}
-          </div>
-        )}
-        {selectedDay && (
-          <WorkoutDetail
-            selectedDay={selectedDay}
-            currentLevels={currentLevels}
-            weeklyProgress={userData?.weeklyProgress || []}
-            onAddCategory={addCategoryToDay}
-            onRemoveCategory={removeCategoryFromDay}
-            onUpdateExercise={updateExercise}
-            onLevelUp={levelUp}
-          />
-        )}
-      </Modal>
+      <WeeklyTracker weekDays={weekDays} />
+      <SkillTree
+        currentLevels={currentLevels}
+        workoutLevels={workoutLevels}
+        todayExercises={todayExercises}
+        saveStatus={saveStatus}
+        onExerciseChange={handleSkillTreeChange}
+      />
     </div>
   )
 }
