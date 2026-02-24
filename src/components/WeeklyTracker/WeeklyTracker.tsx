@@ -19,11 +19,6 @@ export default function WeeklyTracker({ weekDays }: WeeklyTrackerProps) {
   const todayIdx = new Date().getDay()
   const workoutDayCount = weekDays.filter(d => d.isWorkoutDay).length
 
-  const weekSets = weekDays.reduce((acc, d) => {
-    if (!d.exercises) return acc
-    return acc + d.exercises.reduce((s, ex) => s + (ex.sets?.length || 0), 0)
-  }, 0)
-
   return (
     <div className="weekly-tracker">
       {/* Top row: week label + day count */}
@@ -80,26 +75,6 @@ export default function WeeklyTracker({ weekDays }: WeeklyTrackerProps) {
         })}
       </div>
 
-      {/* Weekly totals bar */}
-      <div className="weekly-tracker__totals">
-        <div className="weekly-tracker__total-group">
-          <span className="weekly-tracker__total-label">SETS</span>
-          <span className="weekly-tracker__total-value">{weekSets}</span>
-        </div>
-        <div className="weekly-tracker__spacer" />
-        {Object.entries(CATS).map(([key, c]) => {
-          const daysTrained = weekDays.filter(d => ((d.categories || []) as string[]).includes(key)).length
-          if (!daysTrained) return null
-          return (
-            <div key={key} className="weekly-tracker__cat-item">
-              <div className="weekly-tracker__cat-dot" style={{ background: c.color }} />
-              <span className="weekly-tracker__cat-count" style={{ color: c.color + "90" }}>
-                &times;{daysTrained}
-              </span>
-            </div>
-          )
-        })}
-      </div>
     </div>
   )
 }
