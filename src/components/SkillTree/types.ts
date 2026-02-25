@@ -1,4 +1,4 @@
-import type { BaseExercise } from '@/api'
+import type { BaseExercise, BaseExerciseSet } from '@/api'
 
 export interface Skill {
   id: string
@@ -18,4 +18,10 @@ export interface CatInfo {
   bg: string
   border: string
   glow: string
+}
+
+export interface ExerciseHistoryEntry {
+  date: string | Date
+  sets: BaseExerciseSet[]
+  completed?: boolean
 }

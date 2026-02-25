@@ -149,12 +149,12 @@
   font-family: 'Anybody', monospace;
 }
 
-.skill-tree__tab-count {
+.skill-tree__tab .skill-tree__level-badge-value {
   font-size: 8px;
-  font-weight: 600;
-  color: #252530;
-  font-family: 'Anybody', monospace;
+  font-weight: 700;
+  color: #3a3a4a;
 }
+
 
 /* Category Progress */
 
@@ -467,6 +467,53 @@
   margin-bottom: 12px;
 }
 
+
+/* History */
+
+.skill-card__history {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #141420;
+}
+
+.skill-card__history-title {
+  font-size: 9px;
+  font-weight: 700;
+  color: #3a3a50;
+  font-family: 'Anybody', monospace;
+  letter-spacing: 0.1em;
+  margin-bottom: 6px;
+}
+
+.skill-card__history-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 0;
+}
+
+.skill-card__history-date {
+  font-size: 10px;
+  font-weight: 600;
+  color: #484860;
+  font-family: 'Anybody', monospace;
+  min-width: 46px;
+}
+
+.skill-card__history-sets {
+  flex: 1;
+  font-size: 10px;
+  font-weight: 600;
+  color: #5a5a70;
+  font-family: 'Anybody', monospace;
+}
+
+.skill-card__history-check {
+  font-size: 10px;
+  font-weight: 800;
+  width: 16px;
+  text-align: center;
+}
 
 .skill-card__completed {
   text-align: center;

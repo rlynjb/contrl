@@ -6,7 +6,7 @@ import { CATEGORY_COLORS } from '@/lib/constants'
 import ProgressRing from './ProgressRing'
 import LevelMarker from './LevelMarker'
 import SkillCard from './SkillCard'
-import type { Skill, CatInfo } from './types'
+import type { Skill, CatInfo, ExerciseHistoryEntry } from './types'
 import './SkillTree.css'
 import '../ui/exercise-card.css'
 
@@ -32,6 +32,7 @@ interface SkillTreeProps {
   currentLevels: CurrentUserLevels | null
   workoutLevels: Record<string, WorkoutLevel>
   todayExercises?: BaseExercise[]
+  exerciseHistory?: Map<string, ExerciseHistoryEntry[]>
   saveStatus?: 'idle' | 'saving' | 'saved' | 'error'
   onExerciseChange?: (exercise: BaseExercise) => void
 }
@@ -80,7 +81,7 @@ function buildSkills(
   return skills
 }
 
-export default function SkillTree({ currentLevels, workoutLevels, todayExercises, saveStatus = 'idle', onExerciseChange }: SkillTreeProps) {
+export default function SkillTree({ currentLevels, workoutLevels, todayExercises, exerciseHistory, saveStatus = 'idle', onExerciseChange }: SkillTreeProps) {
   const [tab, setTab] = useState<string>("Push")
   const [openId, setOpenId] = useState<string | null>(null)
   const [collapsedLevels, setCollapsedLevels] = useState<Record<number, boolean>>({})
@@ -131,8 +132,7 @@ export default function SkillTree({ currentLevels, workoutLevels, todayExercises
         <div className="skill-tree__tabs">
           {Object.entries(CATS).map(([key, c]) => {
             const active = key === tab
-            const d = skills.filter(s => s.cat === key && s.done).length
-            const t = skills.filter(s => s.cat === key).length
+            const lv = currentLevels?.[key as keyof CurrentUserLevels] ?? 1
             return (
               <button
                 key={key}
@@ -142,7 +142,7 @@ export default function SkillTree({ currentLevels, workoutLevels, todayExercises
               >
                 <span className="skill-tree__tab-icon">{c.icon}</span>
                 <span className="skill-tree__tab-label" style={{ color: active ? c.color : undefined }}>{c.label}</span>
-                <span className="skill-tree__tab-count" style={{ color: active ? c.color + "80" : undefined }}>{d}/{t}</span>
+                <span className="skill-tree__level-badge-value" style={{ color: active ? c.color : undefined }}>lvl {lv}</span>
               </button>
             )
           })}
@@ -234,7 +234,8 @@ export default function SkillTree({ currentLevels, workoutLevels, todayExercises
                     <SkillCard key={skill.id} skill={skill} cat={cat}
                       isOpen={openId === skill.id}
                       onTap={() => setOpenId(openId === skill.id ? null : skill.id)}
-                      onExerciseChange={onExerciseChange} />
+                      onExerciseChange={onExerciseChange}
+                      history={exerciseHistory?.get(skill.name)} />
                   ))}
                 </div>
               )}

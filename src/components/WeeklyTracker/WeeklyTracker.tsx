@@ -38,6 +38,9 @@ export default function WeeklyTracker({ weekDays }: WeeklyTrackerProps) {
               <span className={`weekly-tracker__day-label${isToday ? ' weekly-tracker__day-label--today' : ''}`}>
                 {dayLabel}
               </span>
+              <span className="weekly-tracker__day-date">
+                {day ? new Date(day.date).getDate() : ''}
+              </span>
 
               <div className={`weekly-tracker__dot-area${isToday ? ' weekly-tracker__dot-area--today' : ''}`}>
                 {hasWorkout ? (
@@ -57,12 +60,6 @@ export default function WeeklyTracker({ weekDays }: WeeklyTrackerProps) {
                   <div className="weekly-tracker__dot weekly-tracker__dot--future" />
                 ) : (
                   <div className="weekly-tracker__dot weekly-tracker__dot--rest" />
-                )}
-
-                {hasWorkout && day?.exercises && (
-                  <span className="weekly-tracker__sets-count">
-                    {day.exercises.reduce((s, ex) => s + (ex.sets?.length || 0), 0)}s
-                  </span>
                 )}
               </div>
             </div>

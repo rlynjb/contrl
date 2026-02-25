@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import type { BaseExercise, BaseExerciseSet } from '@/api'
 import { formatSets, parseSets } from '@/lib/exercise-utils'
-import type { Skill, CatInfo } from './types'
+import type { Skill, CatInfo, ExerciseHistoryEntry } from './types'
 
 interface SkillCardProps {
   skill: Skill
@@ -11,11 +11,26 @@ interface SkillCardProps {
   isOpen: boolean
   onTap: () => void
   onExerciseChange?: (exercise: BaseExercise) => void
+  history?: ExerciseHistoryEntry[]
 }
 
-export default function SkillCard({ skill, cat, isOpen, onTap, onExerciseChange }: SkillCardProps) {
+function formatHistoryDate(date: string | Date): string {
+  const d = new Date(date)
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+function formatHistorySets(sets: import('@/api').BaseExerciseSet[]): string {
+  const vals = sets.map(s => s.duration ? `${s.duration}s` : String(s.reps || 0))
+  return `${sets.length}\u00d7${vals.join(',')}`
+}
+
+export default function SkillCard({ skill, cat, isOpen, onTap, onExerciseChange, history }: SkillCardProps) {
   const locked = !skill.open
-  const [setValues, setSetValues] = useState<string[]>(() => formatSets(skill.exercise.sets))
+  const isTrackedToday = skill.exercise.completedSets !== undefined
+  const [setValues, setSetValues] = useState<string[]>(() => {
+    if (!isTrackedToday && history?.[0]) return formatSets(history[0].sets)
+    return formatSets(skill.exercise.sets)
+  })
   const [setCompleted, setSetCompleted] = useState<boolean[]>(
     () => skill.exercise.completedSets || skill.exercise.sets.map(() => false)
   )
@@ -149,6 +164,20 @@ export default function SkillCard({ skill, cat, isOpen, onTap, onExerciseChange 
               />
             </div>
           </div>
+          {history && history.length > 0 && (
+            <div className="skill-card__history">
+              <div className="skill-card__history-title">PREVIOUS</div>
+              {history.map((entry, i) => (
+                <div key={i} className="skill-card__history-row">
+                  <span className="skill-card__history-date">{formatHistoryDate(entry.date)}</span>
+                  <span className="skill-card__history-sets">{formatHistorySets(entry.sets)}</span>
+                  <span className="skill-card__history-check" style={{ color: entry.completed ? cat.color : '#2a2a3a' }}>
+                    {entry.completed ? '\u2713' : '\u2015'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
           {skill.done && (
             <div className="skill-card__completed" style={{ color: cat.color }}>
               &loz; COMPLETED &loz;

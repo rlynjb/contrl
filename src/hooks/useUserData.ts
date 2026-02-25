@@ -193,21 +193,59 @@ export function useUserData(): UseUserDataReturn {
     try {
       await enqueue(async () => {
         const latest = await api.user.getUserData()
-        if (!latest?.weeklyProgress) return
+        if (!latest) return
 
         const dayDate = new Date(pending.date).toDateString()
-        const updatedProgress = latest.weeklyProgress.map(session => {
-          if (new Date(session.date).toDateString() === dayDate) {
-            const updatedExercises = [...session.exercises]
-            updatedExercises[pending.exerciseIndex] = pending.updatedExercise
-            return { ...session, exercises: updatedExercises }
+        let updatedProgress = [...(latest.weeklyProgress || [])]
+
+        if (pending.exerciseIndex >= 0) {
+          // Update existing exercise at known index
+          updatedProgress = updatedProgress.map(session => {
+            if (new Date(session.date).toDateString() === dayDate) {
+              const updatedExercises = [...session.exercises]
+              updatedExercises[pending.exerciseIndex] = pending.updatedExercise
+              return { ...session, exercises: updatedExercises }
+            }
+            return session
+          })
+        } else {
+          // Insert exercise into today's session (or create session)
+          const sessionIdx = updatedProgress.findIndex(
+            s => new Date(s.date).toDateString() === dayDate
+          )
+          const ex = pending.updatedExercise
+
+          if (sessionIdx >= 0) {
+            const session = updatedProgress[sessionIdx]
+            const existingIdx = session.exercises.findIndex(e => e.name === ex.name)
+            if (existingIdx >= 0) {
+              const updatedExercises = [...session.exercises]
+              updatedExercises[existingIdx] = ex
+              updatedProgress[sessionIdx] = { ...session, exercises: updatedExercises }
+            } else {
+              const cat = ex.category
+              const cats = session.categories.includes(cat)
+                ? session.categories
+                : [...session.categories, cat]
+              updatedProgress[sessionIdx] = {
+                ...session,
+                exercises: [...session.exercises, ex],
+                categories: cats,
+              }
+            }
+          } else {
+            updatedProgress.push({
+              date: pending.date,
+              exercises: [ex],
+              categories: [ex.category],
+              level: 1,
+            })
           }
-          return session
-        })
+        }
 
         const saved = await api.user.updateUserData({
           ...latest,
-          weeklyProgress: updatedProgress
+          weeklyProgress: updatedProgress,
         })
         setUserData(saved)
         setWeekDays(prev => applyProgressToWeekDays(prev, saved.weeklyProgress || []))
@@ -231,9 +269,23 @@ export function useUserData(): UseUserDataReturn {
         const dayDate = new Date(date).toDateString()
         return prev.map(day => {
           if (day.date.toDateString() !== dayDate) return day
-          const updatedExercises = [...(day.exercises || [])]
-          updatedExercises[exerciseIndex] = updatedExercise
-          return { ...day, exercises: updatedExercises }
+          if (exerciseIndex >= 0) {
+            const updatedExercises = [...(day.exercises || [])]
+            updatedExercises[exerciseIndex] = updatedExercise
+            return { ...day, exercises: updatedExercises }
+          }
+          // Insert new exercise
+          type Cat = 'Push' | 'Pull' | 'Squat'
+          const updatedExercises = [...(day.exercises || []), updatedExercise]
+          const cats = (day.categories || []) as Cat[]
+          const cat = updatedExercise.category
+          const newCats: Cat[] = cats.includes(cat) ? cats : [...cats, cat]
+          return {
+            ...day,
+            exercises: updatedExercises,
+            categories: newCats,
+            isWorkoutDay: true,
+          } as ExtendedWeekDay
         })
       })
 
