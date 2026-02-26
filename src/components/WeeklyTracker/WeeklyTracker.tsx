@@ -12,7 +12,17 @@ interface WeeklyTrackerProps {
 
 export default function WeeklyTracker({ weekDays }: WeeklyTrackerProps) {
   const todayIdx = new Date().getDay()
-  const workoutDayCount = weekDays.filter(d => d.isWorkoutDay).length
+  const getCompletedDots = (day: ExtendedWeekDay): string[] => {
+    const dots: string[] = []
+    for (const ex of day.exercises || []) {
+      if (!(ex.category in CATEGORY_COLORS)) continue
+      const count = ex.completedSets?.filter(Boolean).length ?? 0
+      for (let i = 0; i < count; i++) dots.push(ex.category)
+    }
+    return dots
+  }
+
+  const workoutDayCount = weekDays.filter(d => getCompletedDots(d).length > 0).length
 
   return (
     <div className="weekly-tracker">
@@ -28,10 +38,10 @@ export default function WeeklyTracker({ weekDays }: WeeklyTrackerProps) {
       <div className="weekly-tracker__days">
         {WEEK_DAYS.map((dayLabel, i) => {
           const day = weekDays[i]
-          const hasWorkout = day?.isWorkoutDay
+          const dots = day ? getCompletedDots(day) : []
+          const hasWorkout = dots.length > 0
           const isToday = i === todayIdx
           const isFuture = i > todayIdx
-          const categories = (day?.categories || []) as string[]
 
           return (
             <div key={i} className="weekly-tracker__day">
@@ -45,7 +55,7 @@ export default function WeeklyTracker({ weekDays }: WeeklyTrackerProps) {
               <div className={`weekly-tracker__dot-area${isToday ? ' weekly-tracker__dot-area--today' : ''}`}>
                 {hasWorkout ? (
                   <div className="weekly-tracker__dots">
-                    {categories.map((cat, ci) => (
+                    {dots.map((cat: string, ci: number) => (
                       <div
                         key={ci}
                         className="weekly-tracker__dot"

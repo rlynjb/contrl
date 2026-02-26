@@ -46,6 +46,7 @@ export default function SkillCard({ skill, cat, isOpen, onTap, onExerciseChange,
     const allDone = completed.every(Boolean) && completed.length > 0
     return {
       ...skill.exercise,
+      category: skill.cat as BaseExercise['category'],
       sets,
       tempo: (overrides?.tempo ?? tempoValue) || undefined,
       rest: overrides?.rest ?? (restValue ? parseInt(restValue) : undefined),
