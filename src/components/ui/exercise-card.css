@@ -10,7 +10,7 @@
 .exercise-card__level {
   display: block;
   font-size: 0.6875rem;
-  color: rgb(107 114 128);
+  color: rgb(122 128 141);
   margin-bottom: 0.125rem;
 }
 
@@ -38,7 +38,7 @@
 }
 
 .exercise-card__name-input::placeholder {
-  color: rgb(107 114 128);
+  color: rgb(122 128 141);
 }
 
 .exercise-card__dropdown {
@@ -60,7 +60,7 @@
 .exercise-card__dropdown-item {
   padding: 0.5rem 0.75rem;
   font-size: 0.8125rem;
-  color: rgb(209 213 219);
+  color: rgb(214 217 223);
   cursor: pointer;
   transition: background-color 0.15s;
 }
@@ -90,18 +90,18 @@
 .exercise-card__equipment-badge-inner {
   font-size: 0.75rem;
   background-color: rgb(31 41 55);
-  color: rgb(209 213 219);
-  border-color: rgb(75 85 99);
+  color: rgb(214 217 223);
+  border-color: rgb(93 102 115);
 }
 
 .exercise-card__equipment-placeholder {
   font-size: 0.75rem;
-  color: rgb(107 114 128);
+  color: rgb(122 128 141);
   transition: color 0.15s;
 }
 
 .exercise-card__equipment-trigger:hover .exercise-card__equipment-placeholder {
-  color: rgb(156 163 175);
+  color: rgb(166 172 183);
 }
 
 .exercise-card__equipment-dropdown {
@@ -121,7 +121,7 @@
 .exercise-card__equipment-item {
   padding: 0.5rem 0.75rem;
   font-size: 0.8125rem;
-  color: rgb(209 213 219);
+  color: rgb(214 217 223);
   cursor: pointer;
   transition: background-color 0.15s;
 }
@@ -149,7 +149,7 @@
 }
 
 .exercise-card__sets-label {
-  color: rgb(107 114 128);
+  color: rgb(122 128 141);
   font-size: 0.75rem;
 }
 
@@ -179,14 +179,14 @@
 }
 
 .exercise-card__set-input::placeholder {
-  color: rgb(75 85 99);
+  color: rgb(93 102 115);
 }
 
 .exercise-card__set-add {
   background: transparent;
   border: 1px dashed rgb(75 85 99);
   border-radius: 0.25rem;
-  color: rgb(107 114 128);
+  color: rgb(122 128 141);
   width: 2rem;
   height: 1.75rem;
   cursor: pointer;
@@ -207,7 +207,7 @@
 }
 
 .exercise-card__meta-label {
-  color: rgb(107 114 128);
+  color: rgb(122 128 141);
   margin-right: 0.5em;
 }
 
@@ -233,7 +233,7 @@
 }
 
 .exercise-card__meta-input::placeholder {
-  color: rgb(75 85 99);
+  color: rgb(93 102 115);
 }
 
 .exercise-card__notes {
@@ -259,7 +259,7 @@
 }
 
 .exercise-card__notes::placeholder {
-  color: rgb(107 114 128);
+  color: rgb(122 128 141);
 }
 
 /* Workout tracking styles (used by WorkoutExerciseCard) */
@@ -290,7 +290,7 @@
 
 .exercise-card__set-target {
   font-size: 0.5625rem;
-  color: rgb(107 114 128);
+  color: rgb(122 128 141);
   white-space: nowrap;
   opacity: 0.8;
 }
@@ -301,7 +301,7 @@
   border-radius: 0.25rem;
   border: 1px solid rgb(75 85 99);
   background: transparent;
-  color: rgb(156 163 175);
+  color: rgb(166 172 183);
   font-size: 0.625rem;
   cursor: pointer;
   display: flex;

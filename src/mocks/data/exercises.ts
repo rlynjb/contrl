@@ -409,7 +409,7 @@ export const allExercises: ExerciseWithMetadata[] = [
   },
   {
     id: 'intermediate-negative-pushups',
-    name: "Normal Push-ups",
+    name: "Negative Push-ups",
     sets: [{ reps: 8 }, { reps: 8 }, { reps: 8 }],
     tempo: "4-2",
     rest: 90,
@@ -417,7 +417,7 @@ export const allExercises: ExerciseWithMetadata[] = [
     levelName: "Intermediate",
     category: "Push",
     difficulty: "Intermediate",
-    tags: ["diamond", "triceps", "advanced", "narrow-grip"]
+    tags: ["negative", "eccentric", "push"]
   },
   {
     id: 'intermediate-trx-pullups-band-assisted',

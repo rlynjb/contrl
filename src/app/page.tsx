@@ -18,6 +18,7 @@ export default function DashboardPage() {
     currentLevels,
     refreshAll,
     updateExercise,
+    updateLevel,
   } = useUserData()
 
   const [workoutLevels, setWorkoutLevels] = useState<Record<string, WorkoutLevel>>({})
@@ -64,6 +65,10 @@ export default function DashboardPage() {
     updateExercise(today.date, index, exercise)
   }, [weekDays, updateExercise])
 
+  const handleLevelUp = useCallback(async (category: string, level: number) => {
+    await updateLevel(category, level)
+  }, [updateLevel])
+
   if (status === 'loading' && weekDays.length === 0) {
     return (
       <div className="app-container app-loading">
@@ -91,6 +96,7 @@ export default function DashboardPage() {
         exerciseHistory={exerciseHistory}
         saveStatus={saveStatus}
         onExerciseChange={handleSkillTreeChange}
+        onLevelUp={handleLevelUp}
       />
     </div>
   )

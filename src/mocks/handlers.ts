@@ -6,7 +6,10 @@
 
 import { http, HttpResponse } from 'msw'
 import { allExercises, workoutLevels, MOCK_CurrentUserLevel, MOCK_weeklyWorkouts } from './data'
-import type { WorkoutLevels, BaseExercise, UserData } from '@/api'
+import type { WorkoutLevels, BaseExercise, BaseExerciseSet, UserData } from '@/api'
+
+const LEVEL_ORDER = ['beginner', 'novice', 'intermediate', 'advanced', 'expert']
+const CATEGORIES = ['Push', 'Pull', 'Squat'] as const
 
 // In-memory storage for user data (simulates database)
 let userData: UserData | null = {
@@ -138,6 +141,46 @@ export const handlers = [
       userData.weeklyProgress = userData.weeklyProgress.filter(
         session => new Date(session.date) <= endOfWeek
       )
+    }
+
+    // Auto-level-up check
+    if (userData.weeklyProgress?.length && userData.currentLevels) {
+      const todayStr = new Date().toDateString()
+      const todaySession = userData.weeklyProgress.find(
+        s => new Date(s.date).toDateString() === todayStr
+      )
+
+      if (todaySession) {
+        let levelsChanged = false
+        for (const cat of CATEGORIES) {
+          const userLevel: number = userData.currentLevels[cat]
+          const levelKey = LEVEL_ORDER[userLevel - 1]
+          if (!levelKey || userLevel >= 5) continue
+
+          const targets = workoutLevels[levelKey]?.exercises?.[cat] as BaseExercise[] | undefined
+          if (!targets?.length) continue
+
+          const allMet = targets.every(target => {
+            const tracked = todaySession.exercises.find(e => e.name === target.name)
+            if (!tracked) return false
+            return target.sets.every((ts: BaseExerciseSet, i: number) => {
+              const actual = tracked.sets[i]
+              if (!actual) return false
+              if (ts.reps) return (actual.reps || 0) >= ts.reps
+              if (ts.duration) return (actual.duration || 0) >= ts.duration
+              return false
+            })
+          })
+
+          if (allMet) {
+            userData.currentLevels[cat] = userLevel + 1
+            levelsChanged = true
+          }
+        }
+        if (levelsChanged) {
+          userData.lastUpdated = new Date().toISOString()
+        }
+      }
     }
 
     const url = new URL(request.url)

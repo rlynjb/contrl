@@ -108,6 +108,7 @@ export interface UseUserDataReturn {
     exerciseIndex: number,
     updatedExercise: BaseExercise
   ) => void
+  updateLevel: (category: string, level: number) => Promise<void>
 }
 
 // Debounce delay for exercise updates (ms)
@@ -257,6 +258,22 @@ export function useUserData(): UseUserDataReturn {
     }
   }, [enqueue, refreshAll, showSaved])
 
+  // Level update: optimistic + server persist + refresh
+  const updateLevel = useCallback(async (category: string, level: number) => {
+    setCurrentLevels(prev => prev ? { ...prev, [category]: level } : prev)
+    setSaveStatus('saving')
+    try {
+      await enqueue(async () => {
+        await api.user.updateLevel(category, level)
+      })
+      showSaved()
+      await refreshAll()
+    } catch {
+      setSaveStatus('error')
+      await refreshAll()
+    }
+  }, [enqueue, refreshAll, showSaved])
+
   // Debounced exercise update: updates UI instantly, batches API calls
   const updateExercise = useCallback(
     (
@@ -310,5 +327,6 @@ export function useUserData(): UseUserDataReturn {
     error,
     refreshAll,
     updateExercise,
+    updateLevel,
   }
 }

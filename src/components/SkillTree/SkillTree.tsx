@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import type { CurrentUserLevels, WorkoutLevel, BaseExercise, ProgressionNotes } from '@/api'
+import type { CurrentUserLevels, WorkoutLevel, BaseExercise, ProgressionNotes, ExercisesByCategory } from '@/api'
 import { CATEGORY_COLORS } from '@/lib/constants'
 import ProgressRing from './ProgressRing'
 import LevelMarker from './LevelMarker'
@@ -35,6 +35,7 @@ interface SkillTreeProps {
   exerciseHistory?: Map<string, ExerciseHistoryEntry[]>
   saveStatus?: 'idle' | 'saving' | 'saved' | 'error'
   onExerciseChange?: (exercise: BaseExercise) => void
+  onLevelUp?: (category: string, level: number) => void
 }
 
 function buildSkills(
@@ -56,7 +57,8 @@ function buildSkills(
       const userLevel = currentLevels?.[category as keyof CurrentUserLevels] ?? 1
       const isAtOrBelowLevel = lvInfo.lv <= userLevel
 
-      for (const exercise of exercises as BaseExercise[]) {
+      for (let ei = 0; ei < (exercises as BaseExercise[]).length; ei++) {
+        const exercise = (exercises as BaseExercise[])[ei]
         const tracked = trackedByName.get(exercise.name)
         const effective = tracked || exercise
         const setsStr = effective.sets
@@ -65,7 +67,7 @@ function buildSkills(
         const setCount = effective.sets.length
 
         skills.push({
-          id: `${levelKey}-${exercise.name.toLowerCase().replace(/\s+/g, '-')}`,
+          id: `${levelKey}-${category.toLowerCase()}-${ei}-${exercise.name.toLowerCase().replace(/\s+/g, '-')}`,
           cat: category,
           lv: lvInfo.lv,
           name: exercise.name,
@@ -81,12 +83,48 @@ function buildSkills(
   return skills
 }
 
-export default function SkillTree({ currentLevels, workoutLevels, todayExercises, exerciseHistory, saveStatus = 'idle', onExerciseChange }: SkillTreeProps) {
+export default function SkillTree({ currentLevels, workoutLevels, todayExercises, exerciseHistory, saveStatus = 'idle', onExerciseChange, onLevelUp }: SkillTreeProps) {
   const [tab, setTab] = useState<string>("Push")
   const [openId, setOpenId] = useState<string | null>(null)
   const [collapsedLevels, setCollapsedLevels] = useState<Record<number, boolean>>({})
 
   const skills = useMemo(() => buildSkills(workoutLevels, currentLevels, todayExercises), [workoutLevels, currentLevels, todayExercises])
+
+  const levelUpInfo = useMemo(() => {
+    const result: Record<string, { eligible: boolean; nextLevel: number; nextName: string }> = {}
+    for (const c of Object.keys(CATS)) {
+      const userLv = currentLevels?.[c as keyof CurrentUserLevels] ?? 1
+      const levelKey = LEVEL_ORDER[userLv - 1]
+      const nextLevelKey = LEVEL_ORDER[userLv]
+      const nextName = nextLevelKey ? LEVEL_MAP[nextLevelKey].name : ''
+
+      if (!levelKey || userLv >= 5) {
+        result[c] = { eligible: false, nextLevel: userLv + 1, nextName }
+        continue
+      }
+
+      const levelExercises = workoutLevels[levelKey]?.exercises?.[c as keyof ExercisesByCategory]
+      if (!levelExercises?.length) {
+        result[c] = { eligible: false, nextLevel: userLv + 1, nextName }
+        continue
+      }
+
+      const eligible = levelExercises.every(target => {
+        const tracked = todayExercises?.find(e => e.name === target.name)
+        if (!tracked) return false
+        return target.sets.every((targetSet, i) => {
+          const actual = tracked.sets[i]
+          if (!actual) return false
+          if (targetSet.reps) return (actual.reps || 0) >= targetSet.reps
+          if (targetSet.duration) return (actual.duration || 0) >= targetSet.duration
+          return false
+        })
+      })
+
+      result[c] = { eligible, nextLevel: userLv + 1, nextName }
+    }
+    return result
+  }, [currentLevels, workoutLevels, todayExercises])
 
   const cat = CATS[tab]
   const catSkills = skills.filter(s => s.cat === tab)
@@ -237,6 +275,15 @@ export default function SkillTree({ currentLevels, workoutLevels, todayExercises
                       onExerciseChange={onExerciseChange}
                       history={exerciseHistory?.get(skill.name)} />
                   ))}
+                  {levelUpInfo[tab]?.eligible && lvInfo.lv === (currentLevels?.[tab as keyof CurrentUserLevels] ?? 1) && (
+                    <button
+                      className="level-group__levelup"
+                      onClick={(e) => { e.stopPropagation(); onLevelUp?.(tab, levelUpInfo[tab].nextLevel) }}
+                      style={{ borderColor: cat.color + '40', color: cat.color }}
+                    >
+                      Move to Level {levelUpInfo[tab].nextLevel} &mdash; {levelUpInfo[tab].nextName}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
