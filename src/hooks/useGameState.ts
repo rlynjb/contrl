@@ -25,7 +25,7 @@ import {
   needsWeekReset,
   completedCount,
 } from '@/lib/week-progress'
-import { updateStreakOnWeekEnd, calculateStreak } from '@/lib/streaks'
+import { calculateStreak } from '@/lib/streaks'
 import { checkCategoryLevelUp } from '@/lib/progression'
 
 export type LogSessionResult = {
@@ -60,7 +60,6 @@ export function useGameState(): UseGameStateReturn {
   const [status, setStatus] = useState<GameStateStatus>('loading')
   const [user, setUser] = useState<User | null>(null)
   const [weekProgress, setWeekProgress] = useState<WeekProgress | null>(null)
-  const [weekHistory, setWeekHistory] = useState<WeekProgress[]>([])
   const [streak, setStreak] = useState(0)
   const [gateProgress, setGateProgress] = useState<Record<string, GateProgress>>({})
   const [sessions, setSessions] = useState<WorkoutSession[]>([])
@@ -83,7 +82,6 @@ export function useGameState(): UseGameStateReturn {
         const allSessions = await storage.getSessions()
         const prevWeeks = buildWeekHistory(allSessions)
         const newStreak = calculateStreak(prevWeeks)
-        setWeekHistory(prevWeeks)
         setStreak(newStreak)
       }
       loadedWeek = createWeekProgress(new Date())
@@ -108,7 +106,6 @@ export function useGameState(): UseGameStateReturn {
 
     setUser(loadedUser)
     setWeekProgress(loadedWeek)
-    setWeekHistory(prevWeeks)
     setStreak(computedStreak)
     setGateProgress(gates)
     setSessions(allSessions)
