@@ -1,83 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 84% 4.9%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 94.1%;
+    --background: 230 60% 3%;
+    --foreground: 215 28% 90%;
+    --card: 230 45% 5%;
+    --card-foreground: 215 28% 90%;
+    --popover: 230 45% 5%;
+    --popover-foreground: 215 28% 90%;
+    --primary: 187 100% 50%;
+    --primary-foreground: 230 60% 3%;
+    --secondary: 230 30% 12%;
+    --secondary-foreground: 215 28% 90%;
+    --muted: 215 18% 34%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 230 30% 12%;
+    --accent-foreground: 215 28% 90%;
+    --destructive: 350 80% 50%;
+    --destructive-foreground: 215 28% 90%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 187 100% 50%;
     --radius: 0.75rem;
   }
 
-  .light {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 84% 4.9%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 84% 4.9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.75rem;
-  }
-}
-
-@layer base {
   * {
     @apply border-border;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
-}
 
-/* Custom Contrl Styles */
-@layer components {
-  .gradient-bg {
-    @apply bg-gradient-to-br from-fitness-500 via-fitness-600 to-fitness-700;
-  }
-  
-  .workout-card {
-    @apply bg-card border border-border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow;
-  }
-  
-  .exercise-item {
-    @apply flex items-center justify-between p-4 border-b border-border last:border-b-0;
-  }
-  
-  .coaching-bubble {
-    @apply bg-primary text-primary-foreground rounded-2xl p-4 max-w-md;
-  }
-  
-  .user-bubble {
-    @apply bg-secondary text-secondary-foreground rounded-2xl p-4 max-w-md ml-auto;
+  body {
+    @apply bg-tron-bg text-tron-text font-display antialiased;
   }
 }

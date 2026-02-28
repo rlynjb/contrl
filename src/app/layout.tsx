@@ -1,11 +1,25 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
-import { APP_METADATA, APP_VIEWPORT } from '@/lib/constants'
 import { MSWProvider } from '@/mocks'
+import { BottomNav } from '@/components/ui/BottomNav'
 
-export const metadata: Metadata = APP_METADATA
+export const metadata: Metadata = {
+  title: 'contrl — Calisthenics Tracker',
+  description: 'Progressive calisthenics tracker with gate-based level progression',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'contrl',
+  },
+}
 
-export const viewport = APP_VIEWPORT
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: '#00e5ff',
+}
 
 export default function RootLayout({
   children,
@@ -14,25 +28,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body style={{ background: "#08080f" }} suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <MSWProvider>
-          <header style={{
-            width: "100%",
-            maxWidth: 480,
-            margin: "0 auto",
-            padding: "12px 20px",
-            borderBottom: "1px solid #12121e",
-            background: "#08080f",
-          }}>
-            <span style={{
-              fontSize: 15,
-              fontWeight: 800,
-              letterSpacing: "0.08em",
-              color: "#e0e0e0",
-              fontFamily: "'Anybody', monospace",
-            }}>contrl</span>
+          <header className="sticky top-0 z-40 mx-auto w-full max-w-[480px] border-b border-tron-border bg-tron-bg/95 backdrop-blur-sm px-5 py-3">
+            <span className="font-display text-[15px] font-extrabold tracking-widest text-tron-text">
+              contrl
+            </span>
           </header>
-          {children}
+          <main className="mx-auto w-full max-w-[480px] pb-20">
+            {children}
+          </main>
+          <BottomNav />
         </MSWProvider>
       </body>
     </html>

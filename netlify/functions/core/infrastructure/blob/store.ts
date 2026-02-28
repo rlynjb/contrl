@@ -10,7 +10,8 @@ import { getStore } from '@netlify/blobs'
 // Store names
 export const STORES = {
   USER_DATA: 'user-data',
-  EXERCISES: 'exercises'
+  EXERCISES: 'exercises',
+  GAME_DATA: 'game-data'
 } as const
 
 // Keys
@@ -69,6 +70,26 @@ export const exerciseDataStore = {
   async setAllExercises<T>(data: T): Promise<void> {
     const store = getBlobStore(STORES.EXERCISES)
     await store.setJSON(KEYS.ALL_EXERCISES, data)
+  }
+}
+
+/**
+ * Game Data Store operations (generic key-value for game state)
+ */
+export const gameDataStore = {
+  async get<T>(key: string): Promise<T | null> {
+    const store = getBlobStore(STORES.GAME_DATA)
+    return store.get(key, { type: 'json' })
+  },
+
+  async set(key: string, data: unknown): Promise<void> {
+    const store = getBlobStore(STORES.GAME_DATA)
+    await store.setJSON(key, data)
+  },
+
+  async delete(key: string): Promise<void> {
+    const store = getBlobStore(STORES.GAME_DATA)
+    await store.delete(key)
   }
 }
 

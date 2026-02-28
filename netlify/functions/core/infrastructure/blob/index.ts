@@ -8,6 +8,7 @@ export {
   getBlobStore,
   userDataStore,
   exerciseDataStore,
+  gameDataStore,
   corsHeaders,
   jsonResponse,
   errorResponse,

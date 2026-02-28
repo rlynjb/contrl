@@ -11,6 +11,9 @@ import type { WorkoutLevels, BaseExercise, BaseExerciseSet, UserData } from '@/a
 const LEVEL_ORDER = ['beginner', 'novice', 'intermediate', 'advanced', 'expert']
 const CATEGORIES = ['Push', 'Pull', 'Squat'] as const
 
+// In-memory key-value store for game data (mirrors Netlify Blob game-data store)
+const gameDataStore = new Map<string, unknown>()
+
 // In-memory storage for user data (simulates database)
 let userData: UserData | null = {
   currentLevels: { ...MOCK_CurrentUserLevel },
@@ -239,6 +242,32 @@ export const handlers = [
     }
 
     return HttpResponse.json({ success: false, error: 'Invalid request' }, { status: 400 })
+  }),
+
+  // ============================================
+  // Game Data (key-value store for Phase 0 game state)
+  // ============================================
+
+  http.get('*/game/data', ({ request }) => {
+    const url = new URL(request.url)
+    const key = url.searchParams.get('key')
+    if (!key) return HttpResponse.json({ error: 'Missing key' }, { status: 400 })
+    return HttpResponse.json(gameDataStore.get(key) ?? null)
+  }),
+
+  http.put('*/game/data', async ({ request }) => {
+    const body = await request.json() as { key: string; value: unknown }
+    if (!body.key) return HttpResponse.json({ error: 'Missing key' }, { status: 400 })
+    gameDataStore.set(body.key, body.value)
+    return HttpResponse.json({ success: true })
+  }),
+
+  http.delete('*/game/data', ({ request }) => {
+    const url = new URL(request.url)
+    const key = url.searchParams.get('key')
+    if (!key) return HttpResponse.json({ error: 'Missing key' }, { status: 400 })
+    gameDataStore.delete(key)
+    return HttpResponse.json({ success: true })
   }),
 
   // ============================================
