@@ -1,0 +1,83 @@
+{
+  "push": {
+    "1": {
+      "requiredConsecutivePasses": 3,
+      "exercises": [
+        { "exerciseId": "beginner-negative-push-ups", "targetSets": 3, "targetReps": 8 },
+        { "exerciseId": "beginner-scapula-push-ups", "targetSets": 4, "targetReps": 8 },
+        { "exerciseId": "beginner-plank-hold", "targetSets": 4, "targetHoldSeconds": 60 }
+      ]
+    },
+    "2": {
+      "requiredConsecutivePasses": 3,
+      "exercises": [
+        { "exerciseId": "novice-normal-pushups", "targetSets": 3, "targetReps": 12 },
+        { "exerciseId": "novice-negative-pushups", "targetSets": 3, "targetReps": 8 },
+        { "exerciseId": "novice-scapula-pushups", "targetSets": 4, "targetReps": 8 },
+        { "exerciseId": "novice-plank-hold", "targetSets": 4, "targetHoldSeconds": 60 }
+      ]
+    },
+    "3": {
+      "requiredConsecutivePasses": 3,
+      "exercises": [
+        { "exerciseId": "intermediate-tricep-extensions", "targetSets": 3, "targetReps": 8 },
+        { "exerciseId": "intermediate-diamond-pushups", "targetSets": 3, "targetReps": 15 },
+        { "exerciseId": "intermediate-wide-pushups", "targetSets": 3, "targetReps": 6 },
+        { "exerciseId": "intermediate-normal-pushups", "targetSets": 3, "targetReps": 8 },
+        { "exerciseId": "intermediate-negative-pushups", "targetSets": 3, "targetReps": 8 }
+      ]
+    }
+  },
+  "pull": {
+    "1": {
+      "requiredConsecutivePasses": 3,
+      "exercises": [
+        { "exerciseId": "beginner-trx-lat-pull-down", "targetSets": 3, "targetReps": 8 },
+        { "exerciseId": "beginner-trx-inverted-row", "targetSets": 3, "targetReps": 15 },
+        { "exerciseId": "beginner-trx-passive-hang", "targetSets": 3, "targetHoldSeconds": 60 }
+      ]
+    },
+    "2": {
+      "requiredConsecutivePasses": 3,
+      "exercises": [
+        { "exerciseId": "novice-trx-inverted-row", "targetSets": 3, "targetReps": 12 },
+        { "exerciseId": "novice-trx-scapula-pullups", "targetSets": 3, "targetReps": 12 }
+      ]
+    },
+    "3": {
+      "requiredConsecutivePasses": 3,
+      "exercises": [
+        { "exerciseId": "intermediate-trx-pullups-band-assisted", "targetSets": 3, "targetReps": 6 },
+        { "exerciseId": "intermediate-trx-inverted-row", "targetSets": 4, "targetReps": 12 },
+        { "exerciseId": "intermediate-trx-scapula-pullups", "targetSets": 4, "targetReps": 12 }
+      ]
+    }
+  },
+  "squat": {
+    "1": {
+      "requiredConsecutivePasses": 3,
+      "exercises": [
+        { "exerciseId": "beginner-deep-squats", "targetSets": 3, "targetReps": 12 },
+        { "exerciseId": "beginner-narrow-stance-squats", "targetSets": 3, "targetReps": 12 },
+        { "exerciseId": "beginner-bodyweight-squats", "targetSets": 3, "targetReps": 15 }
+      ]
+    },
+    "2": {
+      "requiredConsecutivePasses": 3,
+      "exercises": [
+        { "exerciseId": "novice-trx-bulgarian-squats", "targetSets": 3, "targetReps": 6 },
+        { "exerciseId": "novice-narrow-stance-squats", "targetSets": 3, "targetReps": 10 },
+        { "exerciseId": "novice-deep-squats", "targetSets": 3, "targetReps": 10 }
+      ]
+    },
+    "3": {
+      "requiredConsecutivePasses": 3,
+      "exercises": [
+        { "exerciseId": "intermediate-cossack-squats", "targetSets": 3, "targetReps": 6 },
+        { "exerciseId": "intermediate-bulgarian-split-squats", "targetSets": 3, "targetReps": 8 },
+        { "exerciseId": "intermediate-narrow-stance-squats", "targetSets": 3, "targetReps": 8 },
+        { "exerciseId": "intermediate-deep-squats", "targetSets": 3, "targetReps": 8 }
+      ]
+    }
+  }
+}
