@@ -62,11 +62,22 @@ function checkboxProp(checked: boolean): Record<string, unknown> {
   return { checkbox: checked };
 }
 
+function relationProp(pageIds: string[]): Record<string, unknown> {
+  return { relation: pageIds.map(id => ({ id })) };
+}
+
+function getRelation(prop: NotionProperty | undefined): string[] {
+  if (!prop || prop.type !== 'relation') return [];
+  const p = prop as { type: 'relation'; relation: { id: string }[] };
+  return p.relation.map(r => r.id);
+}
+
+
 // ── Session → Notion ────────────────────────────────────────
 
 export function sessionToNotionProperties(
   session: WorkoutSession,
-  isNew: boolean = false,
+  exerciseNotionPageIds?: string[],
 ): Record<string, unknown> {
   const cat = session.category.charAt(0).toUpperCase() + session.category.slice(1);
   const name = `${cat} L${session.level} — ${session.date.slice(0, 10)}`;
@@ -76,16 +87,20 @@ export function sessionToNotionProperties(
     Date: dateProp(session.date),
     Category: selectProp(session.category),
     Level: numberProp(session.level),
-    Exercises: richText(JSON.stringify(session.exercises)),
+    'Session Data': richText(JSON.stringify(session.exercises)),
     'contrl ID': richText(session.id),
   };
+
+  if (exerciseNotionPageIds && exerciseNotionPageIds.length > 0) {
+    props.Exercises = relationProp(exerciseNotionPageIds);
+  }
 
   if (session.notes) {
     props.Notes = richText(session.notes);
   }
 
-  if (isNew && session.createdAt) {
-    props['Created At'] = dateProp(session.createdAt);
+  if (session.passed !== undefined) {
+    props.Passed = checkboxProp(session.passed);
   }
 
   return props;
@@ -96,6 +111,7 @@ export function sessionToNotionProperties(
 export function notionPageToSession(page: NotionPage): {
   session: Partial<WorkoutSession>;
   contrlId: string | null;
+  exerciseRelationIds: string[];
 } {
   const p = page.properties;
 
@@ -104,17 +120,23 @@ export function notionPageToSession(page: NotionPage): {
   const level = getNumber(p.Level) ?? 1;
   const date = getDate(p.Date) ?? page.created_time;
   const notes = getText(p.Notes) || undefined;
-  const createdAt = getDate(p['Created At']) ?? page.created_time;
 
   let exercises: ExerciseEntry[] = [];
-  const exercisesText = getText(p.Exercises);
-  if (exercisesText) {
+  const sessionDataText = getText(p['Session Data']);
+  if (sessionDataText) {
     try {
-      exercises = JSON.parse(exercisesText);
+      exercises = JSON.parse(sessionDataText);
     } catch {
-      // invalid JSON — leave empty
+      // invalid JSON — fall back to legacy field
+      const legacyText = getText(p.Exercises);
+      if (legacyText) {
+        try { exercises = JSON.parse(legacyText); } catch { /* empty */ }
+      }
     }
   }
+
+  const exerciseRelationIds = getRelation(p.Exercises);
+  const passed = getCheckbox(p.Passed) || undefined;
 
   return {
     session: {
@@ -124,11 +146,12 @@ export function notionPageToSession(page: NotionPage): {
       category,
       exercises,
       notes,
-      createdAt,
+      passed,
       notionPageId: page.id,
       updatedAt: page.last_edited_time,
     },
     contrlId,
+    exerciseRelationIds,
   };
 }
 
@@ -141,13 +164,17 @@ export function exerciseToNotionProperties(exercise: Exercise): Record<string, u
     Level: numberProp(exercise.level),
     'Target Sets': numberProp(exercise.targetSets),
     'Target Reps': numberProp(exercise.targetReps),
-    'Is Hold': checkboxProp(exercise.isHold),
     'Sort Order': numberProp(exercise.sortOrder ?? 0),
   };
 
-  if (exercise.targetHoldSeconds) {
-    props['Hold Seconds'] = numberProp(exercise.targetHoldSeconds);
+  if (exercise.tempo) {
+    props.Tempo = richText(exercise.tempo);
   }
+
+  if (exercise.notes) {
+    props.Notes = richText(exercise.notes);
+  }
+
 
   return props;
 }
@@ -164,9 +191,10 @@ export function notionPageToExercise(page: NotionPage): Exercise {
     level: getNumber(p.Level) ?? 1,
     targetSets: getNumber(p['Target Sets']) ?? 3,
     targetReps: getNumber(p['Target Reps']) ?? 10,
-    isHold: getCheckbox(p['Is Hold']),
-    targetHoldSeconds: getNumber(p['Hold Seconds']) ?? undefined,
+    isHold: (getText(p.Tempo) || '') === 'Steady',
     sortOrder: getNumber(p['Sort Order']) ?? 0,
+    tempo: getText(p.Tempo) || undefined,
+    notes: getText(p.Notes) || undefined,
     notionPageId: page.id,
     updatedAt: page.last_edited_time,
   };

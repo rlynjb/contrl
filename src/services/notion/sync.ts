@@ -18,6 +18,7 @@ import {
   setSessionNotionPageId,
   upsertSessionFromNotion,
   upsertExercise,
+  getExercises,
   getPendingDeletions,
   clearDeletions,
   getSessions,
@@ -193,15 +194,25 @@ async function pushSessions(
   try {
     const unsynced = await getUnsyncedSessions(lastSync);
 
+    // Build exercise ID → Notion page ID map for relations
+    const allExercises = await getExercises();
+    const exerciseNotionMap = new Map<string, string>();
+    for (const ex of allExercises) {
+      if (ex.notionPageId) exerciseNotionMap.set(ex.id, ex.notionPageId);
+    }
+
     for (const session of unsynced) {
       try {
+        // Resolve exercise Notion page IDs for this session
+        const exercisePageIds = session.exercises
+          .map(e => exerciseNotionMap.get(e.exerciseId))
+          .filter((id): id is string => !!id);
+
         if (session.notionPageId) {
-          // Update existing Notion page
-          await updatePage(token, session.notionPageId, sessionToNotionProperties(session));
+          await updatePage(token, session.notionPageId, sessionToNotionProperties(session, exercisePageIds));
           result.debug.push(`Updated Notion page for session ${session.id}`);
         } else {
-          // Create new Notion page
-          const page = await createPage(token, dbId, sessionToNotionProperties(session, true));
+          const page = await createPage(token, dbId, sessionToNotionProperties(session, exercisePageIds));
           await setSessionNotionPageId(session.id, page.id);
           result.debug.push(`Created Notion page for session ${session.id}`);
         }

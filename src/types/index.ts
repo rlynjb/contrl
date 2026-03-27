@@ -18,9 +18,13 @@ export type Exercise = {
   level: number
   targetSets: number
   targetReps: number
+  /** Derived: true when tempo === 'Steady' */
   isHold: boolean
-  targetHoldSeconds?: number
   sortOrder?: number
+  /** Tempo pattern (e.g. "2-1-2-0" for reps, "Steady" for holds) */
+  tempo?: string
+  /** Notes: tip, next progression, regression (line-separated) */
+  notes?: string
   /** Notion page ID for sync */
   notionPageId?: string | null
   updatedAt?: string
@@ -56,9 +60,19 @@ export type WorkoutSession = {
   category: Category
   exercises: ExerciseEntry[]
   notes?: string
-  createdAt?: string
+  /** Whether all exercises hit target (clean session) */
+  passed?: boolean
   notionPageId?: string | null
   updatedAt?: string
+}
+
+export type ExerciseBreakdown = {
+  exerciseId: string
+  name: string
+  hit: boolean
+  percentage: number
+  isHold: boolean
+  shortSets: { set: number; type: 'unchecked' | 'short'; got?: number; needed?: number }[]
 }
 
 // ── Gate system ─────────────────────────────────────────────
@@ -79,7 +93,6 @@ export type GateCriteriaExercise = {
   exerciseId: string
   targetSets: number
   targetReps?: number
-  targetHoldSeconds?: number
 }
 
 export type GateCriteria = {

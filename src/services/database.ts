@@ -42,9 +42,9 @@ async function migrate(database: SQLite.SQLiteDatabase): Promise<void> {
       level INTEGER NOT NULL,
       target_sets INTEGER NOT NULL,
       target_reps INTEGER NOT NULL,
-      is_hold INTEGER DEFAULT 0,
-      target_hold_seconds INTEGER,
       sort_order INTEGER DEFAULT 0,
+      tempo TEXT,
+      notes TEXT,
       notion_page_id TEXT,
       updated_at TEXT NOT NULL
     );
@@ -56,7 +56,7 @@ async function migrate(database: SQLite.SQLiteDatabase): Promise<void> {
       category TEXT NOT NULL,
       exercises_json TEXT NOT NULL,
       notes TEXT,
-      created_at TEXT NOT NULL,
+      passed INTEGER,
       notion_page_id TEXT,
       updated_at TEXT NOT NULL
     );
@@ -98,6 +98,25 @@ async function migrate(database: SQLite.SQLiteDatabase): Promise<void> {
       deleted_at TEXT NOT NULL
     );
 
+    -- Migrations for existing databases (ALTER TABLE is idempotent with IF NOT EXISTS in newer SQLite)
+  `);
+
+  // Add new exercise columns if missing
+  const exerciseCols = await database.getAllAsync<{ name: string }>(
+    "PRAGMA table_info(exercises)"
+  );
+  const exerciseColNames = new Set(exerciseCols.map(c => c.name));
+  if (!exerciseColNames.has('tempo')) await database.execAsync('ALTER TABLE exercises ADD COLUMN tempo TEXT');
+  if (!exerciseColNames.has('notes')) await database.execAsync('ALTER TABLE exercises ADD COLUMN notes TEXT');
+
+  // Add new session columns if missing
+  const sessionCols = await database.getAllAsync<{ name: string }>(
+    "PRAGMA table_info(sessions)"
+  );
+  const sessionColNames = new Set(sessionCols.map(c => c.name));
+  if (!sessionColNames.has('passed')) await database.execAsync('ALTER TABLE sessions ADD COLUMN passed INTEGER');
+
+  await database.execAsync(`
     CREATE INDEX IF NOT EXISTS idx_exercises_category ON exercises(category);
     CREATE INDEX IF NOT EXISTS idx_exercises_level ON exercises(level);
     CREATE INDEX IF NOT EXISTS idx_exercises_notion ON exercises(notion_page_id);
@@ -131,16 +150,16 @@ async function seedExercisesIfEmpty(database: SQLite.SQLiteDatabase): Promise<vo
 
   const seedData = require('../data/exercises-seed.json') as {
     id: string; name: string; category: string; level: number;
-    targetSets: number; targetReps: number; isHold: boolean;
-    targetHoldSeconds?: number;
+    targetSets: number; targetReps: number;
+    tempo?: string; notes?: string;
   }[];
 
   const now = new Date().toISOString();
   for (const raw of seedData) {
     await database.runAsync(
-      `INSERT OR IGNORE INTO exercises (id, name, category, level, target_sets, target_reps, is_hold, target_hold_seconds, sort_order, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
-      [raw.id, raw.name, raw.category, raw.level, raw.targetSets, raw.targetReps, raw.isHold ? 1 : 0, raw.targetHoldSeconds ?? null, now]
+      `INSERT OR IGNORE INTO exercises (id, name, category, level, target_sets, target_reps, sort_order, tempo, notes, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`,
+      [raw.id, raw.name, raw.category, raw.level, raw.targetSets, raw.targetReps, raw.tempo ?? null, raw.notes ?? null, now]
     );
   }
 }
@@ -181,59 +200,53 @@ export async function updateUserLevel(category: Category, level: number): Promis
 
 // ── Exercises ───────────────────────────────────────────────
 
-export async function getExercises(): Promise<Exercise[]> {
-  const d = await getDatabase();
-  const rows = await d.getAllAsync<{
-    id: string; name: string; category: string; level: number;
-    target_sets: number; target_reps: number; is_hold: number;
-    target_hold_seconds: number | null; sort_order: number;
-    notion_page_id: string | null; updated_at: string;
-  }>('SELECT * FROM exercises ORDER BY category, level, sort_order');
+type ExerciseRow = {
+  id: string; name: string; category: string; level: number;
+  target_sets: number; target_reps: number;
+  sort_order: number;
+  tempo: string | null; notes: string | null;
+  notion_page_id: string | null; updated_at: string;
+};
 
-  return rows.map(r => ({
+function rowToExercise(r: ExerciseRow): Exercise {
+  return {
     id: r.id,
     name: r.name,
     category: r.category as Category,
     level: r.level,
     targetSets: r.target_sets,
     targetReps: r.target_reps,
-    isHold: r.is_hold === 1,
-    targetHoldSeconds: r.target_hold_seconds ?? undefined,
+    isHold: (r.tempo ?? '') === 'Steady',
     sortOrder: r.sort_order,
+    tempo: r.tempo ?? undefined,
+    notes: r.notes ?? undefined,
     notionPageId: r.notion_page_id,
     updatedAt: r.updated_at,
-  }));
+  };
+}
+
+export async function getExercises(): Promise<Exercise[]> {
+  const d = await getDatabase();
+  const rows = await d.getAllAsync<ExerciseRow>(
+    'SELECT * FROM exercises ORDER BY category, level, sort_order'
+  );
+  return rows.map(rowToExercise);
 }
 
 export async function getExercisesByCategory(category: Category, level: number): Promise<Exercise[]> {
   const d = await getDatabase();
-  const rows = await d.getAllAsync<{
-    id: string; name: string; category: string; level: number;
-    target_sets: number; target_reps: number; is_hold: number;
-    target_hold_seconds: number | null; sort_order: number;
-    notion_page_id: string | null; updated_at: string;
-  }>('SELECT * FROM exercises WHERE category = ? AND level = ? ORDER BY sort_order', [category, level]);
-
-  return rows.map(r => ({
-    id: r.id,
-    name: r.name,
-    category: r.category as Category,
-    level: r.level,
-    targetSets: r.target_sets,
-    targetReps: r.target_reps,
-    isHold: r.is_hold === 1,
-    targetHoldSeconds: r.target_hold_seconds ?? undefined,
-    sortOrder: r.sort_order,
-    notionPageId: r.notion_page_id,
-    updatedAt: r.updated_at,
-  }));
+  const rows = await d.getAllAsync<ExerciseRow>(
+    'SELECT * FROM exercises WHERE category = ? AND level = ? ORDER BY sort_order',
+    [category, level]
+  );
+  return rows.map(rowToExercise);
 }
 
 export async function upsertExercise(exercise: Exercise): Promise<void> {
   const d = await getDatabase();
   const now = new Date().toISOString();
   await d.runAsync(
-    `INSERT OR REPLACE INTO exercises (id, name, category, level, target_sets, target_reps, is_hold, target_hold_seconds, sort_order, notion_page_id, updated_at)
+    `INSERT OR REPLACE INTO exercises (id, name, category, level, target_sets, target_reps, sort_order, tempo, notes, notion_page_id, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       exercise.id,
@@ -242,9 +255,9 @@ export async function upsertExercise(exercise: Exercise): Promise<void> {
       exercise.level,
       exercise.targetSets,
       exercise.targetReps,
-      exercise.isHold ? 1 : 0,
-      exercise.targetHoldSeconds ?? null,
       exercise.sortOrder ?? 0,
+      exercise.tempo ?? null,
+      exercise.notes ?? null,
       exercise.notionPageId ?? null,
       exercise.updatedAt ?? now,
     ]
@@ -257,7 +270,7 @@ export async function insertSession(session: WorkoutSession): Promise<void> {
   const d = await getDatabase();
   const now = new Date().toISOString();
   await d.runAsync(
-    `INSERT INTO sessions (id, date, level, category, exercises_json, notes, created_at, updated_at)
+    `INSERT INTO sessions (id, date, level, category, exercises_json, notes, passed, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       session.id,
@@ -266,7 +279,7 @@ export async function insertSession(session: WorkoutSession): Promise<void> {
       session.category,
       JSON.stringify(session.exercises),
       session.notes ?? null,
-      session.createdAt ?? now,
+      session.passed != null ? (session.passed ? 1 : 0) : null,
       now,
     ]
   );
@@ -276,7 +289,7 @@ export async function getSessions(): Promise<WorkoutSession[]> {
   const d = await getDatabase();
   const rows = await d.getAllAsync<{
     id: string; date: string; level: number; category: string;
-    exercises_json: string; notes: string | null; created_at: string;
+    exercises_json: string; notes: string | null;
     notion_page_id: string | null; updated_at: string;
   }>('SELECT * FROM sessions ORDER BY date DESC');
 
@@ -287,7 +300,7 @@ export async function getSessionsByCategory(category: Category): Promise<Workout
   const d = await getDatabase();
   const rows = await d.getAllAsync<{
     id: string; date: string; level: number; category: string;
-    exercises_json: string; notes: string | null; created_at: string;
+    exercises_json: string; notes: string | null;
     notion_page_id: string | null; updated_at: string;
   }>('SELECT * FROM sessions WHERE category = ? ORDER BY date DESC', [category]);
 
@@ -324,7 +337,7 @@ export async function setSessionNotionPageId(sessionId: string, pageId: string):
 export async function upsertSessionFromNotion(session: WorkoutSession): Promise<void> {
   const d = await getDatabase();
   await d.runAsync(
-    `INSERT OR REPLACE INTO sessions (id, date, level, category, exercises_json, notes, created_at, notion_page_id, updated_at)
+    `INSERT OR REPLACE INTO sessions (id, date, level, category, exercises_json, notes, passed, notion_page_id, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       session.id,
@@ -333,7 +346,7 @@ export async function upsertSessionFromNotion(session: WorkoutSession): Promise<
       session.category,
       JSON.stringify(session.exercises),
       session.notes ?? null,
-      session.createdAt ?? new Date().toISOString(),
+      session.passed != null ? (session.passed ? 1 : 0) : null,
       session.notionPageId ?? null,
       session.updatedAt ?? new Date().toISOString(),
     ]
@@ -342,7 +355,8 @@ export async function upsertSessionFromNotion(session: WorkoutSession): Promise<
 
 function rowToSession(row: {
   id: string; date: string; level: number; category: string;
-  exercises_json: string; notes: string | null; created_at: string;
+  exercises_json: string; notes: string | null;
+  passed: number | null;
   notion_page_id: string | null; updated_at: string;
 }): WorkoutSession {
   return {
@@ -352,7 +366,7 @@ function rowToSession(row: {
     category: row.category as Category,
     exercises: JSON.parse(row.exercises_json) as ExerciseEntry[],
     notes: row.notes ?? undefined,
-    createdAt: row.created_at,
+    passed: row.passed != null ? row.passed === 1 : undefined,
     notionPageId: row.notion_page_id,
     updatedAt: row.updated_at,
   };

@@ -69,7 +69,7 @@ export function ExerciseForm({
         if (!state) return null;
         const checkedCount = state.checkedSets.filter(Boolean).length;
         const target = ex.isHold
-          ? `${ex.targetSets}x${ex.targetHoldSeconds}s`
+          ? `${ex.targetSets}x${ex.targetReps}s`
           : `${ex.targetSets}x${ex.targetReps}`;
         const pct = Math.round((checkedCount / ex.targetSets) * 100);
 
@@ -126,7 +126,7 @@ export function ExerciseForm({
                     />
 
                     <Text style={styles.targetVal}>
-                      / {ex.isHold ? `${ex.targetHoldSeconds}s` : ex.targetReps}
+                      / {ex.isHold ? `${ex.targetReps}s` : ex.targetReps}
                     </Text>
 
                     {lastVal !== undefined && (
@@ -177,11 +177,7 @@ export function ExerciseForm({
           category={category}
           exercise={levelExercises[cameraTarget.exIdx]}
           setIndex={cameraTarget.setIdx}
-          targetValue={
-            levelExercises[cameraTarget.exIdx].isHold
-              ? (levelExercises[cameraTarget.exIdx].targetHoldSeconds ?? 0)
-              : levelExercises[cameraTarget.exIdx].targetReps
-          }
+          targetValue={levelExercises[cameraTarget.exIdx].targetReps}
           onComplete={handleCameraComplete}
           onClose={() => setCameraTarget(null)}
         />

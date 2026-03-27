@@ -1,8 +1,15 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
+  ActivityIndicator,
+  StyleSheet,
+  Modal,
+} from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts, categoryColors } from '../../src/constants/theme';
-import { LEVEL_NAMES } from '../../src/lib/constants';
+import { colors, fonts, categoryColors, categoryBorder } from '../../src/constants/theme';
 import { useGameState } from '../../src/hooks/useGameState';
 import { useExercises } from '../../src/hooks/useExercises';
 import { getNodeState } from '../../src/lib/game/progression';
@@ -13,17 +20,17 @@ import { CATEGORIES } from '../../src/types';
 
 const LEVELS = [5, 4, 3, 2, 1]; // top-to-bottom display
 
-const NODE_COLORS = {
-  locked: colors.muted,
-  open: colors.textSecondary,
-  'in-progress': colors.primary,
-  passed: colors.success,
-} as const;
+type SelectedNode = {
+  category: Category;
+  level: number;
+  status: string;
+  consecutivePasses: number;
+};
 
 export default function TreeScreen() {
   const { status, user, gateProgress } = useGameState();
   const { exercises } = useExercises();
-  const [expandedNode, setExpandedNode] = useState<string | null>(null);
+  const [selectedNode, setSelectedNode] = useState<SelectedNode | null>(null);
 
   if (status === 'loading') {
     return (
@@ -41,109 +48,238 @@ export default function TreeScreen() {
   };
 
   const handleNodePress = (cat: Category, level: number) => {
-    const key = `${cat}:${level}`;
-    setExpandedNode(prev => prev === key ? null : key);
+    const gate = getGate(cat, level);
+    const nodeState = getNodeState(gate, user.levels);
+    if (nodeState === 'locked') return;
+    setSelectedNode({
+      category: cat,
+      level,
+      status: nodeState,
+      consecutivePasses: gate.consecutivePasses,
+    });
   };
+
+  const modalExercises = selectedNode
+    ? exercises.filter(
+        e => e.category === selectedNode.category && e.level === selectedNode.level
+      )
+    : [];
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Skill Tree</Text>
+      {/* Section header */}
+      <Text style={styles.sectionLabel}>SKILL TREE</Text>
+      <Text style={styles.title}>Your Progress</Text>
 
-      {/* Column headers */}
+      {/* Category column headers */}
       <View style={styles.headerRow}>
         {CATEGORIES.map(cat => (
           <View key={cat} style={styles.headerCol}>
-            <CategoryBadge category={cat} size="sm" />
-            <Text style={[styles.headerLevel, { color: categoryColors[cat] }]}>
-              L{user.levels[cat]}
+            <Text
+              style={[
+                styles.headerCat,
+                { color: categoryColors[cat] },
+              ]}
+            >
+              {cat.toUpperCase()}
             </Text>
+            <Text style={styles.headerLevel}>L{user.levels[cat]}</Text>
           </View>
         ))}
       </View>
 
       {/* Grid */}
-      {LEVELS.map(level => {
-        const levelName = LEVEL_NAMES[level] ?? `L${level}`;
-        return (
-          <View key={level}>
-            {/* Level label */}
-            <Text style={styles.levelLabel}>{levelName}</Text>
+      {LEVELS.map((level, rowIndex) => (
+        <View key={level} style={styles.gridRow}>
+          {CATEGORIES.map(cat => {
+            const gate = getGate(cat, level);
+            const nodeState = getNodeState(gate, user.levels);
+            const catColor = categoryColors[cat];
+            const isPassed = nodeState === 'passed';
+            const isLocked = nodeState === 'locked';
+            const isInProgress =
+              nodeState === 'in-progress' && gate.consecutivePasses > 0;
+            const levelExercises = exercises.filter(
+              e => e.category === cat && e.level === level
+            );
+            const hasExercises = levelExercises.length > 0;
 
-            <View style={styles.gridRow}>
-              {CATEGORIES.map(cat => {
-                const gate = getGate(cat, level);
-                const nodeState = getNodeState(gate, user.levels);
-                const nodeColor = NODE_COLORS[nodeState];
-                const isExpanded = expandedNode === `${cat}:${level}`;
-                const catColor = categoryColors[cat];
-                const levelExercises = exercises.filter(
-                  e => e.category === cat && e.level === level
-                );
-                const hasExercises = levelExercises.length > 0;
+            return (
+              <View key={cat} style={styles.gridCell}>
+                {/* Connector line */}
+                {rowIndex > 0 && (
+                  <View
+                    style={[
+                      styles.connector,
+                      {
+                        backgroundColor:
+                          isPassed || nodeState === 'in-progress'
+                            ? `${catColor}30`
+                            : colors.border,
+                      },
+                    ]}
+                  />
+                )}
 
-                return (
-                  <View key={cat} style={styles.gridCell}>
-                    <Pressable
-                      onPress={() => hasExercises ? handleNodePress(cat, level) : null}
+                {/* Node */}
+                <Pressable
+                  onPress={() =>
+                    hasExercises && !isLocked
+                      ? handleNodePress(cat, level)
+                      : null
+                  }
+                  style={[
+                    styles.node,
+                    {
+                      borderColor: isPassed
+                        ? catColor
+                        : isLocked
+                          ? colors.border
+                          : `${catColor}60`,
+                      backgroundColor: isPassed
+                        ? `${catColor}18`
+                        : isLocked
+                          ? 'rgba(30,41,59,0.5)'
+                          : `${catColor}0a`,
+                      opacity: isLocked ? 0.35 : 1,
+                    },
+                  ]}
+                >
+                  {isPassed ? (
+                    <Feather name="check" size={20} color={catColor} />
+                  ) : isLocked ? (
+                    <Feather name="lock" size={14} color={colors.textSecondary} />
+                  ) : (
+                    <Text
                       style={[
-                        styles.node,
-                        {
-                          borderColor: isExpanded ? catColor : nodeColor,
-                          backgroundColor: nodeState === 'passed'
-                            ? `${catColor}15`
-                            : colors.surface,
-                        },
-                        !hasExercises && styles.nodeEmpty,
+                        styles.nodeLevel,
+                        { color: catColor },
                       ]}
                     >
-                      <Text style={[styles.nodeLevel, { color: nodeColor }]}>
-                        {level}
-                      </Text>
-                      {nodeState === 'in-progress' && (
-                        <Text style={styles.nodeCounter}>
-                          {gate.consecutivePasses}/3
-                        </Text>
-                      )}
-                      {nodeState === 'passed' && (
-                        <Feather name="check" size={14} color={catColor} />
-                      )}
-                      {nodeState === 'locked' && (
-                        <Feather name="lock" size={12} color={colors.muted} />
-                      )}
-                    </Pressable>
+                      {level}
+                    </Text>
+                  )}
 
-                    {/* Expanded detail */}
-                    {isExpanded && (
-                      <View style={[styles.nodeDetail, { borderColor: `${catColor}30` }]}>
-                        <Text style={styles.detailTitle}>
-                          {cat.charAt(0).toUpperCase() + cat.slice(1)} L{level}
-                        </Text>
-                        <Text style={styles.detailStatus}>
-                          {nodeState === 'passed'
-                            ? 'Completed'
-                            : nodeState === 'locked'
-                              ? 'Locked'
-                              : `${gate.consecutivePasses}/3 clean sessions`}
-                        </Text>
-                        {levelExercises.map(ex => (
-                          <View key={ex.id} style={styles.detailExercise}>
-                            <Text style={styles.detailExName}>{ex.name}</Text>
-                            <Text style={styles.detailExTarget}>
-                              {ex.isHold
-                                ? `${ex.targetSets}x${ex.targetHoldSeconds}s`
-                                : `${ex.targetSets}x${ex.targetReps}`}
-                            </Text>
-                          </View>
-                        ))}
-                      </View>
-                    )}
+                  {/* In-progress badge */}
+                  {isInProgress && (
+                    <View
+                      style={[
+                        styles.progressBadge,
+                        { borderColor: `${catColor}40` },
+                      ]}
+                    >
+                      <Text style={[styles.progressBadgeText, { color: catColor }]}>
+                        {gate.consecutivePasses}/3
+                      </Text>
+                    </View>
+                  )}
+                </Pressable>
+
+                {/* Level label */}
+                <Text
+                  style={[
+                    styles.nodeLevelLabel,
+                    { marginTop: isInProgress ? 6 : 2 },
+                  ]}
+                >
+                  L{level}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+      ))}
+
+      {/* Node detail modal */}
+      <Modal
+        visible={selectedNode !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedNode(null)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setSelectedNode(null)}>
+          <Pressable
+            style={[
+              styles.modalContent,
+              selectedNode
+                ? { borderColor: categoryBorder[selectedNode.category] }
+                : undefined,
+            ]}
+            onPress={e => e.stopPropagation()}
+          >
+            {selectedNode && (
+              <>
+                {/* Header row */}
+                <View style={styles.modalHeader}>
+                  <View style={styles.modalHeaderLeft}>
+                    <CategoryBadge category={selectedNode.category} size="sm" />
+                    <Text style={styles.modalTitle}>
+                      Level {selectedNode.level}
+                    </Text>
                   </View>
-                );
-              })}
-            </View>
-          </View>
-        );
-      })}
+                  <Text
+                    style={[
+                      styles.modalStatus,
+                      {
+                        color:
+                          selectedNode.status === 'passed'
+                            ? colors.success
+                            : categoryColors[selectedNode.category],
+                      },
+                    ]}
+                  >
+                    {selectedNode.status === 'passed'
+                      ? 'PASSED'
+                      : `${selectedNode.consecutivePasses}/3`}
+                  </Text>
+                </View>
+
+                {/* 3-segment progress bar */}
+                <View style={styles.progressBar}>
+                  {[0, 1, 2].map(i => (
+                    <View
+                      key={i}
+                      style={[
+                        styles.progressSegment,
+                        {
+                          backgroundColor:
+                            i < selectedNode.consecutivePasses
+                              ? categoryColors[selectedNode.category]
+                              : colors.border,
+                        },
+                      ]}
+                    />
+                  ))}
+                </View>
+
+                {/* Exercises label */}
+                <Text style={styles.exercisesLabel}>EXERCISES</Text>
+
+                {/* Exercises list */}
+                {modalExercises.map((ex, i) => (
+                  <View key={ex.id ?? i} style={styles.exerciseRow}>
+                    <Text style={styles.exerciseName}>{ex.name}</Text>
+                    <Text style={styles.exerciseTarget}>
+                      {ex.isHold
+                        ? `${ex.targetSets}x${ex.targetReps}s`
+                        : `${ex.targetSets}x${ex.targetReps}`}
+                    </Text>
+                  </View>
+                ))}
+
+                {/* Close button */}
+                <Pressable
+                  style={styles.closeButton}
+                  onPress={() => setSelectedNode(null)}
+                >
+                  <Feather name="x" size={12} color={colors.textSecondary} />
+                  <Text style={styles.closeButtonText}>CLOSE</Text>
+                </Pressable>
+              </>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScrollView>
   );
 }
@@ -154,7 +290,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   content: {
-    padding: 20,
+    paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 100,
   },
@@ -164,98 +300,166 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  sectionLabel: {
+    fontSize: 11,
+    fontFamily: fonts.semiBold,
+    letterSpacing: 1.65,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
   title: {
-    fontSize: 28,
-    fontFamily: fonts.bold,
+    fontSize: 22,
+    fontFamily: fonts.extraBold,
     color: colors.text,
     marginBottom: 20,
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   headerCol: {
     alignItems: 'center',
-    gap: 4,
+  },
+  headerCat: {
+    fontSize: 11,
+    fontFamily: fonts.bold,
+    letterSpacing: 1.32,
   },
   headerLevel: {
-    fontSize: 12,
-    fontFamily: fonts.bold,
-  },
-  levelLabel: {
-    fontSize: 11,
-    fontFamily: fonts.semiBold,
-    color: colors.muted,
-    textAlign: 'center',
-    marginBottom: 6,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    fontSize: 10,
+    fontFamily: fonts.regular,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
   gridRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 12,
+    marginBottom: 4,
   },
   gridCell: {
     flex: 1,
     alignItems: 'center',
+    gap: 2,
+  },
+  connector: {
+    width: 2,
+    height: 10,
   },
   node: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 2,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  nodeEmpty: {
-    opacity: 0.3,
-  },
   nodeLevel: {
-    fontSize: 18,
-    fontFamily: fonts.bold,
+    fontSize: 15,
+    fontFamily: fonts.extraBold,
   },
-  nodeCounter: {
-    fontSize: 10,
-    color: colors.primary,
-    fontFamily: fonts.semiBold,
-  },
-  nodeCheck: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  nodeLock: {
-    fontSize: 10,
-  },
-  nodeDetail: {
-    backgroundColor: colors.surface,
-    borderRadius: 8,
+  progressBadge: {
+    position: 'absolute',
+    bottom: -7,
+    backgroundColor: colors.bg,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 0,
     borderWidth: 1,
-    padding: 10,
-    marginTop: 8,
-    width: 120,
   },
-  detailTitle: {
-    fontSize: 13,
+  progressBadgeText: {
+    fontSize: 8,
     fontFamily: fonts.bold,
+  },
+  nodeLevelLabel: {
+    fontSize: 8,
+    fontFamily: fonts.regular,
+    color: colors.textSecondary,
+  },
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(6,8,15,0.88)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderRadius: 0,
+    maxWidth: 340,
+    width: '100%',
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontFamily: fonts.extraBold,
     color: colors.text,
-    marginBottom: 4,
   },
-  detailStatus: {
+  modalStatus: {
     fontSize: 11,
-    color: colors.muted,
-    marginBottom: 8,
+    fontFamily: fonts.bold,
   },
-  detailExercise: {
-    marginBottom: 4,
+  progressBar: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 16,
   },
-  detailExName: {
+  progressSegment: {
+    flex: 1,
+    height: 4,
+    borderRadius: 0,
+  },
+  exercisesLabel: {
     fontSize: 11,
+    fontFamily: fonts.regular,
+    color: colors.textSecondary,
+    marginBottom: 10,
+  },
+  exerciseRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  exerciseName: {
+    fontSize: 13,
     color: colors.text,
   },
-  detailExTarget: {
-    fontSize: 10,
-    color: colors.muted,
+  exerciseTarget: {
+    fontSize: 12,
+    fontFamily: fonts.regular,
+    color: colors.textSecondary,
+  },
+  closeButton: {
+    marginTop: 14,
+    width: '100%',
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  closeButtonText: {
+    fontSize: 12,
+    fontFamily: fonts.regular,
+    color: colors.textSecondary,
   },
 });

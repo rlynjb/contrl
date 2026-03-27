@@ -1,17 +1,28 @@
-import { useState, useCallback, useRef } from 'react';
+import { useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import { colors, fonts, categoryColors, categoryBorder } from '../../src/constants/theme';
-import { LEVEL_NAMES } from '../../src/lib/constants';
-import { useGameState, type LogSessionResult } from '../../src/hooks/useGameState';
+import { useGameState } from '../../src/hooks/useGameState';
 import { useExercises } from '../../src/hooks/useExercises';
-import { ProgressBar } from '../../src/components/ui/ProgressBar';
-import { CategoryBadge } from '../../src/components/ui/CategoryBadge';
-import { GlowCard } from '../../src/components/ui/GlowCard';
-import { ExerciseForm } from '../../src/components/ExerciseForm';
-import { SessionResultView } from '../../src/components/SessionResult';
-import type { Category, DraftSession } from '../../src/types';
+import type { Category } from '../../src/types';
 import { CATEGORIES } from '../../src/types';
+
+/** Dim backgrounds for level badges (higher opacity than categoryBg) */
+const categoryDim: Record<Category, string> = {
+  push: 'rgba(249,115,22,0.15)',
+  pull: 'rgba(6,182,212,0.15)',
+  squat: 'rgba(217,70,239,0.15)',
+};
+
+/** Short uppercase labels */
+const categoryLabel: Record<Category, string> = {
+  push: 'PUSH',
+  pull: 'PULL',
+  squat: 'SQUAT',
+};
+
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -19,74 +30,48 @@ export default function HomeScreen() {
     status,
     user,
     categoryDoneThisWeek,
-    weekComplete,
-    completedThisWeek,
-    streak,
     sessions,
-    logSession,
     getGateForCategory,
-    saveDraft: saveDraftFn,
-    loadDraft,
   } = useGameState();
 
   const { exercises } = useExercises();
 
-  const [expandedCategory, setExpandedCategory] = useState<Category | null>(null);
-  const [activeDraft, setActiveDraft] = useState<DraftSession | null>(null);
-  const [result, setResult] = useState<LogSessionResult | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const loadingCatRef = useRef<Category | null>(null);
+  // Build a map of session dates this week keyed by day-of-week index (0=Sun)
+  const weekDaySessions = useMemo(() => {
+    if (!sessions || !user) return new Array(7).fill(null);
 
-  const handleToggleCategory = useCallback(async (category: Category) => {
-    if (expandedCategory === category) {
-      setExpandedCategory(null);
-      setResult(null);
-      setActiveDraft(null);
-      return;
-    }
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0=Sun
+    const weekStartDate = new Date(now);
+    weekStartDate.setDate(now.getDate() - dayOfWeek);
+    weekStartDate.setHours(0, 0, 0, 0);
 
-    if (categoryDoneThisWeek[category]) return;
+    const result: (null | { category: Category; level: number })[] = new Array(7).fill(null);
 
-    loadingCatRef.current = category;
-    setExpandedCategory(category);
-    setResult(null);
-    setSaveError(null);
-
-    if (user) {
-      const draft = await loadDraft(category, user.levels[category]);
-      if (loadingCatRef.current === category) {
-        setActiveDraft(draft);
+    for (const s of sessions) {
+      const sDate = new Date(s.date);
+      if (sDate >= weekStartDate) {
+        const sDay = sDate.getDay();
+        result[sDay] = { category: s.category, level: s.level };
       }
     }
-  }, [expandedCategory, categoryDoneThisWeek, user, loadDraft]);
 
-  const handleSave = useCallback(async (session: Parameters<typeof logSession>[0]) => {
-    setSaving(true);
-    setSaveError(null);
-    try {
-      const res = await logSession(session);
-      setResult(res);
-    } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Save failed');
-    } finally {
-      setSaving(false);
+    return result;
+  }, [sessions, user]);
+
+  const todayIndex = new Date().getDay();
+
+  // Count exercises per category at the user's current level
+  const exerciseCountByCategory = useMemo(() => {
+    const counts: Record<string, number> = { push: 0, pull: 0, squat: 0 };
+    if (!user) return counts;
+    for (const ex of exercises) {
+      if (ex.level === user.levels[ex.category]) {
+        counts[ex.category]++;
+      }
     }
-  }, [logSession]);
-
-  const handleSaveDraft = useCallback(async (draft: DraftSession) => {
-    try {
-      await saveDraftFn(draft);
-    } catch {
-      // Silent fail for draft auto-save
-    }
-  }, [saveDraftFn]);
-
-  const handleDone = useCallback(() => {
-    setExpandedCategory(null);
-    setResult(null);
-    setActiveDraft(null);
-  }, []);
+    return counts;
+  }, [exercises, user]);
 
   if (status === 'loading') {
     return (
@@ -98,117 +83,144 @@ export default function HomeScreen() {
 
   if (!user) return null;
 
-  const exerciseNameMap: Record<string, string> = {};
-  for (const ex of exercises) {
-    exerciseNameMap[ex.id] = ex.name;
-  }
-
-  const progressPct = Math.round((completedThisWeek / 3) * 100);
-  const progressColor = weekComplete ? 'emerald' : completedThisWeek > 0 ? 'cyan' : 'muted';
+  const remainingCats = CATEGORIES.filter(c => !categoryDoneThisWeek[c]);
+  const completedCats = CATEGORIES.filter(c => categoryDoneThisWeek[c]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Logo */}
-      <View style={styles.logoRow}>
-        <Text style={styles.logoText}>contrl</Text>
-        <Text style={styles.sloganText}>your body is your controller</Text>
-      </View>
+      {/* ─── WEEKLY OVERVIEW ─── */}
+      <View style={styles.weekSection}>
+        <Text style={styles.sectionHeader}>THIS WEEK</Text>
 
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>This Week</Text>
-        <View style={styles.headerRight}>
-          {streak > 0 && (
-            <View style={styles.streakBadge}>
-              <Text style={styles.streakText}>{streak}w streak</Text>
-            </View>
-          )}
-          <Pressable onPress={() => router.push('/settings')}>
-            <Text style={styles.settingsIcon}>{'⚙'}</Text>
-          </Pressable>
+        {/* 7-day strip */}
+        <View style={styles.weekStrip}>
+          {DAY_LABELS.map((label, i) => {
+            const session = weekDaySessions[i];
+            const isToday = i === todayIndex;
+            const hasSession = !!session;
+            const accent = hasSession ? categoryColors[session.category] : null;
+
+            return (
+              <View key={i} style={styles.dayColumn}>
+                {/* Day label */}
+                <Text style={[
+                  styles.dayLabel,
+                  { color: hasSession ? accent! : isToday ? colors.primary : colors.textSecondary },
+                ]}>
+                  {label}
+                </Text>
+
+                {/* Dot */}
+                <View style={[
+                  styles.dayDot,
+                  {
+                    backgroundColor: hasSession ? accent! : colors.surfaceLight,
+                    borderWidth: isToday && !hasSession ? 1 : 0,
+                    borderColor: isToday && !hasSession ? 'rgba(0,229,255,0.25)' : 'transparent',
+                  },
+                ]} />
+
+                {/* Category label under dot */}
+                <Text style={[
+                  styles.dayCatLabel,
+                  { color: hasSession ? accent! : 'transparent' },
+                ]}>
+                  {hasSession ? categoryLabel[session.category] : ''}
+                </Text>
+              </View>
+            );
+          })}
         </View>
       </View>
 
-      <Text style={styles.subtitle}>
-        {completedThisWeek}/3 sessions completed
-      </Text>
+      {/* ─── REMAINING CATEGORIES ─── */}
+      {remainingCats.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionHeader}>REMAINING</Text>
+          <View style={styles.cardList}>
+            {remainingCats.map(cat => {
+              const level = user.levels[cat];
+              const gate = getGateForCategory(cat);
+              const accent = categoryColors[cat];
+              const border = categoryBorder[cat];
+              const dim = categoryDim[cat];
+              const exCount = exerciseCountByCategory[cat];
 
-      <ProgressBar value={progressPct} color={progressColor} height={6} />
+              return (
+                <Pressable
+                  key={cat}
+                  onPress={() => router.push(`/log/${cat}`)}
+                  style={[styles.card, { borderColor: border }]}
+                >
+                  <View style={styles.cardRow}>
+                    {/* Left: badge + info */}
+                    <View style={styles.cardLeft}>
+                      <View style={[styles.levelBadge, { backgroundColor: dim, borderColor: border }]}>
+                        <Text style={[styles.levelBadgeText, { color: accent }]}>L{level}</Text>
+                      </View>
+                      <View>
+                        <Text style={styles.cardCategoryName}>{categoryLabel[cat]}</Text>
+                        <Text style={styles.cardSubtext}>{exCount} exercises · ~15 min</Text>
+                      </View>
+                    </View>
 
-      {/* Week complete banner */}
-      {weekComplete && !expandedCategory && (
-        <View style={styles.weekCompleteBanner}>
-          <Text style={styles.weekCompleteText}>All sessions done this week!</Text>
+                    {/* Right: gate progress + level + chevron */}
+                    <View style={styles.cardRight}>
+                      {gate && gate.consecutivePasses > 0 && (
+                        <Text style={styles.gateText}>{gate.consecutivePasses}/3</Text>
+                      )}
+                      <Text style={[styles.cardLevelTag, { color: accent }]}>L{level}</Text>
+                      <Feather name="chevron-right" size={16} color={accent} />
+                    </View>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
       )}
 
-      {/* Category cards */}
-      <View style={styles.categoriesSection}>
-        {CATEGORIES.map(cat => {
-          const isDone = categoryDoneThisWeek[cat];
-          const isExpanded = expandedCategory === cat;
-          const gate = getGateForCategory(cat);
-          const level = user.levels[cat];
-          const levelName = LEVEL_NAMES[level] ?? `L${level}`;
-          const catColor = categoryColors[cat];
+      {/* ─── COMPLETED CATEGORIES ─── */}
+      {completedCats.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionHeader}>COMPLETED</Text>
+          <View style={styles.cardList}>
+            {completedCats.map(cat => {
+              const level = user.levels[cat];
+              const accent = categoryColors[cat];
 
-          return (
-            <GlowCard
-              key={cat}
-              glow={isExpanded ? cat : 'none'}
-              style={isDone && !isExpanded ? styles.doneCard : undefined}
-            >
-              {/* Category header — always visible */}
-              <Pressable
-                onPress={() => handleToggleCategory(cat)}
-                style={styles.categoryHeader}
-                disabled={isDone}
-              >
-                <CategoryBadge category={cat} />
-                <View style={styles.categoryInfo}>
-                  <Text style={styles.levelText}>{levelName}</Text>
-                  {gate && (
-                    <Text style={styles.gateText}>
-                      {gate.status === 'passed'
-                        ? 'Passed'
-                        : `${gate.consecutivePasses}/3`}
-                    </Text>
-                  )}
+              // Find which day this session was logged
+              const sessionDayIdx = weekDaySessions.findIndex(d => d?.category === cat);
+              const dayName = sessionDayIdx >= 0 ? DAY_LABELS[sessionDayIdx] : '';
+
+              return (
+                <View key={cat} style={[styles.card, styles.completedCard, { borderColor: colors.border }]}>
+                  <View style={styles.cardRow}>
+                    {/* Left: check badge + info */}
+                    <View style={styles.cardLeft}>
+                      <View style={[styles.levelBadge, {
+                        backgroundColor: colors.successDim,
+                        borderColor: 'rgba(52,211,153,0.25)',
+                      }]}>
+                        <Feather name="check" size={18} color={colors.success} />
+                      </View>
+                      <View>
+                        <Text style={styles.cardCategoryName}>{categoryLabel[cat]}</Text>
+                        <Text style={styles.cardSubtext}>
+                          Logged {dayName} · Level {level}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Right: level tag */}
+                    <Text style={[styles.cardLevelTag, { color: accent }]}>L{level}</Text>
+                  </View>
                 </View>
-                {isDone ? (
-                  <Text style={[styles.checkDone, { color: catColor }]}>{'✓'}</Text>
-                ) : (
-                  <Text style={styles.chevron}>{isExpanded ? '▲' : '▼'}</Text>
-                )}
-              </Pressable>
-
-              {/* Expanded content */}
-              {isExpanded && !result && (
-                <ExerciseForm
-                  category={cat}
-                  level={level}
-                  exercises={exercises}
-                  sessions={sessions}
-                  saving={saving}
-                  saveError={saveError}
-                  draft={activeDraft}
-                  onSave={handleSave}
-                  onSaveDraft={handleSaveDraft}
-                />
-              )}
-
-              {/* Session result */}
-              {isExpanded && result && (
-                <SessionResultView
-                  result={result}
-                  exerciseNames={exerciseNameMap}
-                  onDone={handleDone}
-                />
-              )}
-            </GlowCard>
-          );
-        })}
-      </View>
+              );
+            })}
+          </View>
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -219,8 +231,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   content: {
-    padding: 20,
-    paddingTop: 60,
+    paddingHorizontal: 20,
+    paddingTop: 16,
     paddingBottom: 100,
   },
   loadingContainer: {
@@ -229,103 +241,111 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logoRow: {
+
+  // ── Week strip ──────────────────────────
+  weekSection: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    fontSize: 10,
+    fontFamily: fonts.semiBold,
+    letterSpacing: 1.5,
+    color: colors.textSecondary,
+    marginBottom: 12,
+  },
+  weekStrip: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    maxWidth: 320,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  dayColumn: {
     alignItems: 'center',
-    marginBottom: 20,
+    gap: 3,
   },
-  logoText: {
-    fontSize: 32,
-    fontFamily: fonts.extraBold,
-    color: colors.primary,
-    letterSpacing: 6,
+  dayLabel: {
+    fontSize: 8,
+    fontFamily: fonts.bold,
+    letterSpacing: 0.4,
   },
-  sloganText: {
-    fontSize: 12,
-    fontFamily: fonts.regular,
-    color: colors.muted,
-    marginTop: 4,
-    letterSpacing: 2,
+  dayDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
   },
-  header: {
+  dayCatLabel: {
+    fontSize: 8,
+    fontFamily: fonts.bold,
+    letterSpacing: 0.4,
+    height: 10,
+  },
+
+  // ── Sections ────────────────────────────
+  section: {
+    marginBottom: 16,
+  },
+
+  // ── Cards ───────────────────────────────
+  cardList: {
+    gap: 8,
+  },
+  card: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderRadius: 2,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+  },
+  completedCard: {
+    opacity: 0.6,
+  },
+  cardRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
   },
-  headerRight: {
+  cardLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  title: {
-    fontSize: 28,
+  cardRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  levelBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 2,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  levelBadgeText: {
+    fontSize: 15,
+    fontFamily: fonts.extraBold,
+  },
+  cardCategoryName: {
+    fontSize: 15,
     fontFamily: fonts.bold,
-    color: colors.primary,
+    color: colors.text,
+    textTransform: 'uppercase',
   },
-  settingsIcon: {
-    fontSize: 22,
-    color: colors.muted,
+  cardSubtext: {
+    fontSize: 11,
+    fontFamily: fonts.regular,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
-  streakBadge: {
-    backgroundColor: colors.warningDim,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  streakText: {
-    fontSize: 12,
+  gateText: {
+    fontSize: 10,
     fontFamily: fonts.bold,
     color: colors.warning,
   },
-  subtitle: {
-    fontSize: 14,
-    fontFamily: fonts.regular,
-    color: colors.muted,
-    marginBottom: 12,
-  },
-  weekCompleteBanner: {
-    backgroundColor: colors.successDim,
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 16,
-    alignItems: 'center',
-  },
-  weekCompleteText: {
-    fontSize: 14,
-    fontFamily: fonts.semiBold,
-    color: colors.success,
-  },
-  categoriesSection: {
-    marginTop: 24,
-  },
-  categoryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  categoryInfo: {
-    flex: 1,
-  },
-  levelText: {
-    fontSize: 14,
-    fontFamily: fonts.semiBold,
-    color: colors.text,
-  },
-  gateText: {
+  cardLevelTag: {
     fontSize: 12,
-    fontFamily: fonts.regular,
-    color: colors.muted,
-    marginTop: 2,
-  },
-  chevron: {
-    fontSize: 12,
-    color: colors.muted,
-  },
-  checkDone: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  doneCard: {
-    opacity: 0.5,
+    fontFamily: fonts.bold,
   },
 });

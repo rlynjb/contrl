@@ -14,29 +14,29 @@ export default function NotionGuideScreen() {
 
       <Text style={styles.step}>2. Create Sessions database</Text>
       <Text style={styles.body}>
-        Create a new full-page database in Notion with these properties:{'\n'}
+        Create a new full-page database in Notion with these properties:{'\n\n'}
         - Name (title){'\n'}
         - Date (date){'\n'}
         - Category (select: push, pull, squat){'\n'}
         - Level (number){'\n'}
-        - Exercises (rich text){'\n'}
+        - Exercises (relation → Exercises database){'\n'}
+        - Session Data (rich text){'\n'}
         - Notes (rich text){'\n'}
-        - Gate Status (select: passed, failed, in-progress){'\n'}
-        - contrl ID (rich text){'\n'}
-        - Created At (date)
+        - Passed (checkbox){'\n'}
+        - contrl ID (rich text)
       </Text>
 
       <Text style={styles.step}>3. Create Exercises database</Text>
       <Text style={styles.body}>
-        Create another database with:{'\n'}
+        Create another database with:{'\n\n'}
         - Name (title){'\n'}
         - Category (select: push, pull, squat){'\n'}
         - Level (number 1-5){'\n'}
         - Target Sets (number){'\n'}
         - Target Reps (number){'\n'}
-        - Is Hold (checkbox){'\n'}
-        - Hold Seconds (number){'\n'}
-        - Sort Order (number)
+        - Sort Order (number){'\n'}
+        - Tempo (rich text){'\n'}
+        - Notes (rich text)
       </Text>
 
       <Text style={styles.step}>4. Connect the integration</Text>

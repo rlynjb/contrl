@@ -24,29 +24,24 @@ export function getGateCriteria(
 
 /**
  * Check if a single exercise entry meets a single gate criterion.
+ * For hold exercises, actualHoldSeconds stores the logged seconds.
+ * For rep exercises, actualReps stores the logged reps.
+ * Both compare against targetReps.
  */
 function exerciseMeetsCriteria(
   entry: ExerciseEntry,
   criterion: GateCriteriaExercise
 ): boolean {
-  // All checked sets must meet target
   const checkedCount = entry.checkedSets.filter(Boolean).length
   if (checkedCount < criterion.targetSets) return false
 
-  if (criterion.targetHoldSeconds !== undefined) {
-    // Hold exercise: every checked set must meet hold target
-    if (!entry.actualHoldSeconds) return false
-    for (let i = 0; i < entry.checkedSets.length; i++) {
-      if (entry.checkedSets[i] && (entry.actualHoldSeconds[i] ?? 0) < criterion.targetHoldSeconds) {
-        return false
-      }
-    }
-    return true
-  }
+  const target = criterion.targetReps ?? 0
 
-  // Rep exercise: every checked set must meet rep target
+  // Use actualHoldSeconds if available (hold exercise), otherwise actualReps
+  const actuals = entry.actualHoldSeconds ?? entry.actualReps
+
   for (let i = 0; i < entry.checkedSets.length; i++) {
-    if (entry.checkedSets[i] && (entry.actualReps[i] ?? 0) < criterion.targetReps!) {
+    if (entry.checkedSets[i] && (actuals[i] ?? 0) < target) {
       return false
     }
   }
@@ -55,13 +50,12 @@ function exerciseMeetsCriteria(
 
 export type SessionResult = {
   isClean: boolean
-  completionPct: number          // 0–100
+  completionPct: number
   exerciseResults: {
     exerciseId: string
     met: boolean
     targetSets: number
     targetReps?: number
-    targetHoldSeconds?: number
     actualCheckedSets: number
     actualReps: number[]
     actualHoldSeconds?: number[]
@@ -70,7 +64,6 @@ export type SessionResult = {
 
 /**
  * Evaluate a workout session against gate criteria.
- * Returns whether the session is "clean" (all targets met) + per-exercise breakdown.
  */
 export function evaluateSession(
   session: WorkoutSession,
@@ -85,7 +78,6 @@ export function evaluateSession(
         met: false,
         targetSets: criterion.targetSets,
         targetReps: criterion.targetReps,
-        targetHoldSeconds: criterion.targetHoldSeconds,
         actualCheckedSets: 0,
         actualReps: [],
         actualHoldSeconds: undefined,
@@ -97,7 +89,6 @@ export function evaluateSession(
       met: exerciseMeetsCriteria(entry, criterion),
       targetSets: criterion.targetSets,
       targetReps: criterion.targetReps,
-      targetHoldSeconds: criterion.targetHoldSeconds,
       actualCheckedSets: entry.checkedSets.filter(Boolean).length,
       actualReps: entry.actualReps,
       actualHoldSeconds: entry.actualHoldSeconds,
@@ -118,8 +109,6 @@ export function evaluateSession(
 
 /**
  * Update gate progress after evaluating a session.
- * Clean session → increment counter. Not clean → reset to 0.
- * When counter hits requiredConsecutivePasses → gate status = "passed".
  */
 export function updateGateAfterSession(
   gate: GateProgress,

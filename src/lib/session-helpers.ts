@@ -15,10 +15,11 @@ export function getGapText(er: ExerciseResult): string | null {
     return `${gap} more set${gap > 1 ? 's' : ''} needed`
   }
 
-  if (er.targetHoldSeconds && er.actualHoldSeconds) {
+  // For hold exercises, check actualHoldSeconds against targetReps (seconds)
+  if (er.actualHoldSeconds && er.targetReps) {
     const gaps = er.actualHoldSeconds
       .slice(0, er.actualCheckedSets)
-      .map(h => Math.max(0, er.targetHoldSeconds! - h))
+      .map(h => Math.max(0, er.targetReps! - h))
       .filter(g => g > 0)
     if (gaps.length > 0) return `${Math.max(...gaps)}s to go`
   }

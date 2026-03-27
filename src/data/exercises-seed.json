@@ -1,34 +1,302 @@
 [
-  { "id": "beginner-negative-push-ups", "name": "Negative Push-ups", "category": "push", "level": 1, "targetSets": 3, "targetReps": 8, "isHold": false },
-  { "id": "beginner-scapula-push-ups", "name": "Scapula Push-ups", "category": "push", "level": 1, "targetSets": 4, "targetReps": 8, "isHold": false },
-  { "id": "beginner-plank-hold", "name": "Plank Hold", "category": "push", "level": 1, "targetSets": 4, "targetReps": 0, "isHold": true, "targetHoldSeconds": 60 },
-  { "id": "beginner-trx-lat-pull-down", "name": "TRX Lat Pull-down", "category": "pull", "level": 1, "targetSets": 3, "targetReps": 8, "isHold": false },
-  { "id": "beginner-trx-inverted-row", "name": "TRX Inverted Row (Australian Pull-ups)", "category": "pull", "level": 1, "targetSets": 3, "targetReps": 15, "isHold": false },
-  { "id": "beginner-trx-passive-hang", "name": "TRX Passive Hang", "category": "pull", "level": 1, "targetSets": 3, "targetReps": 0, "isHold": true, "targetHoldSeconds": 60 },
-  { "id": "beginner-deep-squats", "name": "Deep Squats", "category": "squat", "level": 1, "targetSets": 3, "targetReps": 12, "isHold": false },
-  { "id": "beginner-narrow-stance-squats", "name": "Narrow Stance Squats", "category": "squat", "level": 1, "targetSets": 3, "targetReps": 12, "isHold": false },
-  { "id": "beginner-bodyweight-squats", "name": "Bodyweight Squats", "category": "squat", "level": 1, "targetSets": 3, "targetReps": 15, "isHold": false },
-
-  { "id": "novice-normal-pushups", "name": "Normal Push-ups", "category": "push", "level": 2, "targetSets": 3, "targetReps": 12, "isHold": false },
-  { "id": "novice-negative-pushups", "name": "Negative Push-ups", "category": "push", "level": 2, "targetSets": 3, "targetReps": 8, "isHold": false },
-  { "id": "novice-scapula-pushups", "name": "Scapula Pushups", "category": "push", "level": 2, "targetSets": 4, "targetReps": 8, "isHold": false },
-  { "id": "novice-plank-hold", "name": "Plank Hold", "category": "push", "level": 2, "targetSets": 4, "targetReps": 0, "isHold": true, "targetHoldSeconds": 60 },
-  { "id": "novice-trx-inverted-row", "name": "TRX Inverted Row (straight legs)", "category": "pull", "level": 2, "targetSets": 3, "targetReps": 12, "isHold": false },
-  { "id": "novice-trx-scapula-pullups", "name": "TRX Scapula Pullups", "category": "pull", "level": 2, "targetSets": 3, "targetReps": 12, "isHold": false },
-  { "id": "novice-trx-bulgarian-squats", "name": "TRX Bulgarian Squats", "category": "squat", "level": 2, "targetSets": 3, "targetReps": 6, "isHold": false },
-  { "id": "novice-narrow-stance-squats", "name": "Narrow Stance Squats", "category": "squat", "level": 2, "targetSets": 3, "targetReps": 10, "isHold": false },
-  { "id": "novice-deep-squats", "name": "Deep Squats", "category": "squat", "level": 2, "targetSets": 3, "targetReps": 10, "isHold": false },
-
-  { "id": "intermediate-tricep-extensions", "name": "Tricep Extensions", "category": "push", "level": 3, "targetSets": 3, "targetReps": 8, "isHold": false },
-  { "id": "intermediate-diamond-pushups", "name": "Diamond Push-ups", "category": "push", "level": 3, "targetSets": 3, "targetReps": 15, "isHold": false },
-  { "id": "intermediate-wide-pushups", "name": "Wide Push-ups", "category": "push", "level": 3, "targetSets": 3, "targetReps": 6, "isHold": false },
-  { "id": "intermediate-normal-pushups", "name": "Normal Push-ups", "category": "push", "level": 3, "targetSets": 3, "targetReps": 8, "isHold": false },
-  { "id": "intermediate-negative-pushups", "name": "Negative Push-ups", "category": "push", "level": 3, "targetSets": 3, "targetReps": 8, "isHold": false },
-  { "id": "intermediate-trx-pullups-band-assisted", "name": "TRX Pullups Band Assisted", "category": "pull", "level": 3, "targetSets": 3, "targetReps": 6, "isHold": false },
-  { "id": "intermediate-trx-inverted-row", "name": "TRX Inverted Row", "category": "pull", "level": 3, "targetSets": 4, "targetReps": 12, "isHold": false },
-  { "id": "intermediate-trx-scapula-pullups", "name": "TRX Scapula Pullups", "category": "pull", "level": 3, "targetSets": 4, "targetReps": 12, "isHold": false },
-  { "id": "intermediate-cossack-squats", "name": "Cossack Squats", "category": "squat", "level": 3, "targetSets": 3, "targetReps": 6, "isHold": false },
-  { "id": "intermediate-bulgarian-split-squats", "name": "Bulgarian Split Squats", "category": "squat", "level": 3, "targetSets": 3, "targetReps": 8, "isHold": false },
-  { "id": "intermediate-narrow-stance-squats", "name": "Narrow Stance Squats", "category": "squat", "level": 3, "targetSets": 3, "targetReps": 8, "isHold": false },
-  { "id": "intermediate-deep-squats", "name": "Deep Squats", "category": "squat", "level": 3, "targetSets": 3, "targetReps": 8, "isHold": false }
+  {
+    "id": "beginner-negative-push-ups",
+    "name": "Negative Push-ups",
+    "category": "push",
+    "level": 1,
+    "targetSets": 3,
+    "targetReps": 8,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Lower yourself slowly for a count of 3, keeping elbows at 45 degrees.\nNext: Normal Push-ups\nScale down: Wall Push-ups"
+  },
+  {
+    "id": "beginner-scapula-push-ups",
+    "name": "Scapula Push-ups",
+    "category": "push",
+    "level": 1,
+    "targetSets": 4,
+    "targetReps": 8,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Keep arms locked and only move your shoulder blades apart and together.\nNext: Scapula Pushups\nScale down: Wall Scapula Push-ups"
+  },
+  {
+    "id": "beginner-plank-hold",
+    "name": "Plank Hold",
+    "category": "push",
+    "level": 1,
+    "targetSets": 4,
+    "targetReps": 60,
+    "tempo": "Steady",
+    "notes": "Tip: Squeeze your glutes and brace your core; keep a straight line from head to heels.\nNext: Plank Hold\nScale down: Knee Plank Hold"
+  },
+  {
+    "id": "beginner-trx-lat-pull-down",
+    "name": "TRX Lat Pull-down",
+    "category": "pull",
+    "level": 1,
+    "targetSets": 3,
+    "targetReps": 8,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Drive elbows down and back, squeezing your lats at the bottom.\nNext: TRX Inverted Row (Australian Pull-ups)\nScale down: Band Lat Pull-down"
+  },
+  {
+    "id": "beginner-trx-inverted-row",
+    "name": "TRX Inverted Row (Australian Pull-ups)",
+    "category": "pull",
+    "level": 1,
+    "targetSets": 3,
+    "targetReps": 15,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Pull your chest to the handles while keeping your body in a straight line.\nNext: TRX Inverted Row (straight legs)\nScale down: TRX Lat Pull-down"
+  },
+  {
+    "id": "beginner-trx-passive-hang",
+    "name": "TRX Passive Hang",
+    "category": "pull",
+    "level": 1,
+    "targetSets": 3,
+    "targetReps": 60,
+    "tempo": "Steady",
+    "notes": "Tip: Relax your shoulders and let gravity stretch your lats; grip firmly.\nNext: TRX Scapula Pullups\nScale down: Dead Hang with Feet on Ground"
+  },
+  {
+    "id": "beginner-deep-squats",
+    "name": "Deep Squats",
+    "category": "squat",
+    "level": 1,
+    "targetSets": 3,
+    "targetReps": 12,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Sit as deep as possible while keeping your heels flat on the ground.\nNext: Narrow Stance Squats\nScale down: Assisted Deep Squats"
+  },
+  {
+    "id": "beginner-narrow-stance-squats",
+    "name": "Narrow Stance Squats",
+    "category": "squat",
+    "level": 1,
+    "targetSets": 3,
+    "targetReps": 12,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Keep feet hip-width apart and push knees outward over your toes.\nNext: Bodyweight Squats\nScale down: Deep Squats"
+  },
+  {
+    "id": "beginner-bodyweight-squats",
+    "name": "Bodyweight Squats",
+    "category": "squat",
+    "level": 1,
+    "targetSets": 3,
+    "targetReps": 15,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Drive through your heels and keep your chest upright throughout.\nNext: Narrow Stance Squats\nScale down: Narrow Stance Squats"
+  },
+  {
+    "id": "novice-normal-pushups",
+    "name": "Normal Push-ups",
+    "category": "push",
+    "level": 2,
+    "targetSets": 3,
+    "targetReps": 12,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Keep your core tight and lower until your chest nearly touches the floor.\nNext: Diamond Push-ups\nScale down: Negative Push-ups"
+  },
+  {
+    "id": "novice-negative-pushups",
+    "name": "Negative Push-ups",
+    "category": "push",
+    "level": 2,
+    "targetSets": 3,
+    "targetReps": 8,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Focus on a slow 3-second descent with elbows tucked at 45 degrees.\nNext: Normal Push-ups\nScale down: Negative Push-ups"
+  },
+  {
+    "id": "novice-scapula-pushups",
+    "name": "Scapula Pushups",
+    "category": "push",
+    "level": 2,
+    "targetSets": 4,
+    "targetReps": 8,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Protract and retract your shoulder blades fully without bending your arms.\nNext: Tricep Extensions\nScale down: Scapula Push-ups"
+  },
+  {
+    "id": "novice-plank-hold",
+    "name": "Plank Hold",
+    "category": "push",
+    "level": 2,
+    "targetSets": 4,
+    "targetReps": 60,
+    "tempo": "Steady",
+    "notes": "Tip: Engage your abs as if bracing for a punch; avoid letting your hips sag.\nNext: Normal Push-ups\nScale down: Plank Hold"
+  },
+  {
+    "id": "novice-trx-inverted-row",
+    "name": "TRX Inverted Row (straight legs)",
+    "category": "pull",
+    "level": 2,
+    "targetSets": 3,
+    "targetReps": 12,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Keep legs straight and body rigid; pull until handles reach your ribcage.\nNext: TRX Inverted Row\nScale down: TRX Inverted Row (Australian Pull-ups)"
+  },
+  {
+    "id": "novice-trx-scapula-pullups",
+    "name": "TRX Scapula Pullups",
+    "category": "pull",
+    "level": 2,
+    "targetSets": 3,
+    "targetReps": 12,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Depress and retract your shoulder blades without bending your elbows.\nNext: TRX Pullups Band Assisted\nScale down: TRX Passive Hang"
+  },
+  {
+    "id": "novice-trx-bulgarian-squats",
+    "name": "TRX Bulgarian Squats",
+    "category": "squat",
+    "level": 2,
+    "targetSets": 3,
+    "targetReps": 6,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Use the TRX for balance; keep your front shin vertical as you lower.\nNext: Bulgarian Split Squats\nScale down: Bodyweight Squats"
+  },
+  {
+    "id": "novice-narrow-stance-squats",
+    "name": "Narrow Stance Squats",
+    "category": "squat",
+    "level": 2,
+    "targetSets": 3,
+    "targetReps": 10,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Keep feet hip-width apart and maintain an upright torso throughout.\nNext: Cossack Squats\nScale down: Narrow Stance Squats"
+  },
+  {
+    "id": "novice-deep-squats",
+    "name": "Deep Squats",
+    "category": "squat",
+    "level": 2,
+    "targetSets": 3,
+    "targetReps": 10,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Go below parallel while keeping your lower back neutral.\nNext: Narrow Stance Squats\nScale down: Deep Squats"
+  },
+  {
+    "id": "intermediate-tricep-extensions",
+    "name": "Tricep Extensions",
+    "category": "push",
+    "level": 3,
+    "targetSets": 3,
+    "targetReps": 8,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Keep elbows fixed in place and extend fully at the top.\nNext: Diamond Push-ups\nScale down: Scapula Pushups"
+  },
+  {
+    "id": "intermediate-diamond-pushups",
+    "name": "Diamond Push-ups",
+    "category": "push",
+    "level": 3,
+    "targetSets": 3,
+    "targetReps": 15,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Form a diamond with your hands under your chest; flare elbows slightly.\nNext: Archer Push-ups\nScale down: Normal Push-ups"
+  },
+  {
+    "id": "intermediate-wide-pushups",
+    "name": "Wide Push-ups",
+    "category": "push",
+    "level": 3,
+    "targetSets": 3,
+    "targetReps": 6,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Place hands wider than shoulder-width; focus on chest engagement.\nNext: Archer Push-ups\nScale down: Normal Push-ups"
+  },
+  {
+    "id": "intermediate-normal-pushups",
+    "name": "Normal Push-ups",
+    "category": "push",
+    "level": 3,
+    "targetSets": 3,
+    "targetReps": 8,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Maintain a hollow body position and full range of motion.\nNext: Wide Push-ups\nScale down: Negative Push-ups"
+  },
+  {
+    "id": "intermediate-negative-pushups",
+    "name": "Negative Push-ups",
+    "category": "push",
+    "level": 3,
+    "targetSets": 3,
+    "targetReps": 8,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Use a 5-second eccentric for maximum time under tension.\nNext: Normal Push-ups\nScale down: Negative Push-ups"
+  },
+  {
+    "id": "intermediate-trx-pullups-band-assisted",
+    "name": "TRX Pullups Band Assisted",
+    "category": "pull",
+    "level": 3,
+    "targetSets": 3,
+    "targetReps": 6,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Pull chin over the bar; use the lightest band you can manage.\nNext: Unassisted Pull-ups\nScale down: TRX Scapula Pullups"
+  },
+  {
+    "id": "intermediate-trx-inverted-row",
+    "name": "TRX Inverted Row",
+    "category": "pull",
+    "level": 3,
+    "targetSets": 4,
+    "targetReps": 12,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Lower the handles to increase difficulty; squeeze shoulder blades at the top.\nNext: TRX Pullups Band Assisted\nScale down: TRX Inverted Row (straight legs)"
+  },
+  {
+    "id": "intermediate-trx-scapula-pullups",
+    "name": "TRX Scapula Pullups",
+    "category": "pull",
+    "level": 3,
+    "targetSets": 4,
+    "targetReps": 12,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Hang with straight arms and pull shoulder blades down and together.\nNext: TRX Pullups Band Assisted\nScale down: TRX Scapula Pullups"
+  },
+  {
+    "id": "intermediate-cossack-squats",
+    "name": "Cossack Squats",
+    "category": "squat",
+    "level": 3,
+    "targetSets": 3,
+    "targetReps": 6,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Shift weight to one leg and sit deep while keeping the other leg straight.\nNext: Pistol Squats\nScale down: Narrow Stance Squats"
+  },
+  {
+    "id": "intermediate-bulgarian-split-squats",
+    "name": "Bulgarian Split Squats",
+    "category": "squat",
+    "level": 3,
+    "targetSets": 3,
+    "targetReps": 8,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Keep your torso upright and lower until your back knee nearly touches the floor.\nNext: Pistol Squats\nScale down: TRX Bulgarian Squats"
+  },
+  {
+    "id": "intermediate-narrow-stance-squats",
+    "name": "Narrow Stance Squats",
+    "category": "squat",
+    "level": 3,
+    "targetSets": 3,
+    "targetReps": 8,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Control the tempo and pause at the bottom for a beat.\nNext: Cossack Squats\nScale down: Narrow Stance Squats"
+  },
+  {
+    "id": "intermediate-deep-squats",
+    "name": "Deep Squats",
+    "category": "squat",
+    "level": 3,
+    "targetSets": 3,
+    "targetReps": 8,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Sink as low as mobility allows while keeping a neutral spine.\nNext: Bulgarian Split Squats\nScale down: Deep Squats"
+  }
 ]

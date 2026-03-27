@@ -1,23 +1,54 @@
-import { useMemo } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
-import { colors, fonts, categoryColors, categoryBg, categoryBorder } from '../../src/constants/theme';
-import { LEVEL_NAMES } from '../../src/lib/constants';
+import { useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  ActivityIndicator,
+  StyleSheet,
+  Pressable,
+  Animated,
+} from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import { colors, fonts, categoryColors } from '../../src/constants/theme';
 import { useGameState } from '../../src/hooks/useGameState';
 import { useExercises } from '../../src/hooks/useExercises';
 import { getWeekStart } from '../../src/lib/game/week-progress';
 import { CategoryBadge } from '../../src/components/ui/CategoryBadge';
-import type { Category, WorkoutSession } from '../../src/types';
+import type { Category, WorkoutSession, ExerciseEntry } from '../../src/types';
 import { CATEGORIES } from '../../src/types';
 
 type WeekGroup = {
   weekStart: string;
+  weekLabel: string;
   sessions: WorkoutSession[];
   categories: Set<Category>;
 };
 
+/** Compute overall percentage from exercises if not stored on session */
+function computeOverallPercentage(exercises: ExerciseEntry[]): number {
+  if (exercises.length === 0) return 0;
+  const perExercise = exercises.map((ex) => {
+    const checked = ex.checkedSets.filter(Boolean).length;
+    return Math.round((checked / ex.targetSets) * 100);
+  });
+  return Math.round(perExercise.reduce((a, b) => a + b, 0) / perExercise.length);
+}
+
+/** Compute passed from exercises if not stored on session */
+function computePassed(exercises: ExerciseEntry[]): boolean {
+  return exercises.every((ex) => ex.hitTarget);
+}
+
+/** Per-exercise percentage */
+function exercisePercentage(ex: ExerciseEntry): number {
+  const checked = ex.checkedSets.filter(Boolean).length;
+  return Math.round((checked / ex.targetSets) * 100);
+}
+
 export default function HistoryScreen() {
-  const { status, sessions, streak } = useGameState();
+  const { status, sessions } = useGameState();
   const { exercises } = useExercises();
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   const exerciseNameMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -36,13 +67,21 @@ export default function HistoryScreen() {
     }
     return Array.from(groups.entries())
       .sort(([a], [b]) => b.localeCompare(a))
-      .map(([weekStart, weekSessions]) => ({
-        weekStart,
-        sessions: weekSessions.sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        ),
-        categories: new Set(weekSessions.map(s => s.category)),
-      }));
+      .map(([weekStart, weekSessions]) => {
+        const start = new Date(weekStart + 'T00:00:00');
+        const end = new Date(start);
+        end.setDate(end.getDate() + 6);
+        const fmt = (d: Date) =>
+          d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        return {
+          weekStart,
+          weekLabel: `${fmt(start)} \u2013 ${fmt(end)}`,
+          sessions: weekSessions.sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          ),
+          categories: new Set(weekSessions.map((s) => s.category)),
+        };
+      });
   }, [sessions]);
 
   if (status === 'loading') {
@@ -55,27 +94,20 @@ export default function HistoryScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <Text style={styles.title}>History</Text>
-        {streak > 0 && (
-          <View style={styles.streakBadge}>
-            <Text style={styles.streakText}>{streak}w streak</Text>
-          </View>
-        )}
-      </View>
+      {/* Section header */}
+      <Text style={styles.sectionLabel}>HISTORY</Text>
+      <Text style={styles.sectionTitle}>Past Sessions</Text>
 
       {sessions.length === 0 ? (
         <Text style={styles.emptyText}>No sessions logged yet. Start training!</Text>
       ) : (
-        weekGroups.map(group => (
+        weekGroups.map((group, wi) => (
           <View key={group.weekStart} style={styles.weekGroup}>
             {/* Week header */}
             <View style={styles.weekHeader}>
-              <Text style={styles.weekDate}>
-                Week of {formatWeekDate(group.weekStart)}
-              </Text>
+              <Text style={styles.weekDate}>{group.weekLabel}</Text>
               <View style={styles.weekDots}>
-                {CATEGORIES.map(cat => (
+                {CATEGORIES.map((cat) => (
                   <View
                     key={cat}
                     style={[
@@ -83,7 +115,7 @@ export default function HistoryScreen() {
                       {
                         backgroundColor: group.categories.has(cat)
                           ? categoryColors[cat]
-                          : colors.surfaceLight,
+                          : colors.border,
                       },
                     ]}
                   />
@@ -92,58 +124,103 @@ export default function HistoryScreen() {
             </View>
 
             {/* Session cards */}
-            {group.sessions.map(session => (
-              <View
-                key={session.id}
-                style={[
-                  styles.sessionCard,
-                  {
-                    borderLeftColor: categoryColors[session.category],
-                    backgroundColor: categoryBg[session.category],
-                  },
-                ]}
-              >
-                <View style={styles.sessionHeader}>
-                  <CategoryBadge category={session.category} size="sm" />
-                  <Text style={styles.sessionLevel}>
-                    {LEVEL_NAMES[session.level] ?? `L${session.level}`}
-                  </Text>
-                  <Text style={styles.sessionDate}>
-                    {formatSessionDate(session.date)}
-                  </Text>
-                </View>
+            {group.sessions.map((session, si) => {
+              const key = `${wi}-${si}`;
+              const isExpanded = expanded === key;
+              const passed = session.passed ?? computePassed(session.exercises);
+              const percentage = computeOverallPercentage(session.exercises);
+              const dateLabel = formatShortDate(session.date);
 
-                {/* Exercise summary */}
-                <View style={styles.exerciseSummary}>
-                  {session.exercises.map(entry => {
-                    const name = exerciseNameMap[entry.exerciseId] ?? entry.exerciseId;
-                    const checked = entry.checkedSets.filter(Boolean).length;
-                    return (
-                      <View key={entry.exerciseId} style={styles.exerciseLine}>
-                        <Text
-                          style={[
-                            styles.exerciseName,
-                            entry.hitTarget && styles.exerciseHit,
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {entry.hitTarget ? '✓ ' : ''}{name}
-                        </Text>
-                        <Text style={styles.exerciseStats}>
-                          {checked}/{entry.targetSets} sets
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </View>
+              return (
+                <Pressable
+                  key={session.id}
+                  onPress={() => setExpanded(isExpanded ? null : key)}
+                  style={styles.sessionCard}
+                >
+                  {/* Collapsed row */}
+                  <View style={styles.sessionRow}>
+                    <View style={styles.sessionLeft}>
+                      <Text style={styles.sessionDate}>{dateLabel}</Text>
+                      <CategoryBadge category={session.category} size="sm" />
+                      <Text style={styles.sessionLevel}>L{session.level}</Text>
+                    </View>
+                    <View style={styles.sessionRight}>
+                      <Feather
+                        name={passed ? 'check' : 'minus'}
+                        size={14}
+                        color={passed ? colors.success : colors.muted}
+                      />
+                      <Text
+                        style={[
+                          styles.percentageText,
+                          { color: passed ? colors.success : colors.warning },
+                        ]}
+                      >
+                        {percentage}%
+                      </Text>
+                      <Feather
+                        name="chevron-right"
+                        size={12}
+                        color={colors.textSecondary}
+                        style={{
+                          transform: [{ rotate: isExpanded ? '90deg' : '0deg' }],
+                        }}
+                      />
+                    </View>
+                  </View>
 
-                {session.notes && (
-                  <Text style={styles.sessionNotes} numberOfLines={2}>
-                    {session.notes}
-                  </Text>
-                )}
-              </View>
-            ))}
+                  {/* Expanded exercise breakdown */}
+                  {isExpanded && (
+                    <View style={styles.expandedSection}>
+                      {session.exercises.map((entry) => {
+                        const name =
+                          exerciseNameMap[entry.exerciseId] ?? entry.exerciseId;
+                        const hit = entry.hitTarget;
+                        const pct = exercisePercentage(entry);
+                        return (
+                          <View key={entry.exerciseId} style={styles.exerciseRow}>
+                            <View style={styles.exerciseInfo}>
+                              <View style={styles.exerciseNameRow}>
+                                <Feather
+                                  name={hit ? 'check' : 'minus'}
+                                  size={12}
+                                  color={hit ? colors.success : colors.muted}
+                                />
+                                <Text style={styles.exerciseName}>{name}</Text>
+                              </View>
+                              <Text
+                                style={[
+                                  styles.exercisePct,
+                                  {
+                                    color: hit ? colors.success : colors.warning,
+                                  },
+                                ]}
+                              >
+                                {pct}%
+                              </Text>
+                            </View>
+                            {/* Progress bar */}
+                            <View style={styles.progressTrack}>
+                              <View
+                                style={[
+                                  styles.progressFill,
+                                  {
+                                    width: `${Math.min(pct, 100)}%`,
+                                    backgroundColor: hit
+                                      ? colors.success
+                                      : colors.warning,
+                                  },
+                                ]}
+                              />
+                            </View>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  )}
+                </Pressable>
+              );
+            })}
           </View>
         ))
       )}
@@ -151,14 +228,9 @@ export default function HistoryScreen() {
   );
 }
 
-function formatWeekDate(isoDate: string): string {
-  const d = new Date(isoDate + 'T00:00:00');
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-function formatSessionDate(isoDate: string): string {
+function formatShortDate(isoDate: string): string {
   const d = new Date(isoDate);
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  return d.toLocaleDateString('en-US', { weekday: 'short' }).replace('.', '');
 }
 
 const styles = StyleSheet.create({
@@ -167,7 +239,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   content: {
-    padding: 20,
+    paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 100,
   },
@@ -177,28 +249,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
+
+  // Section header
+  sectionLabel: {
+    fontSize: 11,
+    fontFamily: fonts.semiBold,
+    letterSpacing: 1.5,
+    color: colors.textSecondary,
+    marginBottom: 4,
   },
-  title: {
-    fontSize: 28,
-    fontFamily: fonts.bold,
+  sectionTitle: {
+    fontSize: 22,
+    fontFamily: fonts.extraBold,
     color: colors.text,
+    marginBottom: 20,
   },
-  streakBadge: {
-    backgroundColor: colors.warningDim,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  streakText: {
-    fontSize: 12,
-    fontFamily: fonts.bold,
-    color: colors.warning,
-  },
+
   emptyText: {
     fontSize: 14,
     fontFamily: fonts.regular,
@@ -206,6 +272,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 60,
   },
+
+  // Week
   weekGroup: {
     marginBottom: 24,
   },
@@ -213,72 +281,112 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   weekDate: {
     fontSize: 13,
-    fontFamily: fonts.semiBold,
-    color: colors.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontFamily: fonts.bold,
+    color: colors.text,
   },
   weekDots: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 5,
   },
   weekDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: 0,
   },
+
+  // Session card
   sessionCard: {
-    borderLeftWidth: 3,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 2,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 6,
   },
-  sessionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  sessionLevel: {
-    fontSize: 13,
-    fontFamily: fonts.semiBold,
-    color: colors.text,
-  },
-  sessionDate: {
-    fontSize: 12,
-    fontFamily: fonts.regular,
-    color: colors.muted,
-    marginLeft: 'auto',
-  },
-  exerciseSummary: {
-    gap: 4,
-  },
-  exerciseLine: {
+  sessionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  sessionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  sessionDate: {
+    fontSize: 11,
+    fontFamily: fonts.regular,
+    color: colors.textSecondary,
+    minWidth: 28,
+  },
+  sessionLevel: {
+    fontSize: 11,
+    fontFamily: fonts.regular,
+    color: colors.textSecondary,
+  },
+  sessionRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  consecutiveWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  consecutiveText: {
+    fontSize: 12,
+    fontFamily: fonts.bold,
+  },
+  percentageText: {
+    fontSize: 12,
+    fontFamily: fonts.extraBold,
+  },
+
+  // Expanded section
+  expandedSection: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  exerciseRow: {
+    marginBottom: 10,
+  },
+  exerciseInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  exerciseNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   exerciseName: {
     fontSize: 12,
-    color: colors.textSecondary,
-    flex: 1,
-    marginRight: 8,
+    fontFamily: fonts.regular,
+    color: colors.text,
   },
-  exerciseHit: {
-    color: colors.success,
+  exercisePct: {
+    fontSize: 11,
+    fontFamily: fonts.bold,
   },
-  exerciseStats: {
-    fontSize: 12,
-    color: colors.muted,
+
+  // Progress bar
+  progressTrack: {
+    height: 3,
+    backgroundColor: colors.border,
+    borderRadius: 0,
+    overflow: 'hidden',
   },
-  sessionNotes: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontStyle: 'italic',
-    marginTop: 6,
+  progressFill: {
+    height: '100%',
+    borderRadius: 0,
   },
 });

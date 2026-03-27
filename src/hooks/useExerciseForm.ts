@@ -41,7 +41,7 @@ export function useExerciseForm({
     draft.exercises.every((d, i) => d.exerciseId === levelExercises[i]?.id)
     ? draft : null;
 
-  const [exerciseState, setExerciseState] = useState<ExerciseFormState[]>(() => {
+  function buildInitialState(): ExerciseFormState[] {
     if (validDraft) return validDraft.exercises;
     return levelExercises.map(ex => {
       const lastEntry = lastSession?.exercises.find(e => e.exerciseId === ex.id);
@@ -54,11 +54,22 @@ export function useExerciseForm({
         actualHoldSeconds: ex.isHold
           ? (lastEntry?.actualHoldSeconds
               ? [...lastEntry.actualHoldSeconds]
-              : Array(ex.targetSets).fill(ex.targetHoldSeconds ?? 0) as number[])
+              : Array(ex.targetSets).fill(ex.targetReps ?? 0) as number[])
           : undefined,
       };
     });
-  });
+  }
+
+  const [exerciseState, setExerciseState] = useState<ExerciseFormState[]>(buildInitialState);
+
+  // Re-initialize when exercises load (they start empty and populate async)
+  const prevExerciseCount = useRef(levelExercises.length);
+  useEffect(() => {
+    if (levelExercises.length > 0 && prevExerciseCount.current === 0) {
+      setExerciseState(buildInitialState());
+    }
+    prevExerciseCount.current = levelExercises.length;
+  }, [levelExercises.length]);
 
   const [notes, setNotes] = useState(validDraft?.notes ?? '');
 
@@ -120,7 +131,7 @@ export function useExerciseForm({
       for (let s = 0; s < state.checkedSets.length; s++) {
         if (!state.checkedSets[s]) continue;
         if (ex.isHold) {
-          if ((state.actualHoldSeconds?.[s] ?? 0) < (ex.targetHoldSeconds ?? 0)) hitTarget = false;
+          if ((state.actualHoldSeconds?.[s] ?? 0) < (ex.targetReps ?? 0)) hitTarget = false;
         } else {
           if (state.actualReps[s] < ex.targetReps) hitTarget = false;
         }
