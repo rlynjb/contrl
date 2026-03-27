@@ -4,7 +4,7 @@ category: plans
 scope: project
 ---
 import { useState, useEffect } from "react";
-import { Flame, Check, ChevronRight, ChevronDown, Lock, Home, GitBranch, Clock, ArrowLeft, PartyPopper, X, Minus, Circle, Camera, ArrowUpRight, ArrowDownRight, Lightbulb, ExternalLink } from "lucide-react";
+import { Flame, Check, ChevronRight, ChevronDown, Lock, Home, GitBranch, Clock, ArrowLeft, PartyPopper, X, Minus, Circle, Camera, ArrowUpRight, ArrowDownRight, Lightbulb, ExternalLink, Play, Pause, Square, SkipForward, RotateCcw } from "lucide-react";
 
 const colors = {
   bg: "#06080f", surface: "#0c1021", surfaceLight: "#121830",
@@ -306,7 +306,7 @@ function HomeScreen({ onNavigateLog }) {
 
 // ─── LOG SCREEN ──────────────────────────────────────────────────────────────
 
-function LogScreen({ category, onBack }) {
+function LogScreen({ category, onBack, onCamera }) {
   const [phase, setPhase] = useState("form");
   const [entries, setEntries] = useState({});
   const [checked, setChecked] = useState({});
@@ -454,7 +454,7 @@ function LogScreen({ category, onBack }) {
                       <SetCheckbox checked={ic} status={st} onClick={() => toggleCheck(ex.id, i)} />
                       <div style={{ width: 34, flexShrink: 0 }}><div style={{ fontSize: 9, fontWeight: 700, color: colors.textSecondary, fontFamily: "var(--font-mono)" }}>SET {i + 1}</div></div>
                       <div style={{ flex: 1 }}><input type="number" value={val || ""} onChange={e => updateSet(ex.id, i, e.target.value)} placeholder={"" + ex.targetReps} style={{ width: "100%", padding: "6px 8px", background: "rgba(6,8,15,0.5)", border: "1px solid " + colors.border, borderRadius: 0, color: colors.textPrimary, fontSize: 15, fontWeight: 700, fontFamily: "var(--font-display)", outline: "none", textAlign: "center" }} /></div>
-                      <button onClick={() => {}} title="Auto count with camera" style={{
+                      <button onClick={() => onCamera(category, ex.id)} title="Auto count with camera" style={{
                         width: 28, height: 28, borderRadius: 0, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
                         background: colors.primaryDim, border: "1px solid rgba(0,229,255,0.2)", cursor: "pointer", transition: "all 0.2s ease",
                       }}><Camera size={13} color={colors.primary} strokeWidth={2} /></button>
@@ -646,15 +646,241 @@ function HistoryScreen() {
   );
 }
 
+// ─── CAMERA WORKOUT SCREEN ───────────────────────────────────────────────────
+
+function CameraWorkoutScreen({ category, exerciseId, onBack }) {
+  const cc = catColors[category];
+  const level = MOCK_USER.levels[category];
+  const exercises = EXERCISES[category]?.[level] || [];
+  const ex = exercises.find(e => e.id === exerciseId) || exercises[0];
+
+  const [status, setStatus] = useState("idle"); // idle | countdown | active | paused | done
+  const [repCount, setRepCount] = useState(0);
+  const [holdTime, setHoldTime] = useState(0);
+  const [countdown, setCountdown] = useState(10);
+  const [currentSet, setCurrentSet] = useState(1);
+  const [setResults, setSetResults] = useState([]);
+
+  const isHold = ex?.isHold;
+  const target = ex?.targetReps || 0;
+
+  // Countdown timer
+  useEffect(() => {
+    if (status !== "countdown") return;
+    if (countdown <= 0) { setStatus("active"); return; }
+    const timer = setTimeout(() => setCountdown(prev => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [status, countdown]);
+
+  // Simulate counting
+  useEffect(() => {
+    if (status !== "active" || !ex) return;
+    const interval = setInterval(() => {
+      if (isHold) {
+        setHoldTime(prev => prev + 1);
+      } else {
+        setRepCount(prev => prev + 1);
+      }
+    }, isHold ? 1000 : 1500);
+    return () => clearInterval(interval);
+  }, [status, isHold, ex]);
+
+  const currentValue = isHold ? holdTime : repCount;
+  const hitTarget = currentValue >= target;
+
+  const handleStart = () => { setCountdown(10); setStatus("countdown"); };
+  const handlePause = () => setStatus("paused");
+  const handleResume = () => setStatus("active");
+  const handleStop = () => {
+    setSetResults(prev => [...prev, currentValue]);
+    setStatus("done");
+  };
+  const handleNextSet = () => {
+    if (currentSet < ex.targetSets) {
+      setCurrentSet(s => s + 1);
+      setRepCount(0);
+      setHoldTime(0);
+      setStatus("idle");
+    }
+  };
+  const handleReset = () => {
+    setRepCount(0);
+    setHoldTime(0);
+    setStatus("idle");
+  };
+
+  const formatTime = (s) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return m + ":" + String(sec).padStart(2, "0");
+  };
+
+  return (
+    <div style={{ height: "100vh", background: "#000", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      {/* Top bar — overlaid */}
+      <div style={{ padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative", zIndex: 10 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, color: colors.textSecondary, fontSize: 12, fontFamily: "var(--font-mono)" }}>
+          <ArrowLeft size={14} /> Back
+        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <CategoryBadge category={category} />
+          <span style={{ fontSize: 10, color: colors.textSecondary, fontFamily: "var(--font-mono)" }}>L{level}</span>
+        </div>
+      </div>
+
+      {/* Full screen camera area — everything overlays on this */}
+      <div style={{ flex: 1, position: "relative" }}>
+        {/* Simulated camera feed */}
+        <div style={{ position: "absolute", inset: 0, background: "#0a0a0a" }} />
+
+        {/* ── TOP OVERLAY: Exercise name + set info ── */}
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 5, padding: "16px 20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: colors.textPrimary, fontFamily: "var(--font-display)" }}>{ex.name}</div>
+              <div style={{ fontSize: 11, color: colors.textSecondary, fontFamily: "var(--font-mono)", marginTop: 2 }}>
+                Set {currentSet} of {ex.targetSets}
+              </div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: cc.accent, fontFamily: "var(--font-display)" }}>{ex.targetSets}x{target}{isHold ? "s" : ""}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── CENTER: Counter ── */}
+        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 5 }}>
+          {status === "idle" && (
+            <div style={{ textAlign: "center" }}>
+              <Camera size={36} color={colors.textSecondary} strokeWidth={1} style={{ marginBottom: 10, opacity: 0.3 }} />
+              <div style={{ fontSize: 13, color: colors.textSecondary, fontFamily: "var(--font-mono)", marginBottom: 24 }}>Position your body in frame</div>
+              <button onClick={handleStart} style={{
+                padding: "16px 48px", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                background: cc.dim, border: "1px solid " + cc.border, color: cc.accent,
+                fontSize: 14, fontWeight: 700, fontFamily: "var(--font-display)", cursor: "pointer",
+              }}>
+                <Play size={16} fill={cc.accent} /> START
+              </button>
+            </div>
+          )}
+
+          {status === "countdown" && (
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 96, fontWeight: 700, fontFamily: "var(--font-display)", color: colors.textPrimary, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+                {countdown}
+              </div>
+              <div style={{ fontSize: 13, color: colors.textSecondary, fontFamily: "var(--font-mono)", marginTop: 8 }}>
+                Get ready
+              </div>
+            </div>
+          )}
+
+          {(status === "active" || status === "paused") && (
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 72, fontWeight: 700, fontFamily: "var(--font-display)", color: hitTarget ? colors.emerald : colors.textPrimary, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+                {isHold ? formatTime(currentValue) : currentValue}
+              </div>
+              <div style={{ fontSize: 13, color: colors.textSecondary, fontFamily: "var(--font-mono)", marginTop: 6 }}>
+                {isHold ? "/ " + target + "s" : "/ " + target + " reps"}
+              </div>
+              {status === "paused" && (
+                <div style={{ fontSize: 12, fontWeight: 600, color: colors.amber, fontFamily: "var(--font-mono)", letterSpacing: "0.1em", marginTop: 12 }}>PAUSED</div>
+              )}
+            </div>
+          )}
+
+          {status === "done" && (
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 72, fontWeight: 700, fontFamily: "var(--font-display)", color: hitTarget ? colors.emerald : colors.amber, lineHeight: 1 }}>
+                {isHold ? formatTime(currentValue) : currentValue}
+              </div>
+              <div style={{ fontSize: 13, color: hitTarget ? colors.emerald : colors.amber, fontFamily: "var(--font-mono)", marginTop: 6 }}>
+                {hitTarget ? "Target hit" : currentValue + " / " + target}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── BOTTOM OVERLAY: Controls ── */}
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 5, padding: "20px", background: "linear-gradient(transparent, rgba(0,0,0,0.85) 40%)" }}>
+          {/* Controls */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+            {status === "countdown" && (
+              <button onClick={() => { setStatus("idle"); setCountdown(10); }} style={{
+                padding: "16px 48px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: colors.textSecondary,
+                fontSize: 13, fontWeight: 600, fontFamily: "var(--font-display)", cursor: "pointer",
+              }}>
+                <X size={14} /> CANCEL
+              </button>
+            )}
+
+            {status === "active" && (
+              <div style={{ display: "flex", gap: 10 }}>
+                <button onClick={handlePause} style={{
+                  padding: "16px 48px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: colors.textPrimary,
+                  fontSize: 13, fontWeight: 600, fontFamily: "var(--font-display)", cursor: "pointer",
+                }}>
+                  <Pause size={14} /> PAUSE
+                </button>
+                <button onClick={handleStop} style={{
+                  padding: "16px 48px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  background: "rgba(251,113,133,0.1)", border: "1px solid rgba(251,113,133,0.25)", color: colors.textPrimary,
+                  fontSize: 13, fontWeight: 600, fontFamily: "var(--font-display)", cursor: "pointer",
+                }}>
+                  <Square size={14} fill={colors.textPrimary} /> STOP
+                </button>
+              </div>
+            )}
+
+            {status === "paused" && (
+              <div style={{ display: "flex", gap: 10 }}>
+                <button onClick={handleResume} style={{
+                  padding: "16px 48px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  background: cc.dim, border: "1px solid " + cc.border, color: cc.accent,
+                  fontSize: 13, fontWeight: 600, fontFamily: "var(--font-display)", cursor: "pointer",
+                }}>
+                  <Play size={14} fill={cc.accent} /> RESUME
+                </button>
+                <button onClick={handleStop} style={{
+                  padding: "16px 48px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  background: "rgba(251,113,133,0.1)", border: "1px solid rgba(251,113,133,0.25)", color: colors.textPrimary,
+                  fontSize: 13, fontWeight: 600, fontFamily: "var(--font-display)", cursor: "pointer",
+                }}>
+                  <Square size={14} fill={colors.textPrimary} /> STOP
+                </button>
+              </div>
+            )}
+
+            {status === "done" && (
+              <button onClick={onBack} style={{
+                padding: "16px 48px", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                background: colors.emeraldDim, border: "1px solid rgba(52,211,153,0.25)", color: colors.emerald,
+                fontSize: 14, fontWeight: 700, fontFamily: "var(--font-display)", cursor: "pointer",
+              }}>
+                <Check size={16} /> COMPLETE SET
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN ────────────────────────────────────────────────────────────────────
 
 export default function ContrlApp() {
   const [route, setRoute] = useState("home");
   const [logCategory, setLogCategory] = useState(null);
+  const [cameraExercise, setCameraExercise] = useState(null);
   const [activeTab, setActiveTab] = useState("home");
 
   const navigateLog = (cat) => { setLogCategory(cat); setRoute("log"); };
-  const navigateHome = () => { setRoute("home"); setLogCategory(null); setActiveTab("home"); };
+  const navigateCamera = (cat, exId) => { setLogCategory(cat); setCameraExercise(exId); setRoute("camera"); };
+  const navigateHome = () => { setRoute("home"); setLogCategory(null); setCameraExercise(null); setActiveTab("home"); };
+  const navigateBackToLog = () => { setRoute("log"); setCameraExercise(null); };
   const navigateTab = (tab) => { setActiveTab(tab); setRoute(tab); };
 
   const tabs = [
@@ -663,11 +889,11 @@ export default function ContrlApp() {
     { key: "history", label: "HIST", Icon: Clock },
   ];
 
-  const showNav = route !== "log";
+  const showNav = route !== "log" && route !== "camera";
 
   return (
     <div style={{
-      minHeight: "100vh", background: colors.bg, color: colors.textPrimary,
+      minHeight: "100vh", background: route === "camera" ? "#000" : colors.bg, color: colors.textPrimary,
       fontFamily: "var(--font-display)", maxWidth: 420, margin: "0 auto", position: "relative",
     }}>
       <style>{`
@@ -679,13 +905,16 @@ export default function ContrlApp() {
         ::placeholder{color:#475569}textarea::placeholder{color:#475569}
       `}</style>
 
-      <div style={{ padding: "16px 20px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid " + colors.border, marginBottom: 20 }}>
-        <span style={{ fontSize: 18, fontWeight: 800, fontFamily: "var(--font-display)", color: colors.primary, letterSpacing: "0.08em" }}>contrl</span>
-        <span style={{ fontSize: 10, color: colors.textSecondary, fontFamily: "var(--font-mono)" }}>v0.1</span>
-      </div>
+      {route !== "camera" && (
+        <div style={{ padding: "16px 20px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid " + colors.border, marginBottom: 20 }}>
+          <span style={{ fontSize: 18, fontWeight: 800, fontFamily: "var(--font-display)", color: colors.primary, letterSpacing: "0.08em" }}>contrl</span>
+          <span style={{ fontSize: 10, color: colors.textSecondary, fontFamily: "var(--font-mono)" }}>v0.1</span>
+        </div>
+      )}
 
       {route === "home" && <HomeScreen onNavigateLog={navigateLog} />}
-      {route === "log" && logCategory && <LogScreen category={logCategory} onBack={navigateHome} />}
+      {route === "log" && logCategory && <LogScreen category={logCategory} onBack={navigateHome} onCamera={navigateCamera} />}
+      {route === "camera" && logCategory && <CameraWorkoutScreen category={logCategory} exerciseId={cameraExercise} onBack={navigateBackToLog} />}
       {route === "tree" && <SkillTreeScreen />}
       {route === "history" && <HistoryScreen />}
 
