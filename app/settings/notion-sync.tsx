@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { View, Text, TextInput, ScrollView, Pressable, Alert, StyleSheet } from 'react-native';
-import { colors } from '../../src/constants/theme';
+import { colors, fonts } from '../../src/constants/theme';
 import { useNotionSync } from '../../src/hooks/NotionSyncContext';
 import {
   getNotionToken,
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 22,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.text,
     marginBottom: 4,
   },
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: colors.textSecondary,
     marginBottom: 6,
     marginTop: 16,
@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
   },
   testButtonText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: colors.text,
   },
   testSuccess: {
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.primary,
   },
   disconnectButton: {
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
   },
   disconnectText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: colors.danger,
   },
 });

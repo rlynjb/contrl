@@ -31,6 +31,14 @@ export const categoryBg = {
   squat: 'rgba(217,70,239,0.06)',
 } as const;
 
+/** Inter font families */
+export const fonts = {
+  regular: 'Inter_400Regular',
+  semiBold: 'Inter_600SemiBold',
+  bold: 'Inter_700Bold',
+  extraBold: 'Inter_800ExtraBold',
+} as const;
+
 /** Category border colors */
 export const categoryBorder = {
   push: 'rgba(249,115,22,0.16)',

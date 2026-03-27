@@ -10,14 +10,15 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#06080f"
     },
     "ios": {
       "supportsTablet": true
     },
     "android": {
+      "package": "com.contrl.mobile",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#06080f",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -30,7 +31,28 @@
     "plugins": [
       "expo-router",
       "expo-sqlite",
-      "expo-secure-store"
-    ]
+      "expo-secure-store",
+      "expo-font",
+      "react-native-vision-camera",
+      ["react-native-mediapipe-posedetection", { "assetsPaths": ["./models/"] }],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "contrl needs camera access for exercise rep counting"
+        }
+      ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9a492aae-a4d8-448c-b66a-5b96c1ca5aa7"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/9a492aae-a4d8-448c-b66a-5b96c1ca5aa7"
+    }
   }
 }

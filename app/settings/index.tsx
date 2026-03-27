@@ -1,6 +1,6 @@
 import { View, Text, ScrollView, Pressable, Switch, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { colors } from '../../src/constants/theme';
+import { colors, fonts } from '../../src/constants/theme';
 import { useNotionSync } from '../../src/hooks/NotionSyncContext';
 
 export default function SettingsScreen() {
@@ -115,13 +115,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.text,
     marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.muted,
     letterSpacing: 1,
     marginBottom: 12,
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
   },
   syncButtonText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.primary,
   },
   resultBox: {

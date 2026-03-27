@@ -2,14 +2,24 @@ import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { useFonts, Inter_400Regular, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from '@expo-google-fonts/inter';
+import * as SplashScreen from 'expo-splash-screen';
 import { useDatabase } from '../src/hooks/useDatabase';
 import { colors } from '../src/constants/theme';
 import { NotionSyncProvider } from '../src/hooks/NotionSyncContext';
 import { isNotionConfigured, isAutoSyncEnabled } from '../src/services/notion/config';
 import { syncAll } from '../src/services/notion/sync';
 
+SplashScreen.preventAutoHideAsync();
+
 function AppContent() {
   const { ready } = useDatabase();
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_800ExtraBold,
+  });
 
   // Auto-sync on app open
   useEffect(() => {
@@ -23,7 +33,13 @@ function AppContent() {
     })();
   }, [ready]);
 
-  if (!ready) {
+  useEffect(() => {
+    if (ready && fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [ready, fontsLoaded]);
+
+  if (!ready || !fontsLoaded) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator color={colors.primary} size="large" />

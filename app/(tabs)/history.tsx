@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
-import { colors, categoryColors, categoryBg, categoryBorder } from '../../src/constants/theme';
+import { colors, fonts, categoryColors, categoryBg, categoryBorder } from '../../src/constants/theme';
 import { LEVEL_NAMES } from '../../src/lib/constants';
 import { useGameState } from '../../src/hooks/useGameState';
 import { useExercises } from '../../src/hooks/useExercises';
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.text,
   },
   streakBadge: {
@@ -196,11 +196,12 @@ const styles = StyleSheet.create({
   },
   streakText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.warning,
   },
   emptyText: {
     fontSize: 14,
+    fontFamily: fonts.regular,
     color: colors.muted,
     textAlign: 'center',
     marginTop: 60,
@@ -216,7 +217,7 @@ const styles = StyleSheet.create({
   },
   weekDate: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: colors.muted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -244,11 +245,12 @@ const styles = StyleSheet.create({
   },
   sessionLevel: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: colors.text,
   },
   sessionDate: {
     fontSize: 12,
+    fontFamily: fonts.regular,
     color: colors.muted,
     marginLeft: 'auto',
   },

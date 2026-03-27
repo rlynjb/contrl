@@ -1,5 +1,5 @@
 import { Text, ScrollView, StyleSheet } from 'react-native';
-import { colors } from '../../src/constants/theme';
+import { colors, fonts } from '../../src/constants/theme';
 
 export default function NotionGuideScreen() {
   return (
@@ -66,13 +66,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 22,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.text,
     marginBottom: 24,
   },
   step: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: colors.primary,
     marginTop: 20,
     marginBottom: 8,

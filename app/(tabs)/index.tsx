@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { colors, categoryColors, categoryBorder } from '../../src/constants/theme';
+import { colors, fonts, categoryColors, categoryBorder } from '../../src/constants/theme';
 import { LEVEL_NAMES } from '../../src/lib/constants';
 import { useGameState, type LogSessionResult } from '../../src/hooks/useGameState';
 import { useExercises } from '../../src/hooks/useExercises';
@@ -235,12 +235,13 @@ const styles = StyleSheet.create({
   },
   logoText: {
     fontSize: 32,
-    fontWeight: '800',
+    fontFamily: fonts.extraBold,
     color: colors.primary,
     letterSpacing: 6,
   },
   sloganText: {
     fontSize: 12,
+    fontFamily: fonts.regular,
     color: colors.muted,
     marginTop: 4,
     letterSpacing: 2,
@@ -258,7 +259,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.primary,
   },
   settingsIcon: {
@@ -273,11 +274,12 @@ const styles = StyleSheet.create({
   },
   streakText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.warning,
   },
   subtitle: {
     fontSize: 14,
+    fontFamily: fonts.regular,
     color: colors.muted,
     marginBottom: 12,
   },
@@ -290,7 +292,7 @@ const styles = StyleSheet.create({
   },
   weekCompleteText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: colors.success,
   },
   categoriesSection: {
@@ -306,11 +308,12 @@ const styles = StyleSheet.create({
   },
   levelText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: colors.text,
   },
   gateText: {
     fontSize: 12,
+    fontFamily: fonts.regular,
     color: colors.muted,
     marginTop: 2,
   },

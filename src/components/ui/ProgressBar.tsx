@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { colors } from '@/constants/theme';
+import { colors, fonts } from '@/constants/theme';
 
 const COLOR_MAP = {
   cyan: colors.primary,
@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
   pct: {
     fontSize: 12,
     color: colors.text,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
   },
   track: {
     backgroundColor: colors.surfaceLight,

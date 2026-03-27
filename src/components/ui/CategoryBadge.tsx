@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { categoryColors, categoryBg, categoryBorder } from '@/constants/theme';
+import { categoryColors, categoryBg, categoryBorder, fonts } from '@/constants/theme';
 import type { Category } from '@/types';
 
 type CategoryBadgeProps = {
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },

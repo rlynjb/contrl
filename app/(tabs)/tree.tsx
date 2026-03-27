@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { colors, categoryColors } from '../../src/constants/theme';
+import { colors, fonts, categoryColors } from '../../src/constants/theme';
 import { LEVEL_NAMES } from '../../src/lib/constants';
 import { useGameState } from '../../src/hooks/useGameState';
 import { useExercises } from '../../src/hooks/useExercises';
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.text,
     marginBottom: 20,
   },
@@ -181,11 +181,11 @@ const styles = StyleSheet.create({
   },
   headerLevel: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
   },
   levelLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: colors.muted,
     textAlign: 'center',
     marginBottom: 6,
@@ -214,12 +214,12 @@ const styles = StyleSheet.create({
   },
   nodeLevel: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
   },
   nodeCounter: {
     fontSize: 10,
     color: colors.primary,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
   },
   nodeCheck: {
     fontSize: 12,
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   },
   detailTitle: {
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.text,
     marginBottom: 4,
   },

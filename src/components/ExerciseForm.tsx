@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
-import { colors, categoryColors } from '@/constants/theme';
+import { Feather } from '@expo/vector-icons';
+import { colors, categoryColors, fonts } from '@/constants/theme';
 import { ProgressBar } from '@/components/ui/ProgressBar';
+import { SetCameraOverlay } from '@/components/camera/SetCameraOverlay';
 import { useExerciseForm } from '@/hooks/useExerciseForm';
 import type { Category, Exercise, WorkoutSession, DraftSession } from '@/types';
 
@@ -38,9 +41,23 @@ export function ExerciseForm({
     buildSession,
   } = useExerciseForm({ category, level, exercises, sessions, draft, onSaveDraft });
 
+  const [cameraTarget, setCameraTarget] = useState<{
+    exIdx: number;
+    setIdx: number;
+  } | null>(null);
+
   const handleSave = () => {
     if (saving) return;
     onSave(buildSession());
+  };
+
+  const handleCameraComplete = (value: number) => {
+    if (!cameraTarget) return;
+    const { exIdx, setIdx } = cameraTarget;
+    const ex = levelExercises[exIdx];
+    updateValue(exIdx, setIdx, value, ex.isHold);
+    toggleSet(exIdx, setIdx);
+    setCameraTarget(null);
   };
 
   const catColor = categoryColors[category];
@@ -115,6 +132,15 @@ export function ExerciseForm({
                     {lastVal !== undefined && (
                       <Text style={styles.lastHint}>Last: {lastVal}</Text>
                     )}
+
+                    {!checked && (
+                      <Pressable
+                        style={styles.cameraButton}
+                        onPress={() => setCameraTarget({ exIdx, setIdx })}
+                      >
+                        <Feather name="camera" size={16} color={catColor} />
+                      </Pressable>
+                    )}
                   </View>
                 );
               })}
@@ -145,6 +171,21 @@ export function ExerciseForm({
           {saving ? 'Saving...' : 'Log Session'}
         </Text>
       </Pressable>
+
+      {cameraTarget && (
+        <SetCameraOverlay
+          category={category}
+          exercise={levelExercises[cameraTarget.exIdx]}
+          setIndex={cameraTarget.setIdx}
+          targetValue={
+            levelExercises[cameraTarget.exIdx].isHold
+              ? (levelExercises[cameraTarget.exIdx].targetHoldSeconds ?? 0)
+              : levelExercises[cameraTarget.exIdx].targetReps
+          }
+          onComplete={handleCameraComplete}
+          onClose={() => setCameraTarget(null)}
+        />
+      )}
     </View>
   );
 }
@@ -164,14 +205,14 @@ const styles = StyleSheet.create({
   },
   exerciseName: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: colors.text,
     flex: 1,
     marginRight: 8,
   },
   target: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
   },
   setsContainer: {
     marginTop: 8,
@@ -194,7 +235,7 @@ const styles = StyleSheet.create({
   checkmark: {
     color: colors.bg,
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
   },
   setLabel: {
     fontSize: 12,
@@ -209,7 +250,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     color: colors.text,
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     width: 56,
     textAlign: 'center',
   },
@@ -245,6 +286,15 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
+  },
+  cameraButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: colors.surfaceLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 4,
   },
 });

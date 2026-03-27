@@ -1,5 +1,5 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { colors } from '@/constants/theme';
+import { colors, fonts } from '@/constants/theme';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { getGapText, getCompletionMessage } from '@/lib/session-helpers';
 import type { LogSessionResult } from '@/hooks/useGameState';
@@ -83,14 +83,14 @@ const styles = StyleSheet.create({
   },
   headerLabel: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.muted,
     letterSpacing: 1,
     marginBottom: 4,
   },
   pct: {
     fontSize: 36,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.text,
     marginBottom: 8,
   },
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   },
   gatePassed: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.success,
   },
   gateText: {
@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
   },
   cleanText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.success,
   },
   levelUpBanner: {
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   },
   levelUpText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.primary,
   },
   breakdown: {
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   },
   exerciseRowStatus: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: colors.muted,
   },
   exerciseRowMet: {
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
   },
   doneButtonText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: colors.text,
   },
 });
