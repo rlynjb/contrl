@@ -139,8 +139,14 @@ export default function LogScreen() {
 
   // ── Save handler ────────────────────────────────────────────
 
+  const hasAnyCheckedSets = exerciseState.some(s => s.checkedSets.some(Boolean));
+
   const handleSave = useCallback(async () => {
     if (saving || levelExercises.length === 0) return;
+    if (!hasAnyCheckedSets) {
+      setSaveError('Check at least one set before saving.');
+      return;
+    }
     setSaving(true);
     setSaveError(null);
 
@@ -678,12 +684,13 @@ export default function LogScreen() {
       {/* Save button */}
       <Pressable
         onPress={handleSave}
-        disabled={saving}
+        disabled={saving || !hasAnyCheckedSets}
         style={[
           styles.saveButton,
           {
             borderColor: catColor + '30',
             backgroundColor: catColor + '15',
+            opacity: hasAnyCheckedSets ? 1 : 0.4,
           },
         ]}
       >

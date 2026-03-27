@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, createContext, useContext, type ReactNode } from 'react';
 import type {
   Category,
   WorkoutSession,
@@ -26,6 +26,7 @@ import {
 } from '@/lib/game/week-progress';
 import { calculateStreak } from '@/lib/game/streaks';
 import { checkCategoryLevelUp } from '@/lib/game/progression';
+import { useNotionSync } from './NotionSyncContext';
 
 export type LogSessionResult = {
   sessionResult: SessionResult;
@@ -57,7 +58,15 @@ function gateKey(category: Category, level: number) {
   return `${category}:${level}`;
 }
 
+export const GameStateContext = createContext<UseGameStateReturn | null>(null);
+
 export function useGameState(): UseGameStateReturn {
+  const ctx = useContext(GameStateContext);
+  if (ctx) return ctx;
+  throw new Error('useGameState must be used within a GameStateProvider');
+}
+
+export function useGameStateInternal(): UseGameStateReturn {
   const [status, setStatus] = useState<GameStateStatus>('loading');
   const [user, setUser] = useState<User | null>(null);
   const [weekProgress, setWeekProgress] = useState<WeekProgress | null>(null);
@@ -65,6 +74,7 @@ export function useGameState(): UseGameStateReturn {
   const [gateProgress, setGateProgress] = useState<Record<string, GateProgress>>({});
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const initRef = useRef(false);
+  const { syncVersion } = useNotionSync();
 
   const load = useCallback(async () => {
     const loadedUser = await db.getUser();
@@ -75,8 +85,19 @@ export function useGameState(): UseGameStateReturn {
 
     if (needsWeekReset(loadedWeek, new Date())) {
       loadedWeek = createWeekProgress(new Date());
-      await db.updateWeekProgress(loadedWeek);
     }
+
+    // Recompute week progress from actual sessions
+    const thisWeekSessions = allSessions.filter(s => {
+      const sessionWeek = getWeekStart(new Date(s.date));
+      return sessionWeek === loadedWeek.weekStart;
+    });
+    const recomputedCompleted: Record<Category, boolean> = { push: false, pull: false, squat: false };
+    for (const s of thisWeekSessions) {
+      recomputedCompleted[s.category] = true;
+    }
+    loadedWeek = { ...loadedWeek, sessionsCompleted: recomputedCompleted };
+    await db.updateWeekProgress(loadedWeek);
 
     const gates: Record<string, GateProgress> = {};
     for (const cat of CATEGORIES) {
@@ -110,7 +131,28 @@ export function useGameState(): UseGameStateReturn {
     }
   }, [load]);
 
+  // Reload all game state after a Notion sync
+  const prevSyncVersion = useRef(syncVersion);
+  useEffect(() => {
+    if (syncVersion > prevSyncVersion.current) {
+      prevSyncVersion.current = syncVersion;
+      load().catch(() => setStatus('error'));
+    }
+  }, [syncVersion, load]);
+
+  // Use refs so logSession always reads latest state
+  const userRef = useRef(user);
+  const gateProgressRef = useRef(gateProgress);
+  const weekProgressRef = useRef(weekProgress);
+  useEffect(() => { userRef.current = user; }, [user]);
+  useEffect(() => { gateProgressRef.current = gateProgress; }, [gateProgress]);
+  useEffect(() => { weekProgressRef.current = weekProgress; }, [weekProgress]);
+
   const logSession = useCallback(async (session: WorkoutSession): Promise<LogSessionResult> => {
+    const currentUser = userRef.current;
+    const currentGateProgress = gateProgressRef.current;
+    const currentWeekProgress = weekProgressRef.current;
+
     // 1. Save session
     await db.insertSession(session);
     setSessions(prev => [...prev, session]);
@@ -124,16 +166,16 @@ export function useGameState(): UseGameStateReturn {
 
     if (criteria) {
       const currentGateKey = gateKey(session.category, session.level);
-      const currentGate = gateProgress[currentGateKey] ??
-        createGateProgress(session.category, session.level, user?.levels[session.category] ?? 1);
+      const currentGate = currentGateProgress[currentGateKey] ??
+        createGateProgress(session.category, session.level, currentUser?.levels[session.category] ?? 1);
 
       sessionResult = evaluateSession(session, criteria);
       updatedGate = updateGateAfterSession(currentGate, sessionResult, criteria, session.date);
 
       await db.updateGateProgress(updatedGate);
 
-      if (updatedGate.status === 'passed' && user) {
-        const userCopy: User = { ...user, levels: { ...user.levels } };
+      if (updatedGate.status === 'passed' && currentUser) {
+        const userCopy: User = { ...currentUser, levels: { ...currentUser.levels } };
         leveledUp = checkCategoryLevelUp(updatedGate, userCopy);
         if (leveledUp) {
           newLevel = userCopy.levels[session.category];
@@ -158,21 +200,21 @@ export function useGameState(): UseGameStateReturn {
       }
     } else {
       sessionResult = { isClean: true, completionPct: 100, exerciseResults: [] };
-      updatedGate = createGateProgress(session.category, session.level, user?.levels[session.category] ?? 1);
+      updatedGate = createGateProgress(session.category, session.level, currentUser?.levels[session.category] ?? 1);
     }
 
     // 3. Update week progress
-    if (weekProgress) {
-      const updatedWeek = markCategoryDone(weekProgress, session.category);
-      await db.updateWeekProgress(updatedWeek);
-      setWeekProgress(updatedWeek);
-    }
+    const wp = currentWeekProgress ?? createWeekProgress(new Date());
+    const updatedWeek = markCategoryDone(wp, session.category);
+    await db.updateWeekProgress(updatedWeek);
+    setWeekProgress(updatedWeek);
+    weekProgressRef.current = updatedWeek;
 
     // Clear draft after successful save
     await db.deleteDraft(session.category, session.level);
 
     return { sessionResult, gateProgress: updatedGate, leveledUp, newLevel };
-  }, [gateProgress, user, weekProgress]);
+  }, []);
 
   const saveDraftFn = useCallback(async (draft: DraftSession): Promise<void> => {
     await db.saveDraft(draft.category, draft.level, draft);

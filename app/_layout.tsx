@@ -7,6 +7,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useDatabase } from '../src/hooks/useDatabase';
 import { colors } from '../src/constants/theme';
 import { NotionSyncProvider } from '../src/hooks/NotionSyncContext';
+import { GameStateContext, useGameStateInternal } from '../src/hooks/useGameState';
 import { isNotionConfigured, isAutoSyncEnabled } from '../src/services/notion/config';
 import { syncAll } from '../src/services/notion/sync';
 
@@ -20,6 +21,7 @@ function AppContent() {
     Inter_700Bold,
     Inter_800ExtraBold,
   });
+  const gameState = useGameStateInternal();
 
   // Auto-sync on app open
   useEffect(() => {
@@ -49,7 +51,7 @@ function AppContent() {
   }
 
   return (
-    <>
+    <GameStateContext.Provider value={gameState}>
       <StatusBar style="light" />
       <Stack
         screenOptions={{
@@ -58,7 +60,7 @@ function AppContent() {
           animation: 'fade',
         }}
       />
-    </>
+    </GameStateContext.Provider>
   );
 }
 

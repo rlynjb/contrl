@@ -8,6 +8,8 @@ type NotionSyncContextType = {
   lastSynced: string | null;
   result: SyncResult | null;
   configured: boolean;
+  /** Increments after each successful sync — use as a dependency to refresh data */
+  syncVersion: number;
   syncNow: () => Promise<SyncResult | null>;
   refresh: () => Promise<void>;
 };
@@ -17,6 +19,7 @@ const NotionSyncContext = createContext<NotionSyncContextType>({
   lastSynced: null,
   result: null,
   configured: false,
+  syncVersion: 0,
   syncNow: async () => null,
   refresh: async () => {},
 });
@@ -26,6 +29,7 @@ export function NotionSyncProvider({ children }: { children: ReactNode }) {
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [result, setResult] = useState<SyncResult | null>(null);
   const [configured, setConfigured] = useState(false);
+  const [syncVersion, setSyncVersion] = useState(0);
 
   useEffect(() => {
     isNotionConfigured().then(setConfigured);
@@ -41,6 +45,7 @@ export function NotionSyncProvider({ children }: { children: ReactNode }) {
       setStatus(res.errors.length > 0 ? 'error' : 'success');
       setResult(res);
       setLastSynced(new Date().toISOString());
+      setSyncVersion(v => v + 1);
       return res;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -56,7 +61,7 @@ export function NotionSyncProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <NotionSyncContext.Provider value={{ status, lastSynced, result, configured, syncNow, refresh }}>
+    <NotionSyncContext.Provider value={{ status, lastSynced, result, configured, syncVersion, syncNow, refresh }}>
       {children}
     </NotionSyncContext.Provider>
   );

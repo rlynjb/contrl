@@ -18,6 +18,8 @@ import {
   setSessionNotionPageId,
   upsertSessionFromNotion,
   upsertExercise,
+  deleteAllExercises,
+  deleteSession,
   getExercises,
   getPendingDeletions,
   clearDeletions,
@@ -80,6 +82,8 @@ async function pullExercises(
   let count = 0;
   try {
     const pages = await queryDatabase(token, dbId);
+    // Clean local exercises and replace with Notion data
+    await deleteAllExercises();
     for (const page of pages) {
       if (page.archived) continue;
       const exercise = notionPageToExercise(page);
@@ -112,15 +116,27 @@ async function pullSessions(
       };
     }
 
-    const pages = await queryDatabase(token, dbId, filter);
+    // Query ALL pages (no filter) to detect deletions
+    const allPages = await queryDatabase(token, dbId);
     const localSessions = await getSessions();
     const localById = new Map(localSessions.map(s => [s.id, s]));
     const localByNotion = new Map(
       localSessions.filter(s => s.notionPageId).map(s => [s.notionPageId!, s])
     );
 
-    for (const page of pages) {
+    // Track which Notion page IDs still exist
+    const activeNotionPageIds = new Set<string>();
+
+    for (const page of allPages) {
       if (page.archived) continue;
+      activeNotionPageIds.add(page.id);
+
+      // Only process recently edited pages for upsert (if we have a lastSync)
+      if (lastSync) {
+        const editTime = new Date(page.last_edited_time).getTime();
+        const syncTime = new Date(lastSync).getTime();
+        if (editTime <= syncTime) continue;
+      }
 
       const { session: notionSession, contrlId } = notionPageToSession(page);
 
@@ -156,7 +172,6 @@ async function pullSessions(
           category: notionSession.category ?? 'push',
           exercises: notionSession.exercises ?? [],
           notes: notionSession.notes,
-          createdAt: notionSession.createdAt,
           notionPageId: page.id,
           updatedAt: page.last_edited_time,
         });
@@ -173,6 +188,15 @@ async function pullSessions(
         } catch {
           // Non-critical — skip
         }
+      }
+    }
+
+    // Delete local sessions that were removed from Notion
+    for (const local of localSessions) {
+      if (local.notionPageId && !activeNotionPageIds.has(local.notionPageId)) {
+        await deleteSession(local.id);
+        count++;
+        result.debug.push(`Deleted local session ${local.id} (removed from Notion)`);
       }
     }
   } catch (err) {

@@ -242,6 +242,16 @@ export async function getExercisesByCategory(category: Category, level: number):
   return rows.map(rowToExercise);
 }
 
+export async function deleteSession(sessionId: string): Promise<void> {
+  const d = await getDatabase();
+  await d.runAsync('DELETE FROM sessions WHERE id = ?', [sessionId]);
+}
+
+export async function deleteAllExercises(): Promise<void> {
+  const d = await getDatabase();
+  await d.runAsync('DELETE FROM exercises');
+}
+
 export async function upsertExercise(exercise: Exercise): Promise<void> {
   const d = await getDatabase();
   const now = new Date().toISOString();
@@ -270,8 +280,8 @@ export async function insertSession(session: WorkoutSession): Promise<void> {
   const d = await getDatabase();
   const now = new Date().toISOString();
   await d.runAsync(
-    `INSERT INTO sessions (id, date, level, category, exercises_json, notes, passed, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO sessions (id, date, level, category, exercises_json, notes, passed, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       session.id,
       session.date,
@@ -280,6 +290,7 @@ export async function insertSession(session: WorkoutSession): Promise<void> {
       JSON.stringify(session.exercises),
       session.notes ?? null,
       session.passed != null ? (session.passed ? 1 : 0) : null,
+      now,
       now,
     ]
   );
@@ -337,8 +348,8 @@ export async function setSessionNotionPageId(sessionId: string, pageId: string):
 export async function upsertSessionFromNotion(session: WorkoutSession): Promise<void> {
   const d = await getDatabase();
   await d.runAsync(
-    `INSERT OR REPLACE INTO sessions (id, date, level, category, exercises_json, notes, passed, notion_page_id, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT OR REPLACE INTO sessions (id, date, level, category, exercises_json, notes, passed, created_at, notion_page_id, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       session.id,
       session.date,
@@ -347,6 +358,7 @@ export async function upsertSessionFromNotion(session: WorkoutSession): Promise<
       JSON.stringify(session.exercises),
       session.notes ?? null,
       session.passed != null ? (session.passed ? 1 : 0) : null,
+      session.date,
       session.notionPageId ?? null,
       session.updatedAt ?? new Date().toISOString(),
     ]

@@ -62,16 +62,27 @@ export function useExerciseForm({
 
   const [exerciseState, setExerciseState] = useState<ExerciseFormState[]>(buildInitialState);
 
-  // Re-initialize when exercises load (they start empty and populate async)
+  // Re-initialize when exercises or draft load asynchronously
   const prevExerciseCount = useRef(levelExercises.length);
+  const prevDraft = useRef(draft);
   useEffect(() => {
-    if (levelExercises.length > 0 && prevExerciseCount.current === 0) {
+    const exercisesJustLoaded = levelExercises.length > 0 && prevExerciseCount.current === 0;
+    const draftJustLoaded = draft !== null && prevDraft.current === null && levelExercises.length > 0;
+    if (exercisesJustLoaded || draftJustLoaded) {
       setExerciseState(buildInitialState());
     }
     prevExerciseCount.current = levelExercises.length;
-  }, [levelExercises.length]);
+    prevDraft.current = draft;
+  }, [levelExercises.length, draft]);
 
   const [notes, setNotes] = useState(validDraft?.notes ?? '');
+
+  // Update notes when draft loads
+  useEffect(() => {
+    if (draft && prevDraft.current === null) {
+      setNotes(draft.notes ?? '');
+    }
+  }, [draft]);
 
   // Auto-save draft on 500ms debounce
   const isFirstRender = useRef(true);
