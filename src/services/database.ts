@@ -57,6 +57,7 @@ async function migrate(database: SQLite.SQLiteDatabase): Promise<void> {
       exercises_json TEXT NOT NULL,
       notes TEXT,
       passed INTEGER,
+      created_at TEXT,
       notion_page_id TEXT,
       updated_at TEXT NOT NULL
     );
@@ -115,6 +116,7 @@ async function migrate(database: SQLite.SQLiteDatabase): Promise<void> {
   );
   const sessionColNames = new Set(sessionCols.map(c => c.name));
   if (!sessionColNames.has('passed')) await database.execAsync('ALTER TABLE sessions ADD COLUMN passed INTEGER');
+  if (!sessionColNames.has('created_at')) await database.execAsync('ALTER TABLE sessions ADD COLUMN created_at TEXT');
 
   await database.execAsync(`
     CREATE INDEX IF NOT EXISTS idx_exercises_category ON exercises(category);
@@ -280,8 +282,8 @@ export async function insertSession(session: WorkoutSession): Promise<void> {
   const d = await getDatabase();
   const now = new Date().toISOString();
   await d.runAsync(
-    `INSERT INTO sessions (id, date, level, category, exercises_json, notes, passed, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO sessions (id, date, level, category, exercises_json, notes, passed, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       session.id,
       session.date,
@@ -290,7 +292,6 @@ export async function insertSession(session: WorkoutSession): Promise<void> {
       JSON.stringify(session.exercises),
       session.notes ?? null,
       session.passed != null ? (session.passed ? 1 : 0) : null,
-      now,
       now,
     ]
   );
@@ -348,8 +349,8 @@ export async function setSessionNotionPageId(sessionId: string, pageId: string):
 export async function upsertSessionFromNotion(session: WorkoutSession): Promise<void> {
   const d = await getDatabase();
   await d.runAsync(
-    `INSERT OR REPLACE INTO sessions (id, date, level, category, exercises_json, notes, passed, created_at, notion_page_id, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT OR REPLACE INTO sessions (id, date, level, category, exercises_json, notes, passed, notion_page_id, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       session.id,
       session.date,
@@ -358,7 +359,6 @@ export async function upsertSessionFromNotion(session: WorkoutSession): Promise<
       JSON.stringify(session.exercises),
       session.notes ?? null,
       session.passed != null ? (session.passed ? 1 : 0) : null,
-      session.date,
       session.notionPageId ?? null,
       session.updatedAt ?? new Date().toISOString(),
     ]

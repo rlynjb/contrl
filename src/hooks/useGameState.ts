@@ -66,7 +66,7 @@ export function useGameState(): UseGameStateReturn {
   throw new Error('useGameState must be used within a GameStateProvider');
 }
 
-export function useGameStateInternal(): UseGameStateReturn {
+export function useGameStateInternal(dbReady: boolean = true): UseGameStateReturn {
   const [status, setStatus] = useState<GameStateStatus>('loading');
   const [user, setUser] = useState<User | null>(null);
   const [weekProgress, setWeekProgress] = useState<WeekProgress | null>(null);
@@ -125,11 +125,11 @@ export function useGameStateInternal(): UseGameStateReturn {
   }, []);
 
   useEffect(() => {
-    if (!initRef.current) {
+    if (dbReady && !initRef.current) {
       initRef.current = true;
       load().catch(() => setStatus('error'));
     }
-  }, [load]);
+  }, [dbReady, load]);
 
   // Reload all game state after a Notion sync
   const prevSyncVersion = useRef(syncVersion);

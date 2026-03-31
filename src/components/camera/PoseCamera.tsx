@@ -1,5 +1,7 @@
 import { useCallback, useState, useEffect } from 'react';
 import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import type { CameraPosition } from 'react-native-vision-camera';
 import { Camera } from 'react-native-vision-camera';
 import {
   usePoseDetection,
@@ -11,6 +13,7 @@ import {
 } from 'react-native-mediapipe-posedetection';
 import type { Landmark as MPLandmark } from 'react-native-mediapipe-posedetection';
 import type { Landmark } from '../../lib/pose/landmarks';
+import { SkeletonOverlay } from './SkeletonOverlay';
 import { colors, fonts } from '../../constants/theme';
 
 const POSE_MODEL = 'pose_landmarker_lite.task';
@@ -25,6 +28,9 @@ export function PoseCamera({ onLandmarks, children }: PoseCameraProps) {
   const [ready, setReady] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<'loading' | 'granted' | 'denied'>('loading');
   const [error, setError] = useState<string | null>(null);
+  const [camera, setCamera] = useState<CameraPosition>('front');
+  const [currentLandmarks, setCurrentLandmarks] = useState<Landmark[]>([]);
+  const [cameraSize, setCameraSize] = useState({ width: 0, height: 0 });
 
   // Request camera permission
   useEffect(() => {
@@ -49,6 +55,7 @@ export function PoseCamera({ onLandmarks, children }: PoseCameraProps) {
           landmarks.reduce((sum, l) => sum + l.visibility, 0) / landmarks.length;
         setConfidence(Math.round(avgVisibility * 100));
 
+        setCurrentLandmarks(landmarks);
         if (!ready) setReady(true);
         onLandmarks(landmarks);
       }
@@ -98,13 +105,29 @@ export function PoseCamera({ onLandmarks, children }: PoseCameraProps) {
   }
 
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      onLayout={e => {
+        const { width, height } = e.nativeEvent.layout;
+        setCameraSize({ width, height });
+      }}
+    >
       <MediapipeCamera
         style={styles.camera}
         solution={solution}
-        activeCamera="back"
+        activeCamera={camera}
         resizeMode="cover"
       />
+
+      {ready && currentLandmarks.length > 0 && (
+        <SkeletonOverlay
+          landmarks={currentLandmarks}
+          width={cameraSize.width}
+          height={cameraSize.height}
+          portrait
+          mirror={camera === 'front'}
+        />
+      )}
 
       {!ready && (
         <View style={styles.loadingOverlay}>
@@ -114,15 +137,23 @@ export function PoseCamera({ onLandmarks, children }: PoseCameraProps) {
       )}
 
       {ready && (
-        <View style={styles.confidenceBadge}>
-          <Text
-            style={[
-              styles.confidenceText,
-              { color: confidence > 60 ? colors.success : colors.warning },
-            ]}
+        <View style={styles.topRow}>
+          <Pressable
+            style={styles.flipButton}
+            onPress={() => setCamera(c => c === 'front' ? 'back' : 'front')}
           >
-            {confidence}%
-          </Text>
+            <Feather name="refresh-cw" size={16} color="#fff" />
+          </Pressable>
+          <View style={styles.confidenceBadge}>
+            <Text
+              style={[
+                styles.confidenceText,
+                { color: confidence > 60 ? colors.success : colors.warning },
+              ]}
+            >
+              {confidence}%
+            </Text>
+          </View>
         </View>
       )}
 
@@ -164,10 +195,24 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     fontSize: 16,
   },
-  confidenceBadge: {
+  topRow: {
     position: 'absolute',
     top: 50,
+    left: 16,
     right: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  flipButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confidenceBadge: {
     backgroundColor: 'rgba(0,0,0,0.6)',
     paddingHorizontal: 8,
     paddingVertical: 4,

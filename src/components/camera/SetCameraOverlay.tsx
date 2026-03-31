@@ -1,12 +1,14 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Modal, StyleSheet } from 'react-native';
+import { Modal } from 'react-native';
 import type { Category, Exercise } from '../../types';
 import type { Landmark } from '../../lib/pose/landmarks';
+import type { RepPhase } from '../../lib/pose/rep-counter';
 import { createPushupProcessor } from '../../lib/pose/exercises/pushup';
 import { createSquatProcessor } from '../../lib/pose/exercises/squat';
 import { createPlankProcessor } from '../../lib/pose/exercises/plank';
 import { PoseCamera } from './PoseCamera';
 import { SetCameraHUD } from './SetCameraHUD';
+import { DebugPanel } from './DebugPanel';
 
 interface SetCameraOverlayProps {
   category: Category;
@@ -30,6 +32,10 @@ export function SetCameraOverlay({
   const [targetReached, setTargetReached] = useState(false);
   const [isHolding, setIsHolding] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
+
+  // Debug state
+  const [debugAngle, setDebugAngle] = useState(0);
+  const [debugPhase, setDebugPhase] = useState<RepPhase | 'holding' | 'broken' | null>(null);
 
   const lastFrameTimeRef = useRef(0);
 
@@ -67,12 +73,16 @@ export function SetCameraOverlay({
       const result = processor.processFrame(landmarks, deltaMs);
       setHoldTimeMs(result.holdTimeMs);
       setIsHolding(result.isHolding);
+      setDebugAngle(result.alignmentAngle);
+      setDebugPhase(result.isHolding ? 'holding' : 'broken');
       if (Math.round(result.holdTimeMs / 1000) >= targetValue) {
         setTargetReached(true);
       }
     } else {
       if (targetReached) return;
       const result = processor.processFrame(landmarks);
+      setDebugAngle(result.angle);
+      setDebugPhase(result.phase);
       if (result.repCompleted) {
         setRepCount(prev => {
           const next = prev + 1;
@@ -90,6 +100,12 @@ export function SetCameraOverlay({
       onComplete(repCount);
     }
   }, [exercise.isHold, holdTimeMs, repCount, onComplete]);
+
+  const exerciseType = exercise.isHold
+    ? 'Plank (alignment)'
+    : category === 'squat'
+      ? 'Squat (knee angle)'
+      : 'Push-up (elbow angle)';
 
   return (
     <Modal
@@ -113,6 +129,16 @@ export function SetCameraOverlay({
           onDone={handleDone}
           onCancel={onClose}
         />
+        {countdown !== null && (
+          <DebugPanel
+            angle={debugAngle}
+            phase={debugPhase}
+            repCount={repCount}
+            holdTimeMs={holdTimeMs}
+            isHold={exercise.isHold}
+            exerciseType={exerciseType}
+          />
+        )}
       </PoseCamera>
     </Modal>
   );

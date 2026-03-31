@@ -21,7 +21,7 @@ function AppContent() {
     Inter_700Bold,
     Inter_800ExtraBold,
   });
-  const gameState = useGameStateInternal();
+  const gameState = useGameStateInternal(ready);
 
   // Auto-sync on app open
   useEffect(() => {
