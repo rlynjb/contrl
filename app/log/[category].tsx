@@ -13,6 +13,7 @@ import { colors, categoryColors, fonts } from '@/constants/theme';
 import { CategoryBadge } from '@/components/ui/CategoryBadge';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { SetCameraOverlay } from '@/components/camera/SetCameraOverlay';
+import { HoldTimerModal } from '@/components/ui/HoldTimerModal';
 import { useExerciseForm } from '@/hooks/useExerciseForm';
 import { useGameState } from '@/hooks/useGameState';
 import type { LogSessionResult } from '@/hooks/useGameState';
@@ -71,6 +72,10 @@ export default function LogScreen() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [expandedGuide, setExpandedGuide] = useState<string | null>(null);
   const [cameraTarget, setCameraTarget] = useState<{
+    exIdx: number;
+    setIdx: number;
+  } | null>(null);
+  const [timerTarget, setTimerTarget] = useState<{
     exIdx: number;
     setIdx: number;
   } | null>(null);
@@ -563,6 +568,16 @@ export default function LogScreen() {
                     selectTextOnFocus
                   />
 
+                  {/* Timer button (hold exercises only) */}
+                  {ex.isHold && (
+                    <Pressable
+                      onPress={() => setTimerTarget({ exIdx, setIdx })}
+                      style={styles.cameraButton}
+                    >
+                      <Feather name="clock" size={13} color={colors.primary} />
+                    </Pressable>
+                  )}
+
                   {/* Camera button */}
                   <Pressable
                     onPress={() => setCameraTarget({ exIdx, setIdx })}
@@ -708,6 +723,23 @@ export default function LogScreen() {
           targetValue={levelExercises[cameraTarget.exIdx].targetReps}
           onComplete={handleCameraComplete}
           onClose={() => setCameraTarget(null)}
+        />
+      )}
+
+      {/* Hold timer modal */}
+      {timerTarget && (
+        <HoldTimerModal
+          visible
+          exerciseName={levelExercises[timerTarget.exIdx].name}
+          setLabel={`Set ${timerTarget.setIdx + 1} / ${levelExercises[timerTarget.exIdx].targetSets}`}
+          targetSeconds={levelExercises[timerTarget.exIdx].targetReps}
+          onComplete={(seconds) => {
+            const { exIdx, setIdx } = timerTarget;
+            updateValue(exIdx, setIdx, seconds, true);
+            toggleSet(exIdx, setIdx);
+            setTimerTarget(null);
+          }}
+          onCancel={() => setTimerTarget(null)}
         />
       )}
     </ScrollView>

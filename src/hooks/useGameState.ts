@@ -10,9 +10,6 @@ import type {
 import { CATEGORIES } from '@/types';
 import * as db from '@/services/database';
 import {
-  getGateCriteria,
-  evaluateSession,
-  updateGateAfterSession,
   createGateProgress,
 } from '@/lib/game/gate-check';
 import type { SessionResult } from '@/lib/game/gate-check';
@@ -26,6 +23,7 @@ import {
 } from '@/lib/game/week-progress';
 import { calculateStreak } from '@/lib/game/streaks';
 import { checkCategoryLevelUp } from '@/lib/game/progression';
+import { reconstructFromSessions } from '@/lib/game/reconstruct';
 import { useNotionSync } from './NotionSyncContext';
 
 export type LogSessionResult = {
@@ -77,7 +75,7 @@ export function useGameStateInternal(dbReady: boolean = true): UseGameStateRetur
   const { syncVersion } = useNotionSync();
 
   const load = useCallback(async () => {
-    const loadedUser = await db.getUser();
+    let loadedUser = await db.getUser();
 
     const currentWeekStart = getWeekStart(new Date());
     let loadedWeek = await db.getWeekProgress(currentWeekStart);
@@ -98,6 +96,26 @@ export function useGameStateInternal(dbReady: boolean = true): UseGameStateRetur
     }
     loadedWeek = { ...loadedWeek, sessionsCompleted: recomputedCompleted };
     await db.updateWeekProgress(loadedWeek);
+
+    // Detect reinstall: sessions exist but all levels are 1 (default)
+    // and no gate progress stored — reconstruct from session history
+    const isDefaultLevels = CATEGORIES.every(c => loadedUser.levels[c] === 1);
+    const hasAnyGate = await db.getGateProgress(CATEGORIES[0], 1);
+    if (allSessions.length > 0 && isDefaultLevels && !hasAnyGate) {
+      const reconstructed = reconstructFromSessions(allSessions);
+      // Persist reconstructed levels
+      for (const cat of CATEGORIES) {
+        if (reconstructed.userLevels[cat] !== 1) {
+          await db.updateUserLevel(cat, reconstructed.userLevels[cat]);
+        }
+      }
+      // Persist reconstructed gate progress
+      for (const gate of Object.values(reconstructed.gateProgress)) {
+        await db.updateGateProgress(gate);
+      }
+      // Reload user with updated levels
+      loadedUser = await db.getUser();
+    }
 
     const gates: Record<string, GateProgress> = {};
     for (const cat of CATEGORIES) {
@@ -157,50 +175,79 @@ export function useGameStateInternal(dbReady: boolean = true): UseGameStateRetur
     await db.insertSession(session);
     setSessions(prev => [...prev, session]);
 
-    // 2. Evaluate against gate criteria
-    const criteria = getGateCriteria(session.category, session.level);
-    let sessionResult: SessionResult;
+    // 2. Evaluate session — a session is "clean" when all exercises hit target
+    const isClean = session.exercises.length > 0 &&
+      session.exercises.every(e => e.hitTarget);
+    const metCount = session.exercises.filter(e => e.hitTarget).length;
+    const completionPct = session.exercises.length > 0
+      ? Math.round((metCount / session.exercises.length) * 100)
+      : 0;
+
+    const sessionResult: SessionResult = {
+      isClean,
+      completionPct,
+      exerciseResults: session.exercises.map(e => ({
+        exerciseId: e.exerciseId,
+        met: e.hitTarget,
+        targetSets: e.targetSets,
+        targetReps: e.targetReps,
+        actualCheckedSets: e.checkedSets.filter(Boolean).length,
+        actualReps: e.actualReps,
+        actualHoldSeconds: e.actualHoldSeconds,
+      })),
+    };
+
+    const currentGateKey = gateKey(session.category, session.level);
+    const currentGate = currentGateProgress[currentGateKey] ??
+      createGateProgress(session.category, session.level, currentUser?.levels[session.category] ?? 1);
+
     let updatedGate: GateProgress;
     let leveledUp = false;
     let newLevel: number | undefined;
 
-    if (criteria) {
-      const currentGateKey = gateKey(session.category, session.level);
-      const currentGate = currentGateProgress[currentGateKey] ??
-        createGateProgress(session.category, session.level, currentUser?.levels[session.category] ?? 1);
+    if (isClean) {
+      const newCount = currentGate.consecutivePasses + 1;
+      const passed = newCount >= 3;
+      updatedGate = {
+        ...currentGate,
+        consecutivePasses: newCount,
+        status: passed ? 'passed' : 'in-progress',
+        lastSessionDate: session.date,
+      };
+    } else {
+      updatedGate = {
+        ...currentGate,
+        consecutivePasses: 0,
+        status: 'in-progress',
+        lastSessionDate: session.date,
+      };
+    }
 
-      sessionResult = evaluateSession(session, criteria);
-      updatedGate = updateGateAfterSession(currentGate, sessionResult, criteria, session.date);
+    await db.updateGateProgress(updatedGate);
 
-      await db.updateGateProgress(updatedGate);
+    if (updatedGate.status === 'passed' && currentUser) {
+      const userCopy: User = { ...currentUser, levels: { ...currentUser.levels } };
+      leveledUp = checkCategoryLevelUp(updatedGate, userCopy);
+      if (leveledUp) {
+        newLevel = userCopy.levels[session.category];
+        await db.updateUserLevel(session.category, newLevel);
+        setUser(userCopy);
 
-      if (updatedGate.status === 'passed' && currentUser) {
-        const userCopy: User = { ...currentUser, levels: { ...currentUser.levels } };
-        leveledUp = checkCategoryLevelUp(updatedGate, userCopy);
-        if (leveledUp) {
-          newLevel = userCopy.levels[session.category];
-          await db.updateUserLevel(session.category, newLevel);
-          setUser(userCopy);
-
-          const newGate = createGateProgress(session.category, newLevel, newLevel);
-          await db.updateGateProgress(newGate);
-          setGateProgress(prev => ({
-            ...prev,
-            [currentGateKey]: updatedGate,
-            [gateKey(session.category, newLevel!)]: newGate,
-          }));
-        } else {
-          setGateProgress(prev => ({ ...prev, [currentGateKey]: updatedGate }));
-        }
-      } else {
+        const newGate = createGateProgress(session.category, newLevel, newLevel);
+        await db.updateGateProgress(newGate);
         setGateProgress(prev => ({
           ...prev,
-          [gateKey(session.category, session.level)]: updatedGate,
+          [currentGateKey]: updatedGate,
+          [gateKey(session.category, newLevel!)]: newGate,
         }));
+      } else {
+        setGateProgress(prev => ({ ...prev, [currentGateKey]: updatedGate }));
       }
     } else {
-      sessionResult = { isClean: true, completionPct: 100, exerciseResults: [] };
-      updatedGate = createGateProgress(session.category, session.level, currentUser?.levels[session.category] ?? 1);
+      setGateProgress(prev => ({
+        ...prev,
+        [currentGateKey]: updatedGate,
+      }));
     }
 
     // 3. Update week progress

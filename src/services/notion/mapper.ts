@@ -116,7 +116,7 @@ export function notionPageToSession(page: NotionPage): {
   const p = page.properties;
 
   const contrlId = getText(p['contrl ID']) || null;
-  const category = (getSelect(p.Category) ?? 'push') as Category;
+  const category = ((getSelect(p.Category) ?? 'push').toLowerCase()) as Category;
   const level = getNumber(p.Level) ?? 1;
   const date = getDate(p.Date) ?? page.created_time;
   const notes = getText(p.Notes) || undefined;
@@ -185,9 +185,9 @@ export function notionPageToExercise(page: NotionPage): Exercise {
   const p = page.properties;
 
   return {
-    id: getText(p.Name).toLowerCase().replace(/\s+/g, '-') + `-${page.id.slice(0, 8)}`,
+    id: page.id,
     name: getText(p.Name),
-    category: (getSelect(p.Category) ?? 'push') as Category,
+    category: ((getSelect(p.Category) ?? 'push').toLowerCase()) as Category,
     level: getNumber(p.Level) ?? 1,
     targetSets: getNumber(p['Target Sets']) ?? 3,
     targetReps: getNumber(p['Target Reps']) ?? 10,

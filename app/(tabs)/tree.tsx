@@ -50,7 +50,6 @@ export default function TreeScreen() {
   const handleNodePress = (cat: Category, level: number) => {
     const gate = getGate(cat, level);
     const nodeState = getNodeState(gate, user.levels);
-    if (nodeState === 'locked') return;
     setSelectedNode({
       category: cat,
       level,
@@ -124,7 +123,7 @@ export default function TreeScreen() {
                 {/* Node */}
                 <Pressable
                   onPress={() =>
-                    hasExercises && !isLocked
+                    hasExercises
                       ? handleNodePress(cat, level)
                       : null
                   }
@@ -175,14 +174,14 @@ export default function TreeScreen() {
                   )}
                 </Pressable>
 
-                {/* Level label */}
+                {/* Exercise count + level label */}
                 <Text
                   style={[
                     styles.nodeLevelLabel,
                     { marginTop: isInProgress ? 6 : 2 },
                   ]}
                 >
-                  L{level}
+                  L{level} · {levelExercises.length}
                 </Text>
               </View>
             );
@@ -224,13 +223,17 @@ export default function TreeScreen() {
                         color:
                           selectedNode.status === 'passed'
                             ? colors.success
-                            : categoryColors[selectedNode.category],
+                            : selectedNode.status === 'locked'
+                              ? colors.textSecondary
+                              : categoryColors[selectedNode.category],
                       },
                     ]}
                   >
                     {selectedNode.status === 'passed'
                       ? 'PASSED'
-                      : `${selectedNode.consecutivePasses}/3`}
+                      : selectedNode.status === 'locked'
+                        ? 'LOCKED'
+                        : `${selectedNode.consecutivePasses}/3`}
                   </Text>
                 </View>
 
