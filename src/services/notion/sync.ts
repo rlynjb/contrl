@@ -18,7 +18,7 @@ import {
   setSessionNotionPageId,
   upsertSessionFromNotion,
   upsertExercise,
-  deleteAllExercises,
+  deleteExercisesNotIn,
   deleteSession,
   getExercises,
   getPendingDeletions,
@@ -82,14 +82,16 @@ async function pullExercises(
   let count = 0;
   try {
     const pages = await queryDatabase(token, dbId);
-    // Clean local exercises and replace with Notion data
-    await deleteAllExercises();
+    // Upsert all exercises from Notion, then remove stale local ones
+    const notionIds: string[] = [];
     for (const page of pages) {
       if (page.archived) continue;
       const exercise = notionPageToExercise(page);
       await upsertExercise(exercise);
+      notionIds.push(exercise.id);
       count++;
     }
+    await deleteExercisesNotIn(notionIds);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     result.errors.push(`Pull exercises failed: ${msg}`);

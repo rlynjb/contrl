@@ -58,19 +58,13 @@ Features that are stable and tested.
 
 Exists but has gaps.
 
-**gates.json is stale**
-- Gate criteria reference old seed exercise IDs (e.g. `beginner-negative-push-ups`)
-- After Notion sync, exercise IDs are Notion page UUIDs
-- `evaluateSession()` in gate-check.ts still matches by exerciseId — will never match Notion-sourced exercises
-- logSession was fixed to use hitTarget instead, but gates.json is now dead code that could mislead
-- Files: `src/data/gates.json`, `src/lib/game/gate-check.ts`
+**~~gates.json is stale~~ — RESOLVED**
+- Removed gates.json and all dead code (evaluateSession, getGateCriteria, updateGateAfterSession)
+- Gate evaluation uses hitTarget from session entries — no exercise ID matching needed
 
-**Max level not capped**
-- `checkCategoryLevelUp()` increments level without an upper bound
-- If user passes L5 gate, level becomes 6 — no exercises exist, no gate defined
-- Tree UI hardcodes `LEVELS = [5,4,3,2,1]`, won't render L6
-- Homepage will show "L6" with 0 exercises
-- Files: `src/lib/game/progression.ts:26-31`, `app/(tabs)/tree.tsx:21`
+**~~Max level not capped~~ — RESOLVED**
+- Added MAX_LEVEL = 5 constant, guarded in progression.ts and reconstruct.ts
+- Level-up blocked at L5, gate shows as passed but level stays at 5
 
 **Error states missing on screens**
 - Home: `status === 'error'` renders null — no user feedback
@@ -117,24 +111,19 @@ Exists but has gaps.
 
 Must be resolved before building anything new.
 
-**gates.json exercise IDs don't match Notion IDs**
-- The gate criteria system (gates.json) is effectively broken for Notion-synced exercises
-- logSession works around this by using hitTarget, but evaluateSession and getGateCriteria are dead code paths
-- Any feature that depends on per-exercise gate criteria (e.g. showing which specific exercises need improvement) can't work
-- Options: (a) remove gates.json and derive criteria from exercise definitions, (b) make gates.json reference exercises by name+level instead of ID, (c) create gates in Notion
-- Files: `src/data/gates.json`, `src/lib/game/gate-check.ts`
+**~~gates.json exercise IDs don't match Notion IDs~~ — RESOLVED**
+- Removed gates.json and all dead code that depended on it (evaluateSession, getGateCriteria, updateGateAfterSession, exerciseMeetsCriteria)
+- Gate evaluation now relies entirely on hitTarget from session exercise entries
+- A session is clean when all exercises have hitTarget === true, no per-exercise criteria matching needed
 
-**Max level must be capped**
-- Without a cap, passing L5 creates a broken state (L6 with no exercises)
-- Must define MAX_LEVEL constant and prevent level-up beyond it
-- Affects: progression.ts, reconstruct.ts, tree.tsx, index.tsx
+**~~Max level must be capped~~ — RESOLVED**
+- Added MAX_LEVEL = 5 constant in types/index.ts
+- checkCategoryLevelUp, reconstruction, and logSession all guard against level-up beyond MAX_LEVEL
 
-**Exercise sync has a data loss window**
-- `deleteAllExercises()` runs before new exercises are inserted
-- If app crashes between delete and insert, all exercise data is lost
-- Sessions reference exercise IDs that no longer exist
-- Should use upsert pattern or wrap in a transaction
-- File: `src/services/notion/sync.ts:86`
+**~~Exercise sync has a data loss window~~ — RESOLVED**
+- Replaced delete-all + insert with upsert + delete-stale pattern
+- Exercises are upserted first, then only exercises not in the Notion set are removed
+- No data loss window — local exercises always exist during sync
 
 ---
 

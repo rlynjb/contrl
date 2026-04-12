@@ -1,4 +1,5 @@
 import type { Category, GateProgress, User } from '@/types'
+import { MAX_LEVEL } from '@/types'
 
 /**
  * Derive the visual state of a skill-tree node.
@@ -23,7 +24,7 @@ export function checkCategoryLevelUp(
   gate: GateProgress,
   user: User
 ): boolean {
-  if (gate.status === 'passed' && gate.level === user.levels[gate.category]) {
+  if (gate.status === 'passed' && gate.level === user.levels[gate.category] && gate.level < MAX_LEVEL) {
     user.levels[gate.category] += 1
     return true
   }

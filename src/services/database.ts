@@ -254,6 +254,13 @@ export async function deleteAllExercises(): Promise<void> {
   await d.runAsync('DELETE FROM exercises');
 }
 
+export async function deleteExercisesNotIn(ids: string[]): Promise<void> {
+  if (ids.length === 0) return deleteAllExercises();
+  const d = await getDatabase();
+  const placeholders = ids.map(() => '?').join(',');
+  await d.runAsync(`DELETE FROM exercises WHERE id NOT IN (${placeholders})`, ids);
+}
+
 export async function upsertExercise(exercise: Exercise): Promise<void> {
   const d = await getDatabase();
   const now = new Date().toISOString();

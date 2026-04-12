@@ -9,6 +9,8 @@ export type Category = 'push' | 'pull' | 'squat'
 
 export const CATEGORIES: Category[] = ['push', 'pull', 'squat']
 
+export const MAX_LEVEL = 5
+
 // ── Exercise library ────────────────────────────────────────
 
 export type Exercise = {

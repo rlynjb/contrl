@@ -1,5 +1,5 @@
 import type { Category, WorkoutSession, GateProgress } from '@/types'
-import { CATEGORIES } from '@/types'
+import { CATEGORIES, MAX_LEVEL } from '@/types'
 import { createGateProgress } from './gate-check'
 
 /**
@@ -47,8 +47,8 @@ export function reconstructFromSessions(sessions: WorkoutSession[]): {
       gate.lastSessionDate = session.date
       if (gate.consecutivePasses >= 3) {
         gate.status = 'passed'
-        // Level up if this is the current level
-        if (level === currentLevel) {
+        // Level up if this is the current level and not at max
+        if (level === currentLevel && currentLevel < MAX_LEVEL) {
           userLevels[category] = currentLevel + 1
           // Initialize next gate
           getGate(category, currentLevel + 1)
