@@ -1,6 +1,6 @@
 # contrl — Audit
 
-Last updated: 2026-04-11
+Last updated: 2026-04-12
 
 ---
 
@@ -36,7 +36,7 @@ Features that are stable and tested.
 - Pass/fail indicators and completion percentage
 
 **Notion sync**
-- Exercises: full replace from Notion (source of truth)
+- Exercises: upsert from Notion + prune stale (source of truth, no data loss window)
 - Sessions: bidirectional with last-edit-wins conflict resolution
 - Rate limiting (350ms min between requests, exponential backoff)
 - Auto-sync on open, manual sync from settings
@@ -44,7 +44,7 @@ Features that are stable and tested.
 **Progression system**
 - Gate evaluation using hitTarget field from session entries
 - 3 consecutive clean sessions to pass a gate
-- Level-up on gate pass
+- Level-up on gate pass (capped at MAX_LEVEL = 5)
 - Progress reconstruction from session history on reinstall
 
 **Database**
@@ -163,9 +163,9 @@ Not fixing now — documented so nothing is built on top of it unknowingly.
 - File: `src/lib/pose/exercises/plank.ts`
 
 **Levels 4-5 exercise data**
-- Exercises exist in Notion but gate criteria in gates.json only defined for L1-L3
-- Gate evaluation at L4-L5 falls through to hitTarget-based check (works, but no per-exercise criteria)
-- Tree UI renders L4-L5 nodes but they have no structured gate requirements
+- Exercises exist in Notion for L4-L5 but content is sparse
+- Gate evaluation uses hitTarget (works for all levels), no per-exercise criteria needed
+- Tree UI renders L4-L5 nodes correctly
 
 **Notion setup guide**
 - Settings links to `/settings/notion-guide` but the screen is a placeholder

@@ -5,9 +5,10 @@ Rules for syncing a local database with a remote data store.
 ## Rule 1: Single Source of Truth for Reference Data
 
 Reference data has ONE source of truth — the remote store.
-Every sync replaces all local reference data with the remote copy.
+Every sync updates local reference data to match the remote copy.
 
-- Delete local → re-insert from remote (full replace, not merge)
+- Upsert all remote records locally, then prune records not in the remote set
+- Never delete-all before inserting — avoid data loss windows on crash
 - Local never pushes reference data upstream
 - Local may cache for offline use but never modifies
 
@@ -40,7 +41,7 @@ Never generate IDs from mutable fields — they cause collisions on rename or du
 
 ## Rule 5: Sync Order
 
-1. Pull reference data (full replace)
+1. Pull reference data (upsert + prune stale)
 2. Pull user-generated data (merge with conflict resolution)
 3. Push local user-generated data
 4. Process deletions

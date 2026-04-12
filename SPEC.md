@@ -41,7 +41,7 @@ A session is **clean** when every exercise hits its target (all sets checked, al
 
 ### Levels
 
-Users start at level 1 in all categories. Passing a gate advances the category to the next level, unlocking harder exercises.
+Users start at level 1 in all categories. Passing a gate advances the category to the next level (max level 5), unlocking harder exercises.
 
 ### Week Tracking
 
@@ -156,14 +156,14 @@ For timed exercises without camera:
 
 ### Rules
 
-1. **Reference data** (exercises): Notion is source of truth. Full replace on every sync.
+1. **Reference data** (exercises): Notion is source of truth. Upsert from remote, then prune stale local records.
 2. **User-generated data** (sessions): bidirectional sync with last-edit-wins conflict resolution.
 3. **Derived state** (levels, gates, week progress, streaks): computed from sessions, never synced. Reconstructed on reinstall.
 4. **IDs**: remote-sourced records use remote ID directly. Locally-created records use generated IDs, associated with remote ID after first push.
 
 ### Sync Flow
 
-1. Pull exercises from Notion (delete all local, re-insert)
+1. Pull exercises from Notion (upsert all, then prune stale local records)
 2. Pull sessions (merge with conflict resolution, 2-minute remote bias)
 3. Push local unsynced sessions to Notion
 4. Process deletions (archive in Notion, delete locally)
@@ -260,7 +260,7 @@ src/
     database.ts         SQLite CRUD
     notion/             api, config, sync, mapper
   types/                Domain types, Notion types
-  data/                 exercises-seed.json, gates.json
+  data/                 exercises-seed.json
 ```
 
 ### State Flow
@@ -269,4 +269,4 @@ App open -> SQLite init -> load user/sessions/gates/weeks -> detect reinstall? -
 
 Log session -> save to DB -> evaluate clean? -> update gate -> check level-up -> update week -> clear draft -> show result.
 
-Sync -> pull exercises (full replace) -> pull sessions (merge) -> push local sessions -> process deletions -> increment syncVersion -> reload state.
+Sync -> pull exercises (upsert + prune) -> pull sessions (merge) -> push local sessions -> process deletions -> increment syncVersion -> reload state.
