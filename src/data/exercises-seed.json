@@ -130,6 +130,26 @@
     "notes": "Tip: Engage your abs as if bracing for a punch; avoid letting your hips sag.\nNext: Normal Push-ups\nScale down: Plank Hold"
   },
   {
+    "id": "trx-row",
+    "name": "TRX Row",
+    "category": "pull",
+    "level": 2,
+    "targetSets": 3,
+    "targetReps": 10,
+    "tempo": "2-1-2-0",
+    "notes": "Tip: Keep body rigid and horizontal; pull chest to handles with elbows tracking back.\nNext: TRX Inverted Row\nScale down: TRX Inverted Row (Australian Pull-ups)"
+  },
+  {
+    "id": "trx-dead-hang",
+    "name": "TRX Dead Hang",
+    "category": "pull",
+    "level": 2,
+    "targetSets": 3,
+    "targetReps": 30,
+    "tempo": "Steady",
+    "notes": "Tip: Maintain a rigid body position parallel to the floor; grip firmly and breathe steadily.\nNext: TRX Row\nScale down: TRX Passive Hang"
+  },
+  {
     "id": "novice-trx-inverted-row",
     "name": "TRX Inverted Row (straight legs)",
     "category": "pull",

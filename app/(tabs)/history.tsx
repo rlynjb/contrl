@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
   StyleSheet,
   Pressable,
-  Animated,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts, categoryColors } from '../../src/constants/theme';
@@ -46,8 +45,8 @@ function exercisePercentage(ex: ExerciseEntry): number {
 }
 
 export default function HistoryScreen() {
-  const { status, sessions } = useGameState();
-  const { exercises } = useExercises();
+  const { status, error, sessions, reload } = useGameState();
+  const { exercises, error: exercisesError, reload: reloadExercises } = useExercises();
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const exerciseNameMap = useMemo(() => {
@@ -88,6 +87,21 @@ export default function HistoryScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator color={colors.primary} size="large" />
+      </View>
+    );
+  }
+
+  if (status === 'error' || exercisesError) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.errorTitle}>Unable to load history</Text>
+        <Text style={styles.errorText}>{error ?? exercisesError ?? 'Unknown error'}</Text>
+        <Pressable style={styles.retryButton} onPress={() => {
+          reloadExercises();
+          reload();
+        }}>
+          <Text style={styles.retryText}>Try again</Text>
+        </Pressable>
       </View>
     );
   }
@@ -248,6 +262,33 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  errorTitle: {
+    fontSize: 16,
+    fontFamily: fonts.bold,
+    color: colors.text,
+    marginBottom: 8,
+  },
+  errorText: {
+    fontSize: 13,
+    fontFamily: fonts.regular,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 32,
+  },
+  retryButton: {
+    borderWidth: 1,
+    borderColor: colors.primary + '40',
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  retryText: {
+    color: colors.primary,
+    fontFamily: fonts.semiBold,
+    fontSize: 13,
   },
 
   // Section header

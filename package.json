@@ -5,6 +5,9 @@
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
+    "android:device": "expo run:android --device",
+    "metro": "npx react-native start",
+    "prebuild:android": "npx expo prebuild --platform android",
     "ios": "expo run:ios",
     "web": "expo start --web"
   },

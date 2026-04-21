@@ -56,6 +56,7 @@ export default function LogScreen() {
 
   const {
     status,
+    error: gameStateError,
     user,
     sessions,
     logSession,
@@ -70,6 +71,8 @@ export default function LogScreen() {
   const [result, setResult] = useState<ResultData | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [screenError, setScreenError] = useState<string | null>(null);
+  const [screenLoading, setScreenLoading] = useState(true);
   const [expandedGuide, setExpandedGuide] = useState<string | null>(null);
   const [cameraTarget, setCameraTarget] = useState<{
     exIdx: number;
@@ -86,10 +89,19 @@ export default function LogScreen() {
   useEffect(() => {
     if (status !== 'ready') return;
     (async () => {
-      const exs = await database.getExercises();
-      setAllExercises(exs);
-      const d = await loadDraft(category, level);
-      setDraft(d);
+      setScreenLoading(true);
+      try {
+        const exs = await database.getExercises();
+        setAllExercises(exs);
+        const d = await loadDraft(category, level);
+        setDraft(d);
+        setScreenError(null);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to load workout form';
+        setScreenError(message);
+      } finally {
+        setScreenLoading(false);
+      }
     })();
   }, [status, category, level, loadDraft]);
 
@@ -233,10 +245,32 @@ export default function LogScreen() {
 
   // ── Loading state ───────────────────────────────────────────
 
-  if (status === 'loading' || allExercises.length === 0) {
+  if (status === 'loading' || screenLoading) {
     return (
       <View style={styles.loadingContainer}>
         <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
+
+  if (status === 'error' || gameStateError || screenError) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.errorTitle}>Unable to load workout</Text>
+        <Text style={styles.errorTextCentered}>
+          {gameStateError ?? screenError ?? 'Unknown error'}
+        </Text>
+      </View>
+    );
+  }
+
+  if (allExercises.length === 0) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.errorTitle}>No exercises found</Text>
+        <Text style={styles.errorTextCentered}>
+          Sync or seed the exercise library before logging a workout.
+        </Text>
       </View>
     );
   }
@@ -1006,6 +1040,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: fonts.regular,
     marginTop: 8,
+  },
+  errorTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontFamily: fonts.bold,
+    marginBottom: 8,
+  },
+  errorTextCentered: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontFamily: fonts.regular,
+    textAlign: 'center',
+    paddingHorizontal: 32,
   },
 
   // ── Save button ───────────────────────────────────────────

@@ -6,9 +6,11 @@ import type { RepPhase } from '../../lib/pose/rep-counter';
 import { createPushupProcessor } from '../../lib/pose/exercises/pushup';
 import { createSquatProcessor } from '../../lib/pose/exercises/squat';
 import { createPlankProcessor } from '../../lib/pose/exercises/plank';
+import { createPullProcessor } from '../../lib/pose/exercises/pull';
 import { PoseCamera } from './PoseCamera';
 import { SetCameraHUD } from './SetCameraHUD';
 import { DebugPanel } from './DebugPanel';
+import { POSE } from '../../lib/pose/landmarks';
 
 interface SetCameraOverlayProps {
   category: Category;
@@ -41,11 +43,13 @@ export function SetCameraOverlay({
 
   // Create processor once on mount
   const processorRef = useRef(
-    exercise.isHold
-      ? { type: 'plank' as const, processor: createPlankProcessor() }
-      : category === 'squat'
-        ? { type: 'rep' as const, processor: createSquatProcessor() }
-        : { type: 'rep' as const, processor: createPushupProcessor() }
+    category === 'pull'
+      ? createPullProcessor(exercise)
+      : exercise.isHold
+        ? { type: 'plank' as const, processor: createPlankProcessor() }
+        : category === 'squat'
+          ? { type: 'rep' as const, processor: createSquatProcessor() }
+          : { type: 'rep' as const, processor: createPushupProcessor() }
   );
 
   // Countdown timer
@@ -55,12 +59,43 @@ export function SetCameraOverlay({
     return () => clearTimeout(timer);
   }, [countdown]);
 
+  useEffect(() => {
+    return () => {
+      processorRef.current.processor.reset();
+      lastFrameTimeRef.current = 0;
+    };
+  }, []);
+
+  const hasReliableLandmarks = useCallback((landmarks: Landmark[]) => {
+    const requiredPoints = exercise.isHold
+      ? [POSE.LEFT_SHOULDER, POSE.RIGHT_SHOULDER, POSE.LEFT_HIP, POSE.RIGHT_HIP, POSE.LEFT_ANKLE, POSE.RIGHT_ANKLE]
+      : category === 'squat'
+        ? [POSE.LEFT_HIP, POSE.RIGHT_HIP, POSE.LEFT_KNEE, POSE.RIGHT_KNEE, POSE.LEFT_ANKLE, POSE.RIGHT_ANKLE]
+        : [POSE.LEFT_SHOULDER, POSE.RIGHT_SHOULDER, POSE.LEFT_ELBOW, POSE.RIGHT_ELBOW, POSE.LEFT_WRIST, POSE.RIGHT_WRIST];
+
+    return requiredPoints.every(index => (landmarks[index]?.visibility ?? 0) >= 0.5);
+  }, [category, exercise.isHold]);
+
   const handleStart = useCallback(() => {
+    processorRef.current.processor.reset();
+    lastFrameTimeRef.current = 0;
+    setRepCount(0);
+    setHoldTimeMs(0);
+    setTargetReached(false);
+    setIsHolding(false);
+    setDebugAngle(0);
+    setDebugPhase(null);
     setCountdown(10);
   }, []);
 
   const handleLandmarks = useCallback((landmarks: Landmark[]) => {
     if (countdown === null || countdown > 0) return;
+    if (!hasReliableLandmarks(landmarks)) {
+      setIsHolding(false);
+      setDebugPhase(null);
+      lastFrameTimeRef.current = 0;
+      return;
+    }
 
     const { type, processor } = processorRef.current;
     const now = performance.now();
@@ -91,7 +126,7 @@ export function SetCameraOverlay({
         });
       }
     }
-  }, [targetValue, targetReached, countdown]);
+  }, [countdown, hasReliableLandmarks, targetReached, targetValue]);
 
   const handleDone = useCallback(() => {
     if (exercise.isHold) {
@@ -101,11 +136,13 @@ export function SetCameraOverlay({
     }
   }, [exercise.isHold, holdTimeMs, repCount, onComplete]);
 
-  const exerciseType = exercise.isHold
-    ? 'Plank (alignment)'
-    : category === 'squat'
-      ? 'Squat (knee angle)'
-      : 'Push-up (elbow angle)';
+  const exerciseType = category === 'pull'
+    ? exercise.isHold ? 'Pull Hold (body-line)' : 'Pull (elbow angle)'
+    : exercise.isHold
+      ? 'Plank (alignment)'
+      : category === 'squat'
+        ? 'Squat (knee angle)'
+        : 'Push-up (elbow angle)';
 
   return (
     <Modal

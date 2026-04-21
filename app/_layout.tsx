@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { useFonts, Inter_400Regular, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
 import { useDatabase } from '../src/hooks/useDatabase';
@@ -14,7 +14,7 @@ import { syncAll } from '../src/services/notion/sync';
 SplashScreen.preventAutoHideAsync();
 
 function AppContent() {
-  const { ready } = useDatabase();
+  const { ready, error } = useDatabase();
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_600SemiBold,
@@ -40,6 +40,16 @@ function AppContent() {
       SplashScreen.hideAsync();
     }
   }, [ready, fontsLoaded]);
+
+  if (error && fontsLoaded) {
+    return (
+      <View style={styles.loading}>
+        <StatusBar style="light" />
+        <Text style={styles.errorTitle}>Unable to open contrl</Text>
+        <Text style={styles.errorText}>{error}</Text>
+      </View>
+    );
+  }
 
   if (!ready || !fontsLoaded) {
     return (
@@ -78,5 +88,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  errorTitle: {
+    color: colors.text,
+    fontFamily: 'Inter_700Bold',
+    fontSize: 18,
+    marginBottom: 8,
+  },
+  errorText: {
+    color: colors.textSecondary,
+    fontFamily: 'Inter_400Regular',
+    fontSize: 13,
+    textAlign: 'center',
+    paddingHorizontal: 32,
   },
 });

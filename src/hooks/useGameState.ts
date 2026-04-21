@@ -37,6 +37,7 @@ export type GameStateStatus = 'loading' | 'ready' | 'error';
 
 export interface UseGameStateReturn {
   status: GameStateStatus;
+  error: string | null;
   user: User | null;
   weekProgress: WeekProgress | null;
   streak: number;
@@ -66,6 +67,7 @@ export function useGameState(): UseGameStateReturn {
 
 export function useGameStateInternal(dbReady: boolean = true): UseGameStateReturn {
   const [status, setStatus] = useState<GameStateStatus>('loading');
+  const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [weekProgress, setWeekProgress] = useState<WeekProgress | null>(null);
   const [streak, setStreak] = useState(0);
@@ -75,6 +77,9 @@ export function useGameStateInternal(dbReady: boolean = true): UseGameStateRetur
   const { syncVersion } = useNotionSync();
 
   const load = useCallback(async () => {
+    setStatus('loading');
+    setError(null);
+
     let loadedUser = await db.getUser();
 
     const currentWeekStart = getWeekStart(new Date());
@@ -145,7 +150,11 @@ export function useGameStateInternal(dbReady: boolean = true): UseGameStateRetur
   useEffect(() => {
     if (dbReady && !initRef.current) {
       initRef.current = true;
-      load().catch(() => setStatus('error'));
+      load().catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : 'Failed to load workout data';
+        setError(message);
+        setStatus('error');
+      });
     }
   }, [dbReady, load]);
 
@@ -154,7 +163,11 @@ export function useGameStateInternal(dbReady: boolean = true): UseGameStateRetur
   useEffect(() => {
     if (syncVersion > prevSyncVersion.current) {
       prevSyncVersion.current = syncVersion;
-      load().catch(() => setStatus('error'));
+      load().catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : 'Failed to refresh workout data';
+        setError(message);
+        setStatus('error');
+      });
     }
   }, [syncVersion, load]);
 
@@ -286,6 +299,7 @@ export function useGameStateInternal(dbReady: boolean = true): UseGameStateRetur
 
   return {
     status,
+    error,
     user,
     weekProgress,
     streak,

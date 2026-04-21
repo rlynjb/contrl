@@ -161,12 +161,15 @@ export function useExerciseForm({
       };
     });
 
+    const passed = entries.length > 0 && entries.every(entry => entry.hitTarget);
+
     return {
       id: `${category}-${level}-${Date.now()}`,
       date: new Date().toISOString(),
       level,
       category,
       exercises: entries,
+      passed,
       ...(notes.trim() && { notes: notes.trim() }),
     };
   };
