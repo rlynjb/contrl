@@ -1,20 +1,20 @@
-/** Tron-inspired dark theme — matches the web app palette */
+/** Tron-inspired dark theme — slate-800/700/600 */
 export const colors = {
-  bg: '#06080f',
-  surface: '#0c1021',
-  surfaceLight: '#121830',
+  bg: '#1e293b',
+  surface: '#334155',
+  surfaceLight: '#475569',
   primary: '#00e5ff',
   primaryDim: 'rgba(0,229,255,0.15)',
   success: '#34d399',
   successDim: 'rgba(52,211,153,0.15)',
   warning: '#fbbf24',
   warningDim: 'rgba(251,191,36,0.15)',
-  muted: '#6b8aab',
-  mutedDim: 'rgba(107,138,171,0.12)',
+  muted: '#cbd5e1',
+  mutedDim: 'rgba(203,213,225,0.12)',
   danger: '#fb7185',
-  text: '#e2e8f0',
-  textSecondary: '#64748b',
-  border: '#1e293b',
+  text: '#f8fafc',
+  textSecondary: '#cbd5e1',
+  border: '#475569',
 } as const;
 
 /** Category accent colors */

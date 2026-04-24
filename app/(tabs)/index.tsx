@@ -1,19 +1,10 @@
 import { useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
-import { colors, fonts, categoryColors, categoryBorder } from '../../src/constants/theme';
+import { colors, fonts, categoryColors } from '../../src/constants/theme';
 import { useGameState } from '../../src/hooks/useGameState';
 import { useExercises } from '../../src/hooks/useExercises';
+import { SkillTree } from '../../src/components/SkillTree';
 import type { Category } from '../../src/types';
-import { CATEGORIES } from '../../src/types';
-
-/** Dim backgrounds for level badges (higher opacity than categoryBg) */
-const categoryDim: Record<Category, string> = {
-  push: 'rgba(249,115,22,0.15)',
-  pull: 'rgba(6,182,212,0.15)',
-  squat: 'rgba(217,70,239,0.15)',
-};
 
 /** Short uppercase labels */
 const categoryLabel: Record<Category, string> = {
@@ -25,17 +16,15 @@ const categoryLabel: Record<Category, string> = {
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 
 export default function HomeScreen() {
-  const router = useRouter();
   const {
     status,
     error,
     user,
     sessions,
-    getGateForCategory,
     reload,
   } = useGameState();
 
-  const { exercises, error: exercisesError, reload: reloadExercises } = useExercises();
+  const { error: exercisesError, reload: reloadExercises } = useExercises();
 
   // Build a map of session dates this week keyed by day-of-week index (0=Sun)
   const weekDaySessions = useMemo(() => {
@@ -61,32 +50,6 @@ export default function HomeScreen() {
   }, [sessions, user]);
 
   const todayIndex = new Date().getDay();
-
-  // Count exercises per category at the user's current level
-  const exerciseCountByCategory = useMemo(() => {
-    const counts: Record<string, number> = { push: 0, pull: 0, squat: 0 };
-    if (!user) return counts;
-    for (const ex of exercises) {
-      if (ex.level === user.levels[ex.category]) {
-        counts[ex.category]++;
-      }
-    }
-    return counts;
-  }, [exercises, user]);
-
-  // Count sessions per category this week
-  const weekSessionCount = useMemo(() => {
-    const counts: Record<Category, number> = { push: 0, pull: 0, squat: 0 };
-    if (!sessions.length) return counts;
-    const now = new Date();
-    const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() - now.getDay());
-    weekStart.setHours(0, 0, 0, 0);
-    for (const s of sessions) {
-      if (new Date(s.date) >= weekStart) counts[s.category]++;
-    }
-    return counts;
-  }, [sessions]);
 
   if (status === 'loading') {
     return (
@@ -157,61 +120,9 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* ─── WORKOUTS ─── */}
+      {/* ─── SKILL TREE (active-level nodes render as workout cards) ─── */}
       <View style={styles.section}>
-        <Text style={styles.sectionHeader}>WORKOUTS</Text>
-        <View style={styles.cardList}>
-          {CATEGORIES.map(cat => {
-            const level = user.levels[cat];
-            const gate = getGateForCategory(cat);
-            const accent = categoryColors[cat];
-            const border = categoryBorder[cat];
-            const dim = categoryDim[cat];
-            const exCount = exerciseCountByCategory[cat];
-            const doneCount = weekSessionCount[cat];
-            const isDone = doneCount > 0;
-
-            return (
-              <Pressable
-                key={cat}
-                onPress={() => router.push(`/log/${cat}`)}
-                style={[styles.card, { borderColor: isDone ? 'rgba(52,211,153,0.25)' : border }]}
-              >
-                <View style={styles.cardRow}>
-                  {/* Left: badge + info */}
-                  <View style={styles.cardLeft}>
-                    <View style={[styles.levelBadge, isDone
-                      ? { backgroundColor: colors.successDim, borderColor: 'rgba(52,211,153,0.25)' }
-                      : { backgroundColor: dim, borderColor: border },
-                    ]}>
-                      {isDone
-                        ? <Feather name="check" size={18} color={colors.success} />
-                        : <Text style={[styles.levelBadgeText, { color: accent }]}>L{level}</Text>
-                      }
-                    </View>
-                    <View>
-                      <Text style={styles.cardCategoryName}>{categoryLabel[cat]}</Text>
-                      <Text style={styles.cardSubtext}>
-                        {isDone
-                          ? `Done ${doneCount > 1 ? `${doneCount}× ` : ''}this week · Level ${level}`
-                          : `${exCount} exercises · ~15 min`
-                        }
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* Right: gate progress + chevron */}
-                  <View style={styles.cardRight}>
-                    {gate && gate.consecutivePasses > 0 && (
-                      <Text style={styles.gateText}>{gate.consecutivePasses}/3</Text>
-                    )}
-                    <Feather name="chevron-right" size={16} color={isDone ? colors.success : accent} />
-                  </View>
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
+        <SkillTree hideSectionLabel />
       </View>
     </ScrollView>
   );
@@ -303,61 +214,5 @@ const styles = StyleSheet.create({
   // ── Sections ────────────────────────────
   section: {
     marginBottom: 16,
-  },
-
-  // ── Cards ───────────────────────────────
-  cardList: {
-    gap: 8,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderRadius: 2,
-    paddingVertical: 16,
-    paddingHorizontal: 18,
-  },
-  cardRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  cardLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  cardRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  levelBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 2,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  levelBadgeText: {
-    fontSize: 15,
-    fontFamily: fonts.extraBold,
-  },
-  cardCategoryName: {
-    fontSize: 15,
-    fontFamily: fonts.bold,
-    color: colors.text,
-    textTransform: 'uppercase',
-  },
-  cardSubtext: {
-    fontSize: 11,
-    fontFamily: fonts.regular,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  gateText: {
-    fontSize: 10,
-    fontFamily: fonts.bold,
-    color: colors.warning,
   },
 });

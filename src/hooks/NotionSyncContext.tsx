@@ -1,4 +1,4 @@
-import { createContext, useContext, useCallback, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useCallback, useRef, useState, useEffect, type ReactNode } from 'react';
 import { syncAll } from '../services/notion/sync';
 import { isNotionConfigured, getLastSyncTimestamp } from '../services/notion/config';
 import type { SyncResult, SyncStatus } from '../types/notion';
@@ -30,14 +30,19 @@ export function NotionSyncProvider({ children }: { children: ReactNode }) {
   const [result, setResult] = useState<SyncResult | null>(null);
   const [configured, setConfigured] = useState(false);
   const [syncVersion, setSyncVersion] = useState(0);
+  const inFlightRef = useRef(false);
 
   useEffect(() => {
     isNotionConfigured().then(setConfigured);
     getLastSyncTimestamp().then(setLastSynced);
   }, []);
 
+  // Stable identity: re-entrancy is guarded by a ref so `syncNow`
+  // does not change on every status transition. Callers can safely
+  // depend on it from effects without causing sync loops.
   const syncNow = useCallback(async (): Promise<SyncResult | null> => {
-    if (status === 'syncing') return null;
+    if (inFlightRef.current) return null;
+    inFlightRef.current = true;
     setStatus('syncing');
     setResult(null);
     try {
@@ -52,8 +57,10 @@ export function NotionSyncProvider({ children }: { children: ReactNode }) {
       setStatus('error');
       setResult({ pulled: 0, pushed: 0, errors: [msg], debug: [] });
       return null;
+    } finally {
+      inFlightRef.current = false;
     }
-  }, [status]);
+  }, []);
 
   const refresh = useCallback(async () => {
     setConfigured(await isNotionConfigured());

@@ -102,11 +102,21 @@ export function useGameStateInternal(dbReady: boolean = true): UseGameStateRetur
     loadedWeek = { ...loadedWeek, sessionsCompleted: recomputedCompleted };
     await db.updateWeekProgress(loadedWeek);
 
-    // Detect reinstall: sessions exist but all levels are 1 (default)
-    // and no gate progress stored — reconstruct from session history
+    // Detect reinstall: sessions exist (typically pulled from Notion), all
+    // user levels are default, and no gate has recorded any progress yet.
+    // The earlier `!hasAnyGate` check was unreliable because a prior load()
+    // pass — fired before sync pulled sessions in — would already have
+    // created default L1 gates, causing reconstruction to be skipped on the
+    // post-sync reload. Reconstruction is idempotent on session history, so
+    // it is safe to run whenever we see this "freshly initialized" state.
     const isDefaultLevels = CATEGORIES.every(c => loadedUser.levels[c] === 1);
-    const hasAnyGate = await db.getGateProgress(CATEGORIES[0], 1);
-    if (allSessions.length > 0 && isDefaultLevels && !hasAnyGate) {
+    const existingGates = await Promise.all(
+      CATEGORIES.map(c => db.getGateProgress(c, loadedUser.levels[c]))
+    );
+    const gatesAreUntouched = existingGates.every(
+      g => !g || (g.consecutivePasses === 0 && !g.lastSessionDate)
+    );
+    if (allSessions.length > 0 && isDefaultLevels && gatesAreUntouched) {
       const reconstructed = reconstructFromSessions(allSessions);
       // Persist reconstructed levels
       for (const cat of CATEGORIES) {

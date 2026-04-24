@@ -59,13 +59,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="tree"
-        options={{
-          title: 'Tree',
-          tabBarIcon: ({ color, size }) => <Feather name="git-branch" color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
         name="history"
         options={{
           title: 'History',

@@ -1,15 +1,19 @@
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, LogBox } from 'react-native';
+
+// Suppress iOS-only RNScreens prop warnings that expo-router emits on Android.
+// These are library-level noise (backTitleFontFamily, largeTitle*, etc.) that
+// LogBox otherwise surfaces on every stack navigation.
+LogBox.ignoreLogs([/\[RNScreens\]: .* prop is not available on Android/]);
 import { useFonts, Inter_400Regular, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
 import { useDatabase } from '../src/hooks/useDatabase';
 import { colors } from '../src/constants/theme';
-import { NotionSyncProvider } from '../src/hooks/NotionSyncContext';
+import { NotionSyncProvider, useNotionSync } from '../src/hooks/NotionSyncContext';
 import { GameStateContext, useGameStateInternal } from '../src/hooks/useGameState';
 import { isNotionConfigured, isAutoSyncEnabled } from '../src/services/notion/config';
-import { syncAll } from '../src/services/notion/sync';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -22,18 +26,25 @@ function AppContent() {
     Inter_800ExtraBold,
   });
   const gameState = useGameStateInternal(ready);
+  const { syncNow } = useNotionSync();
 
-  // Auto-sync on app open
+  // Auto-sync on app open. Routed through syncNow() so syncVersion bumps,
+  // which triggers game-state reload (and reinstall reconstruction) once
+  // sessions have been pulled in.
   useEffect(() => {
     if (!ready) return;
     (async () => {
       const configured = await isNotionConfigured();
       const autoSync = await isAutoSyncEnabled();
       if (configured && autoSync) {
-        syncAll().catch(err => console.warn('[contrl] Auto-sync failed:', err));
+        try {
+          await syncNow();
+        } catch (err) {
+          console.warn('[contrl] Auto-sync failed:', err);
+        }
       }
     })();
-  }, [ready]);
+  }, [ready, syncNow]);
 
   useEffect(() => {
     if (ready && fontsLoaded) {

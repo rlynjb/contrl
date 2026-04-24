@@ -1,22 +1,27 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   Pressable,
-  ActivityIndicator,
   StyleSheet,
   Modal,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts, categoryColors, categoryBorder } from '../../src/constants/theme';
-import { useGameState } from '../../src/hooks/useGameState';
-import { useExercises } from '../../src/hooks/useExercises';
-import { getNodeState } from '../../src/lib/game/progression';
-import { createGateProgress } from '../../src/lib/game/gate-check';
-import { CategoryBadge } from '../../src/components/ui/CategoryBadge';
-import type { Category, GateProgress } from '../../src/types';
-import { CATEGORIES } from '../../src/types';
+import { colors, fonts, categoryColors, categoryBorder } from '../constants/theme';
+import { useGameState } from '../hooks/useGameState';
+import { useExercises } from '../hooks/useExercises';
+import { getNodeState } from '../lib/game/progression';
+import { createGateProgress } from '../lib/game/gate-check';
+import { CategoryBadge } from './ui/CategoryBadge';
+import type { Category, GateProgress } from '../types';
+import { CATEGORIES } from '../types';
+
+const categoryDim: Record<Category, string> = {
+  push: 'rgba(249,115,22,0.15)',
+  pull: 'rgba(6,182,212,0.15)',
+  squat: 'rgba(217,70,239,0.15)',
+};
 
 const LEVELS = [5, 4, 3, 2, 1]; // top-to-bottom display
 
@@ -27,18 +32,33 @@ type SelectedNode = {
   consecutivePasses: number;
 };
 
-export default function TreeScreen() {
-  const { status, user, gateProgress } = useGameState();
+type Props = {
+  /** Hide the PUSH/PULL/SQUAT column header row — useful when the caller renders its own headers above. */
+  hideHeaders?: boolean;
+  /** Hide the "SKILL TREE" section label. */
+  hideSectionLabel?: boolean;
+};
+
+export function SkillTree({ hideHeaders = false, hideSectionLabel = false }: Props = {}) {
+  const { user, gateProgress, sessions } = useGameState();
   const { exercises } = useExercises();
+  const router = useRouter();
   const [selectedNode, setSelectedNode] = useState<SelectedNode | null>(null);
 
-  if (status === 'loading') {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator color={colors.primary} size="large" />
-      </View>
-    );
-  }
+  // Sessions-this-week count per category — drives the "Done" indicator on the
+  // active-level workout card.
+  const weekSessionCount = useMemo(() => {
+    const counts: Record<Category, number> = { push: 0, pull: 0, squat: 0 };
+    if (!sessions.length) return counts;
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+    for (const s of sessions) {
+      if (new Date(s.date) >= weekStart) counts[s.category]++;
+    }
+    return counts;
+  }, [sessions]);
 
   if (!user) return null;
 
@@ -65,27 +85,27 @@ export default function TreeScreen() {
     : [];
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Section header */}
-      <Text style={styles.sectionLabel}>SKILL TREE</Text>
-      <Text style={styles.title}>Your Progress</Text>
+    <View>
+      {!hideSectionLabel && <Text style={styles.sectionHeader}>SKILL TREE</Text>}
 
       {/* Category column headers */}
-      <View style={styles.headerRow}>
-        {CATEGORIES.map(cat => (
-          <View key={cat} style={styles.headerCol}>
-            <Text
-              style={[
-                styles.headerCat,
-                { color: categoryColors[cat] },
-              ]}
-            >
-              {cat.toUpperCase()}
-            </Text>
-            <Text style={styles.headerLevel}>L{user.levels[cat]}</Text>
-          </View>
-        ))}
-      </View>
+      {!hideHeaders && (
+        <View style={styles.headerRow}>
+          {CATEGORIES.map(cat => (
+            <View key={cat} style={styles.headerCol}>
+              <Text
+                style={[
+                  styles.headerCat,
+                  { color: categoryColors[cat] },
+                ]}
+              >
+                {cat.toUpperCase()}
+              </Text>
+              <Text style={styles.headerLevel}>L{user.levels[cat]}</Text>
+            </View>
+          ))}
+        </View>
+      )}
 
       {/* Grid */}
       {LEVELS.map((level, rowIndex) => (
@@ -94,6 +114,7 @@ export default function TreeScreen() {
             const gate = getGate(cat, level);
             const nodeState = getNodeState(gate, user.levels);
             const catColor = categoryColors[cat];
+            const catBorder = categoryBorder[cat];
             const isPassed = nodeState === 'passed';
             const isLocked = nodeState === 'locked';
             const isInProgress =
@@ -102,6 +123,9 @@ export default function TreeScreen() {
               e => e.category === cat && e.level === level
             );
             const hasExercises = levelExercises.length > 0;
+            const isActive = level === user.levels[cat];
+            const doneCount = isActive ? weekSessionCount[cat] : 0;
+            const isDone = doneCount > 0;
 
             return (
               <View key={cat} style={styles.gridCell}>
@@ -120,69 +144,116 @@ export default function TreeScreen() {
                   />
                 )}
 
-                {/* Node */}
-                <Pressable
-                  onPress={() =>
-                    hasExercises
-                      ? handleNodePress(cat, level)
-                      : null
-                  }
-                  style={[
-                    styles.node,
-                    {
-                      borderColor: isPassed
-                        ? catColor
-                        : isLocked
-                          ? colors.border
-                          : `${catColor}60`,
-                      backgroundColor: isPassed
-                        ? `${catColor}18`
-                        : isLocked
-                          ? 'rgba(30,41,59,0.5)'
-                          : `${catColor}0a`,
-                      opacity: isLocked ? 0.35 : 1,
-                    },
-                  ]}
-                >
-                  {isPassed ? (
-                    <Feather name="check" size={20} color={catColor} />
-                  ) : isLocked ? (
-                    <Feather name="lock" size={14} color={colors.textSecondary} />
-                  ) : (
-                    <Text
-                      style={[
-                        styles.nodeLevel,
-                        { color: catColor },
-                      ]}
-                    >
-                      {level}
-                    </Text>
-                  )}
-
-                  {/* In-progress badge */}
-                  {isInProgress && (
+                {isActive ? (
+                  /* Active (user's current level) node rendered as a workout card.
+                     Tap routes directly to the log screen. */
+                  <Pressable
+                    onPress={() => router.push(`/log/${cat}`)}
+                    style={[
+                      styles.activeCard,
+                      { borderColor: isDone ? 'rgba(52,211,153,0.25)' : catBorder },
+                    ]}
+                  >
                     <View
                       style={[
-                        styles.progressBadge,
-                        { borderColor: `${catColor}40` },
+                        styles.activeBadge,
+                        isDone
+                          ? { backgroundColor: colors.successDim, borderColor: 'rgba(52,211,153,0.25)' }
+                          : { backgroundColor: categoryDim[cat], borderColor: catBorder },
                       ]}
                     >
-                      <Text style={[styles.progressBadgeText, { color: catColor }]}>
-                        {gate.consecutivePasses}/3
-                      </Text>
+                      {isDone ? (
+                        <Feather name="check" size={16} color={colors.success} />
+                      ) : (
+                        <Text style={[styles.activeBadgeText, { color: catColor }]}>L{level}</Text>
+                      )}
                     </View>
-                  )}
-                </Pressable>
+                    <Text style={[styles.activeCatName, { color: catColor }]}>
+                      {cat.toUpperCase()}
+                    </Text>
+                    <Text style={styles.activeSubtext}>
+                      {isDone
+                        ? `Done${doneCount > 1 ? ` ${doneCount}×` : ''}`
+                        : `${levelExercises.length} exercises`}
+                    </Text>
+                    {gate.consecutivePasses > 0 && (
+                      <View style={styles.activeGateGroup}>
+                        <Text style={[styles.activeGateText, { color: catColor }]}>
+                          {gate.consecutivePasses}/3
+                        </Text>
+                        <Text style={styles.activeGateCaption}>
+                          clean streak
+                        </Text>
+                      </View>
+                    )}
+                  </Pressable>
+                ) : (
+                  <>
+                    {/* Non-active node (passed / locked / future in-progress) */}
+                    <Pressable
+                      onPress={() =>
+                        hasExercises
+                          ? handleNodePress(cat, level)
+                          : null
+                      }
+                      style={[
+                        styles.node,
+                        {
+                          borderColor: isPassed
+                            ? catColor
+                            : isLocked
+                              ? colors.border
+                              : `${catColor}60`,
+                          backgroundColor: isPassed
+                            ? `${catColor}18`
+                            : isLocked
+                              ? 'rgba(30,41,59,0.5)'
+                              : `${catColor}0a`,
+                          opacity: isLocked ? 0.35 : 1,
+                        },
+                      ]}
+                    >
+                      {isPassed ? (
+                        <Feather name="check" size={20} color={catColor} />
+                      ) : isLocked ? (
+                        <Feather name="lock" size={14} color={colors.textSecondary} />
+                      ) : (
+                        <Text
+                          style={[
+                            styles.nodeLevel,
+                            { color: catColor },
+                          ]}
+                        >
+                          {level}
+                        </Text>
+                      )}
 
-                {/* Exercise count + level label */}
-                <Text
-                  style={[
-                    styles.nodeLevelLabel,
-                    { marginTop: isInProgress ? 6 : 2 },
-                  ]}
-                >
-                  L{level} · {levelExercises.length}
-                </Text>
+                      {/* In-progress badge */}
+                      {isInProgress && (
+                        <View
+                          style={[
+                            styles.progressBadge,
+                            { borderColor: `${catColor}40` },
+                          ]}
+                        >
+                          <Text style={[styles.progressBadgeText, { color: catColor }]}>
+                            {gate.consecutivePasses}/3
+                          </Text>
+                        </View>
+                      )}
+                    </Pressable>
+
+                    {/* Exercise count + level label */}
+                    <Text
+                      style={[
+                        styles.nodeLevelLabel,
+                        { marginTop: isInProgress ? 6 : 2 },
+                      ]}
+                    >
+                      L{level} · {levelExercises.length}
+                    </Text>
+                  </>
+                )}
               </View>
             );
           })}
@@ -283,38 +354,17 @@ export default function TreeScreen() {
           </Pressable>
         </Pressable>
       </Modal>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 100,
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: colors.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sectionLabel: {
-    fontSize: 11,
+  sectionHeader: {
+    fontSize: 10,
     fontFamily: fonts.semiBold,
-    letterSpacing: 1.65,
+    letterSpacing: 1.5,
     color: colors.textSecondary,
-    marginBottom: 4,
-  },
-  title: {
-    fontSize: 22,
-    fontFamily: fonts.extraBold,
-    color: colors.text,
-    marginBottom: 20,
+    marginBottom: 12,
   },
   headerRow: {
     flexDirection: 'row',
@@ -378,6 +428,57 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontFamily: fonts.regular,
     color: colors.textSecondary,
+  },
+  // Active-level workout card (rendered in-grid at user's current level)
+  activeCard: {
+    width: '92%',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderRadius: 2,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+    gap: 4,
+  },
+  activeBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 2,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
+  },
+  activeBadgeText: {
+    fontSize: 13,
+    fontFamily: fonts.extraBold,
+  },
+  activeCatName: {
+    fontSize: 11,
+    fontFamily: fonts.bold,
+    letterSpacing: 1,
+  },
+  activeSubtext: {
+    fontSize: 9,
+    fontFamily: fonts.regular,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  activeGateGroup: {
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  activeGateText: {
+    fontSize: 10,
+    fontFamily: fonts.bold,
+  },
+  activeGateCaption: {
+    fontSize: 7,
+    fontFamily: fonts.regular,
+    color: colors.textSecondary,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginTop: 1,
   },
   // Modal
   modalOverlay: {
