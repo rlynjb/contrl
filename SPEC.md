@@ -57,12 +57,12 @@ Consecutive complete weeks. Broken when a week ends without all 3 categories log
 
 ### Home
 
-Dashboard showing:
-- **Week strip** — 7-day row (Sun-Sat), dots colored by category when a session was logged
-- **Remaining** — category cards not yet completed this week, showing level, exercise count, gate progress (X/3)
-- **Completed** — dimmed cards for categories logged this week
+Dashboard with two stacked sections:
 
-Tapping a remaining category navigates to Log Workout.
+- **Week strip** — 7-day row (Sun-Sat), dots colored by category for any day a session was logged. Today is outlined when no session yet.
+- **Skill tree** — 5 rows (levels, L5 → L1 top-to-bottom) × 3 columns (categories). The cell at each category's *current* level is rendered as a workout card (badge L#, category label, exercise count, gate progress with a `CLEAN STREAK` caption); tapping it routes to Log Workout. Locked / passed / non-current cells render as small square nodes and tap-open the exercise detail modal.
+
+There is no separate Skill Tree tab — the tree is embedded directly under the week strip on Home.
 
 ### Log Workout
 
@@ -85,21 +85,18 @@ Additional elements:
 - Gate progress or "GATE PASSED" with level-up indicator
 - Per-exercise breakdown showing hit/miss and shortfall details
 
-### Skill Tree
+### Skill Tree (embedded on Home)
 
-Grid visualization: 5 rows (levels) x 3 columns (categories).
+Grid: 5 rows (levels, L5 → L1 top-to-bottom) × 3 columns (categories).
 
-Node states:
-- **Passed** — checkmark icon
-- **In-progress** — level number with X/3 badge
-- **Open** — level number
-- **Locked** — lock icon, dimmed
+Node rendering depends on whether the cell is at the user's current level for that category:
 
-Tapping any node (including locked) opens a modal showing:
-- Category badge, level, status
-- 3-segment progress bar
-- Exercise list with targets
-- Exercise count per node shown below each node
+- **Active (user's current level)** — rendered as a workout card: level badge (or green check if logged this week), category label, exercise count, gate progress (`X/3` with `CLEAN STREAK` caption). Tap routes to Log Workout.
+- **Passed** — small node with checkmark.
+- **Locked** — small node with lock icon, dimmed.
+- **Other in-progress** — small node with level number; an `X/3` badge sits below if any clean passes are recorded.
+
+Tapping any non-active node opens a modal showing the category badge, level, status, 3-segment gate progress bar, and the exercise list with targets.
 
 ### History
 
@@ -175,11 +172,19 @@ For timed exercises without camera:
 
 ### Reconstruction
 
-On reinstall with synced sessions but empty progress:
-1. Sort all sessions chronologically
-2. Replay through gate evaluation logic
-3. Rebuild user levels and gate progress
-4. Persist reconstructed state
+On a fresh install with Notion auto-sync enabled, sessions are pulled from Notion *after* the database initializes. Reconstruction has to fire after the pull, not on the initial DB-ready pass (which sees zero sessions).
+
+Trigger:
+1. App opens → DB ready → first `load()` runs and creates default L1 gates with no recorded passes.
+2. Auto-sync runs through `syncNow()` (not `syncAll()` directly), which bumps `syncVersion` after the pull completes.
+3. `syncVersion` change triggers `load()` to run again. With sessions now in SQLite and gates still untouched (no recorded `consecutivePasses`, no `lastSessionDate`), the reinstall detector fires and reconstruction runs.
+
+Reconstruction itself:
+1. Sort all sessions chronologically.
+2. Replay through gate evaluation: clean session → consecutive count +1, dirty session → reset to 0; 3 consecutive clean → graduate to next level.
+3. Persist reconstructed user levels and gate progress.
+
+Idempotent: running reconstruction against the same session history always produces the same result, so the post-sync `load()` re-run is safe to repeat.
 
 ---
 
@@ -222,11 +227,15 @@ Seed data loaded from exercises-seed.json if exercises table is empty.
 
 ## Theme
 
-Dark UI with sharp edges (0-2px border radius).
+Dark UI with sharp edges (0-2px border radius). Tron-inspired: muted slate surfaces with neon-cyan primary and saturated category accents.
 
 **Colors:**
-- Background: #06080f
-- Surface: #0c1021
+- Background: #1e293b (slate-800)
+- Surface: #334155 (slate-700)
+- Surface light: #475569 (slate-600)
+- Border: #475569
+- Text: #f8fafc (slate-50)
+- Text secondary / muted: #cbd5e1 (slate-300)
 - Primary: #00e5ff (cyan)
 - Success: #34d399 (green)
 - Warning: #fbbf24 (amber)
@@ -240,12 +249,14 @@ Dark UI with sharp edges (0-2px border radius).
 
 ```
 app/                    Expo Router screens
-  (tabs)/               Tab navigation (home, tree, history)
+  (tabs)/               Tab navigation (home, history)
   log/[category]        Log workout
   settings/             Settings + Notion config
 
 src/
   components/
+    SkillTree.tsx       5x3 grid; renders active-level cells as
+                        workout cards, others as small nodes
     camera/             PoseCamera, overlays, skeleton, debug
     ui/                 CategoryBadge, ProgressBar, HoldTimerModal
   constants/            Theme (colors, fonts)
@@ -265,8 +276,12 @@ src/
 
 ### State Flow
 
-App open -> SQLite init -> load user/sessions/gates/weeks -> detect reinstall? -> reconstruct if needed -> create missing gates -> check auto-sync -> ready.
+**App open** → SQLite init → first `load()` (user, sessions, gates, weeks) → reinstall detector skipped on this pass if there are no sessions yet → create missing default gates → ready.
 
-Log session -> save to DB -> evaluate clean? -> update gate -> check level-up -> update week -> clear draft -> show result.
+**Auto-sync** (in parallel, gated on Notion configured + auto-sync enabled): goes through `NotionSyncContext.syncNow()` so it shares state with manual syncs. On completion it bumps `syncVersion`.
 
-Sync -> pull exercises (upsert + prune) -> pull sessions (merge) -> push local sessions -> process deletions -> increment syncVersion -> reload state.
+**`syncVersion` bump** → `load()` re-runs → reinstall detector now sees sessions present + gates untouched → reconstruction replays history → persisted user levels and gates → state reloaded into context.
+
+**Log session** → save to DB → evaluate clean? → update gate → check level-up → update week → clear draft → show result.
+
+**Sync** → pull exercises (upsert + prune) → pull sessions (merge with last-edit-wins, 2-min remote bias) → push local sessions → process deletions → increment `syncVersion` → reload state.
