@@ -65,35 +65,13 @@ create table if not exists public.week_progress (
 );
 
 -- ── RLS ─────────────────────────────────────────────────────
+-- MVP: RLS is OFF. Anyone with the project URL + anon key has full
+-- read/write to these tables. Acceptable for a single-user backup
+-- where the anon key lives in the user's own APK. Add proper auth
+-- + RLS before sharing the project URL beyond yourself.
 
-alter table public.user_profile  enable row level security;
-alter table public.exercises     enable row level security;
-alter table public.sessions      enable row level security;
-alter table public.gate_progress enable row level security;
-alter table public.week_progress enable row level security;
-
--- Helper: read user_id from JWT claims.
-create or replace function public.jwt_user_id() returns uuid
-language sql stable as $$
-  select nullif(current_setting('request.jwt.claims', true)::json ->> 'user_id', '')::uuid
-$$;
-
-create policy "user_isolation" on public.user_profile
-  for all using (user_id = public.jwt_user_id())
-  with check (user_id = public.jwt_user_id());
-
-create policy "user_isolation" on public.exercises
-  for all using (user_id = public.jwt_user_id())
-  with check (user_id = public.jwt_user_id());
-
-create policy "user_isolation" on public.sessions
-  for all using (user_id = public.jwt_user_id())
-  with check (user_id = public.jwt_user_id());
-
-create policy "user_isolation" on public.gate_progress
-  for all using (user_id = public.jwt_user_id())
-  with check (user_id = public.jwt_user_id());
-
-create policy "user_isolation" on public.week_progress
-  for all using (user_id = public.jwt_user_id())
-  with check (user_id = public.jwt_user_id());
+alter table public.user_profile  disable row level security;
+alter table public.exercises     disable row level security;
+alter table public.sessions      disable row level security;
+alter table public.gate_progress disable row level security;
+alter table public.week_progress disable row level security;

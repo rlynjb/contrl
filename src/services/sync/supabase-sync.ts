@@ -15,7 +15,14 @@ import {
 } from './mapper';
 
 function logErr(label: string, e: unknown) {
-  const msg = e instanceof Error ? e.message : String(e);
+  let msg: string;
+  if (e instanceof Error) {
+    msg = e.message;
+  } else if (e && typeof e === 'object') {
+    msg = JSON.stringify(e);
+  } else {
+    msg = String(e);
+  }
   console.warn(`[sync] ${label}:`, msg);
 }
 
