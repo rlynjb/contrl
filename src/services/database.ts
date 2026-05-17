@@ -99,6 +99,12 @@ async function migrate(database: SQLite.SQLiteDatabase): Promise<void> {
       deleted_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS sync_state (
+      id TEXT PRIMARY KEY DEFAULT 'default',
+      last_pushed_at TEXT,
+      last_pulled_at TEXT
+    );
+
     -- Migrations for existing databases (ALTER TABLE is idempotent with IF NOT EXISTS in newer SQLite)
   `);
 
@@ -160,6 +166,10 @@ async function migrate(database: SQLite.SQLiteDatabase): Promise<void> {
       ['default', now, now]
     );
   }
+
+  await database.runAsync(
+    `INSERT OR IGNORE INTO sync_state (id, last_pushed_at, last_pulled_at) VALUES ('default', NULL, NULL)`
+  );
 }
 
 async function seedExercisesIfEmpty(database: SQLite.SQLiteDatabase): Promise<void> {
@@ -518,3 +528,25 @@ export async function deleteDraft(category: Category, level: number): Promise<vo
   await d.runAsync('DELETE FROM drafts WHERE id = ?', [`draft:${category}:${level}`]);
 }
 
+// ── Sync state ──────────────────────────────────────────────
+
+export async function getSyncState(): Promise<{ lastPushedAt: string | null; lastPulledAt: string | null }> {
+  const d = await getDatabase();
+  const row = await d.getFirstAsync<{ last_pushed_at: string | null; last_pulled_at: string | null }>(
+    `SELECT last_pushed_at, last_pulled_at FROM sync_state WHERE id = 'default'`
+  );
+  return {
+    lastPushedAt: row?.last_pushed_at ?? null,
+    lastPulledAt: row?.last_pulled_at ?? null,
+  };
+}
+
+export async function setLastPushedAt(at: string): Promise<void> {
+  const d = await getDatabase();
+  await d.runAsync(`UPDATE sync_state SET last_pushed_at = ? WHERE id = 'default'`, [at]);
+}
+
+export async function setLastPulledAt(at: string): Promise<void> {
+  const d = await getDatabase();
+  await d.runAsync(`UPDATE sync_state SET last_pulled_at = ? WHERE id = 'default'`, [at]);
+}
