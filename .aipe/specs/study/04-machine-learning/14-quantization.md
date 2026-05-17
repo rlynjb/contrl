@@ -39,7 +39,7 @@ For a tabular classifier with ~10 trees of depth 8 = ~8000 weights × 4 bytes = 
 
 For LightGBM tabular models, PTQ is sufficient. For neural nets at int8 or below, QAT is often worth it.
 
-### Move 2.5 — What contrl-mo needs
+### Move 2.5 — What contrl needs
 
 The form classifier (LightGBM, ~32KB) doesn't need quantization for size — it's already tiny. Quantization is still worth measuring for *inference speed* — int8 trees run faster.
 
@@ -132,7 +132,7 @@ Small accuracy loss. For the form classifier, likely sub-1%. Worth measuring; sh
 
 ### Sub-block 2 — what skipping would cost
 
-Marginally bigger app, slightly slower inference, more battery. For contrl-mo's small classifier this is acceptable; for a CNN it would be more significant.
+Marginally bigger app, slightly slower inference, more battery. For contrl's small classifier this is acceptable; for a CNN it would be more significant.
 
 ### Sub-block 3 — the breakpoint
 

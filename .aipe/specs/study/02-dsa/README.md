@@ -1,6 +1,6 @@
 # 02 — Data structures & algorithms
 
-Meaningful operations performed by contrl-mo on its data. Most are O(n) or O(n log n); none are accidentally O(n²).
+Meaningful operations performed by contrl on its data. Most are O(n) or O(n log n); none are accidentally O(n²).
 
 ## Complexity cheat sheet
 
@@ -15,7 +15,7 @@ Meaningful operations performed by contrl-mo on its data. Most are O(n) or O(n l
 | 07 | Week-start derivation | `week-progress.ts` L7 | O(1) | O(1) | ✓ |
 | 08 | Streak fold | `streaks.ts` L18 | O(weeks) | O(1) | ✓ |
 
-No operation in contrl-mo is currently O(n²) where O(n) is reachable. The closest miss would be the `pullSessions` reconciliation if it used nested loops instead of a `Set`; that's why [03-set-based-diffing](./03-set-based-diffing.md) earns its place.
+No operation in contrl is currently O(n²) where O(n) is reachable. The closest miss would be the `pullSessions` reconciliation if it used nested loops instead of a `Set`; that's why [03-set-based-diffing](./03-set-based-diffing.md) earns its place.
 
 ## File index
 

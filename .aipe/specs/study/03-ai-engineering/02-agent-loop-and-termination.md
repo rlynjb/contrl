@@ -254,7 +254,7 @@ A fine-tuned model that emits coaching directly without tools wasn't a real opti
 
 ### Concept recap
 
-An agent loop is a bounded `while` loop: send messages + tools to the LLM, parse response, dispatch any tool calls, append results, repeat. Three exits: `end_turn` (model done), max iterations (external cap), wall-clock timeout. For contrl-mo's planned Path C coaching agent, max iterations is 6 and timeout is 30s; typical coaching runs terminate in 2–3 iterations. The constraint forcing the design was the stochastic nature of LLM output — a loop without bounds is a loop that costs unbounded money. The cost is per-iteration latency.
+An agent loop is a bounded `while` loop: send messages + tools to the LLM, parse response, dispatch any tool calls, append results, repeat. Three exits: `end_turn` (model done), max iterations (external cap), wall-clock timeout. For contrl's planned Path C coaching agent, max iterations is 6 and timeout is 30s; typical coaching runs terminate in 2–3 iterations. The constraint forcing the design was the stochastic nature of LLM output — a loop without bounds is a loop that costs unbounded money. The cost is per-iteration latency.
 
 ### Key points
 
@@ -295,7 +295,7 @@ A: Empirically — measure how many iterations real production runs take, then s
 ```
 
 **Q: What happens at 1000 concurrent agent runs?  [arch]**
-A: Each run is bounded by max iterations × per-call latency. At 6 iterations × 500ms = 3s wall-clock, that's 3000 second-runs per second of compute. Each run sends ~2000 tokens; aggregate is 6M tokens/sec which exceeds Anthropic's rate limits. The fix is queue + backpressure: serialize runs, batch parallel tool dispatches across runs, and rate-limit at the queue rather than retry at the SDK. We're nowhere near this scale for contrl-mo (single user).
+A: Each run is bounded by max iterations × per-call latency. At 6 iterations × 500ms = 3s wall-clock, that's 3000 second-runs per second of compute. Each run sends ~2000 tokens; aggregate is 6M tokens/sec which exceeds Anthropic's rate limits. The fix is queue + backpressure: serialize runs, batch parallel tool dispatches across runs, and rate-limit at the queue rather than retry at the SDK. We're nowhere near this scale for contrl (single user).
 
 ```
 ┌─ at 1000 concurrent ─────────────────────────────────────┐

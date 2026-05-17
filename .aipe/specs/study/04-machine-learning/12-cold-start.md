@@ -34,7 +34,7 @@ Strategies:
 
 New item added, no engagement history. Pure collaborative filtering can't recommend it. Content-based handles it because item features exist.
 
-### contrl-mo's cold-start
+### contrl's cold-start
 
 User cold-start applies (single user, day-one install). Item cold-start doesn't really apply because exercises are pre-seeded with rich features.
 
@@ -179,7 +179,7 @@ Random day-1 recommendation was not picked because it ignores all signal (gate s
 
 ### Concept recap
 
-Cold-start happens when a recommender has no data to learn from — typically day one for a new user. The fix is a rule-based fallback that doesn't need data. contrl-mo's planned dispatcher uses a 5-session threshold: below it, rules; above it, the learned model. The threshold is product policy validated against offline metrics. The constraint forcing this design is that learned models trained on 3 examples overfit; rules don't have that failure mode. The cost paid is a few sessions of potentially-suboptimal recommendations that the learned model might have improved.
+Cold-start happens when a recommender has no data to learn from — typically day one for a new user. The fix is a rule-based fallback that doesn't need data. contrl's planned dispatcher uses a 5-session threshold: below it, rules; above it, the learned model. The threshold is product policy validated against offline metrics. The constraint forcing this design is that learned models trained on 3 examples overfit; rules don't have that failure mode. The cost paid is a few sessions of potentially-suboptimal recommendations that the learned model might have improved.
 
 ### Key points
 
@@ -195,7 +195,7 @@ Cold-start happens when a recommender has no data to learn from — typically da
 ### Likely questions
 
 **Q: What's cold-start?  [mid]**
-A: The problem of recommending to users (or items) with no history. With no data, the learned model can't be trained or its predictions are noise. The fix: rule-based recommendations until enough data accumulates, then switch to learned. For contrl-mo's planned recommender, threshold is 5 sessions.
+A: The problem of recommending to users (or items) with no history. With no data, the learned model can't be trained or its predictions are noise. The fix: rule-based recommendations until enough data accumulates, then switch to learned. For contrl's planned recommender, threshold is 5 sessions.
 
 **Q: How did you pick 5 sessions?  [senior]**
 A: Validated offline. Train the learned model on the first N sessions of historical data; eval on the next M sessions; compare against rule-based on the same M. The threshold is the smallest N where the learned model beats rules. Currently a placeholder of 5 with an open TODO to validate after enough data accumulates.

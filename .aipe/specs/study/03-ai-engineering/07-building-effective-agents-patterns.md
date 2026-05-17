@@ -3,7 +3,7 @@
 **Industry name(s):** Anthropic's effective-agents patterns, chained / routed / parallel / orchestrator-worker / evaluator-optimizer
 **Type:** Industry standard
 
-> Anthropic's "Building Effective Agents" post (2024) names five composition patterns: prompt chaining, routing, parallelization, orchestrator-workers, and evaluator-optimizer. The right pattern for contrl-mo's coaching agent is *routing* with a heuristic gate plus a small set of focused tools.
+> Anthropic's "Building Effective Agents" post (2024) names five composition patterns: prompt chaining, routing, parallelization, orchestrator-workers, and evaluator-optimizer. The right pattern for contrl's coaching agent is *routing* with a heuristic gate plus a small set of focused tools.
 
 **See also:** → [04-tool-routing](./04-tool-routing.md) · → [02-agent-loop-and-termination](./02-agent-loop-and-termination.md) · → [06-when-not-to-use-an-agent](./06-when-not-to-use-an-agent.md)
 
@@ -41,7 +41,7 @@ input ──► classifier ──► handler A
                      ──► handler C
 ```
 
-contrl-mo's coaching agent is this pattern: heuristic gate decides "should coach?", then the LLM-driven agent loop handles the "coach" branch.
+contrl's coaching agent is this pattern: heuristic gate decides "should coach?", then the LLM-driven agent loop handles the "coach" branch.
 
 ### Pattern 3 — Parallelization
 
@@ -53,7 +53,7 @@ input ──► call A ─┐
        ──► call C ─┘
 ```
 
-Useful when independent perspectives matter (sectioning + voting + n-best). Not used in contrl-mo's coaching agent.
+Useful when independent perspectives matter (sectioning + voting + n-best). Not used in contrl's coaching agent.
 
 ### Pattern 4 — Orchestrator-workers
 
@@ -77,7 +77,7 @@ LLM-1: generate ──► LLM-2: evaluate ──► LLM-1: revise ──► ...
 
 Useful for iterative refinement (e.g., code generation with self-review). Could apply to coaching ("draft coaching → evaluate quality → revise") but adds cost; not in scope for Phase 4 Path C.
 
-### Move 2.5 — Which pattern fits contrl-mo
+### Move 2.5 — Which pattern fits contrl
 
 The coaching agent maps cleanly to **routing**:
 - Outer routing decision (heuristic) — `shouldCoach()`.
@@ -104,7 +104,7 @@ The full picture is below.
         │
         │           ┌─ Routing ────────────────────────────────┐
         │           │  classifier → handler                     │
-        │           │  contrl-mo coaching agent (planned)       │
+        │           │  contrl coaching agent (planned)       │
         │           └───────────────────────────────────────────┘
         │
         │           ┌─ Parallelization ─────────────────────────┐
@@ -211,7 +211,7 @@ Picking a simpler pattern (prompt chaining) wasn't a real option because chainin
 ### [B4.8] Map Anthropic's patterns to your agent
 
 - **Exercise ID:** `[B4.8]`
-- **What to build:** A short doc (1–2 pages) mapping each of the five Anthropic patterns to either: (a) where it's used in contrl-mo (routing for coaching), (b) where it's *not* used and why, or (c) where it might apply in a future version. References to file paths or planned files.
+- **What to build:** A short doc (1–2 pages) mapping each of the five Anthropic patterns to either: (a) where it's used in contrl (routing for coaching), (b) where it's *not* used and why, or (c) where it might apply in a future version. References to file paths or planned files.
 - **Why it earns its place:** the exercise that produces a defensible answer to "which pattern is this?" — the question every interview about agents will ask.
 - **Files to touch:** `.aipe/specs/features/agent-architecture.md` (the Path C spec; add a section).
 - **Done when:** the spec has a "Patterns from Anthropic's post" section with one paragraph per pattern.
@@ -223,13 +223,13 @@ Picking a simpler pattern (prompt chaining) wasn't a real option because chainin
 
 ### Concept recap
 
-Anthropic's post names five LLM composition patterns: chaining, routing, parallelization, orchestrator-workers, evaluator-optimizer. contrl-mo's planned coaching agent maps to *routing* — heuristic gate decides "should coach?", a single specialized handler does the coaching. The constraint forcing this choice was the scope (single domain, well-defined output). The cost paid is that more diverse coaching styles would require additional handlers later.
+Anthropic's post names five LLM composition patterns: chaining, routing, parallelization, orchestrator-workers, evaluator-optimizer. contrl's planned coaching agent maps to *routing* — heuristic gate decides "should coach?", a single specialized handler does the coaching. The constraint forcing this choice was the scope (single domain, well-defined output). The cost paid is that more diverse coaching styles would require additional handlers later.
 
 ### Key points
 
 - Five patterns, ordered by complexity.
 - Pick the simplest pattern that fits; climb the hierarchy only when forced.
-- contrl-mo coaching = routing pattern.
+- contrl coaching = routing pattern.
 - The post's value is the order of preference, not the names themselves.
 
 ---
@@ -271,7 +271,7 @@ Why routing for coaching? Under 60 seconds.
 
 ### Quick check — code reference test
 - How many patterns?
-- Which one is contrl-mo using?
+- Which one is contrl using?
 - What's the curriculum exercise number?
 
 Then verify.

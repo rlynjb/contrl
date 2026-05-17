@@ -2,12 +2,12 @@ import type { Category, WeekProgress } from '@/types'
 import { CATEGORIES } from '@/types'
 
 /**
- * Get the Sunday date string ("YYYY-MM-DD") for the week containing `date`.
+ * Get the Monday date string ("YYYY-MM-DD") for the week containing `date`.
  */
 export function getWeekStart(date: Date): string {
   const d = new Date(date)
-  const day = d.getDay() // 0=Sun … 6=Sat
-  d.setDate(d.getDate() - day)
+  const offsetFromMonday = (d.getDay() + 6) % 7 // 0=Mon … 6=Sun
+  d.setDate(d.getDate() - offsetFromMonday)
   const yyyy = d.getFullYear()
   const mm = String(d.getMonth() + 1).padStart(2, '0')
   const dd = String(d.getDate()).padStart(2, '0')

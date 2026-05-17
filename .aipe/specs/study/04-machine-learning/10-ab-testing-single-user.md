@@ -74,7 +74,7 @@ The honesty: this is a small-N experiment, not a clinical trial. The value is th
 - It forces honesty about what counts as success.
 - It creates a baseline (the rules arm) you can defend.
 - It gives you something to *report* — "I ran a single-user A/B and saw a 13% lift on followed-rate" is much stronger than "I think the learned model is better".
-- It scales — when contrl-mo gets more users, the same logging schema gives you real statistical power.
+- It scales — when contrl gets more users, the same logging schema gives you real statistical power.
 
 ### Move 3 — The principle
 

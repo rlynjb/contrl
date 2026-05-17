@@ -1,6 +1,6 @@
 # 01 — System design
 
-Architectural patterns in contrl-mo. Read top-down: each file is self-contained but the order reflects dependencies.
+Architectural patterns in contrl. Read top-down: each file is self-contained but the order reflects dependencies.
 
 ## The 6-step mental checklist
 

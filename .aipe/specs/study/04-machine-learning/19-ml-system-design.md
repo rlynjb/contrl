@@ -45,7 +45,7 @@ Separate from the request loop. Different latency budget (hours/days, not ms). D
 
 The audit trail ([15-audit-trail-inference-logging](./15-audit-trail-inference-logging.md)) plus labeling pipeline ([01-supervised-pipeline](./01-supervised-pipeline.md) stage 1). What makes ML systems *live* — they evolve.
 
-### For contrl-mo
+### For contrl
 
 ```
    Request loop:
@@ -181,9 +181,9 @@ There's no tradeoff in the pattern itself — it's the lens for designing. The t
 ### [B5.14] Three system designs 1-pager
 
 - **Exercise ID:** `[B5.14]`
-- **What to build:** A single document in `aieng-portfolio/three-system-designs.md` (cross-project) presenting contrl-mo as "on-device classification + recommender", loopd as "LLM application", aipe as "retrieval-augmented tooling". Reference IK Modules 1–6 where each applies.
+- **What to build:** A single document in `aieng-portfolio/three-system-designs.md` (cross-project) presenting contrl as "on-device classification + recommender", loopd as "LLM application", aipe as "retrieval-augmented tooling". Reference IK Modules 1–6 where each applies.
 - **Why it earns its place:** the interview synthesis artifact — the three-shapes story made explicit.
-- **Files to touch:** `aieng-portfolio/three-system-designs.md` (cross-project, not in contrl-mo's repo).
+- **Files to touch:** `aieng-portfolio/three-system-designs.md` (cross-project, not in contrl's repo).
 - **Done when:** the doc has three sections, each with a system-design diagram + IK-module mapping + key tradeoffs.
 - **Estimated effort:** 1–2 days
 
@@ -193,7 +193,7 @@ There's no tradeoff in the pattern itself — it's the lens for designing. The t
 
 ### Concept recap
 
-An ML system design has three loops: request (online inference), training (offline model production), feedback (predictions become next-cycle training data). General system design has only the request loop. For contrl-mo's planned classifier, the request loop is `classifier.run()`; the training loop is `scripts/train_*.py + ml-runs.jsonl`; the feedback loop is `classifier_outputs + labeling tool`. The constraint forcing this design is that models age and data shifts; the cost is more architectural surface than a stateless service.
+An ML system design has three loops: request (online inference), training (offline model production), feedback (predictions become next-cycle training data). General system design has only the request loop. For contrl's planned classifier, the request loop is `classifier.run()`; the training loop is `scripts/train_*.py + ml-runs.jsonl`; the feedback loop is `classifier_outputs + labeling tool`. The constraint forcing this design is that models age and data shifts; the cost is more architectural surface than a stateless service.
 
 ### Key points
 

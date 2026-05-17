@@ -162,7 +162,7 @@ A third cost: developer onboarding. A new engineer has to learn the sync engine,
 
 ### Sub-block 2 — what cloud-first would have cost
 
-If contrl-mo were cloud-first, the gym-basement workflow would mean every set-tap shows a spinner, then either succeeds (200ms+) or fails and re-queues. The user-perceived cost is enormous — that's not a feature, that's a bug they'd report on day one. The fix in a cloud-first app is to add an optimistic UI layer on top, then a cache, then a queue, then a retry policy — which is *more code* than the local-first approach, not less, because you end up rebuilding most of the local-first stack as an afterthought.
+If contrl were cloud-first, the gym-basement workflow would mean every set-tap shows a spinner, then either succeeds (200ms+) or fails and re-queues. The user-perceived cost is enormous — that's not a feature, that's a bug they'd report on day one. The fix in a cloud-first app is to add an optimistic UI layer on top, then a cache, then a queue, then a retry policy — which is *more code* than the local-first approach, not less, because you end up rebuilding most of the local-first stack as an afterthought.
 
 The infrastructure cost would also be real: hosting an authenticated backend with a database, paying per-request, monitoring for outages. Local-first pays Notion's free-tier API and is otherwise infrastructure-free.
 
@@ -208,7 +208,7 @@ A common "obvious alternative" people raise is Firestore/Supabase realtime. They
 
 ### Concept recap
 
-Local-first means SQLite is the source of truth and Notion is the mirror. Every read in contrl-mo hits the local database; every write commits locally first and reconciles to Notion in the background. The constraint that forced it was the workout context — basement gyms, weak cellular, latency budget under 50ms for a checkbox tap. The cost paid is the reinstall-recovery story (we rebuild derived state from session history via `reconstructFromSessions`) plus a sync engine that has to handle pull-then-push ordering, conflict resolution, and deletions.
+Local-first means SQLite is the source of truth and Notion is the mirror. Every read in contrl hits the local database; every write commits locally first and reconciles to Notion in the background. The constraint that forced it was the workout context — basement gyms, weak cellular, latency budget under 50ms for a checkbox tap. The cost paid is the reinstall-recovery story (we rebuild derived state from session history via `reconstructFromSessions`) plus a sync engine that has to handle pull-then-push ordering, conflict resolution, and deletions.
 
 ### Key points
 
@@ -310,7 +310,7 @@ Checkpoints:
 Write your answer. 3–5 sentences. Then open `src/services/database.ts` L307 (`getSessions`) and check whether your answer matches what the codebase would do.
 
 ### Level 4 — Defend the decision you'd change
-"If I were starting contrl-mo today, would I still pick local-first?" Answer in writing. Reference `src/services/notion/sync.ts` to support what exists, and name what would need to change for the alternative.
+"If I were starting contrl today, would I still pick local-first?" Answer in writing. Reference `src/services/notion/sync.ts` to support what exists, and name what would need to change for the alternative.
 
 ### Quick check — code reference test
 Without opening files:

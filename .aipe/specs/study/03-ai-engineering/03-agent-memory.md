@@ -162,11 +162,11 @@ Pre-loading the last 5 sessions of form classifier outputs is ~1500 tokens. Pre-
 
 ### Sub-block 3 — the breakpoint
 
-Fine until the long-term memory grows past what a tool can return in one call. Currently the tool returns the last 5 sessions; at 50 sessions per workout × 50 workouts that's ~2500 entries, no good for in-prompt retrieval. The fix is an embedding-based "find relevant past coaching" retrieval — essentially a RAG layer (which is loopd's primary curriculum item, not contrl-mo's).
+Fine until the long-term memory grows past what a tool can return in one call. Currently the tool returns the last 5 sessions; at 50 sessions per workout × 50 workouts that's ~2500 entries, no good for in-prompt retrieval. The fix is an embedding-based "find relevant past coaching" retrieval — essentially a RAG layer (which is loopd's primary curriculum item, not contrl's).
 
 ### Sub-block 4 — what isn't a tradeoff
 
-A vector-store-based long-term memory for contrl-mo wasn't picked because the data is already structured (rows in SQLite with clear keys). RAG earns its place when you have unstructured text you can't address by key; here we have classifier outputs you can query by date and category.
+A vector-store-based long-term memory for contrl wasn't picked because the data is already structured (rows in SQLite with clear keys). RAG earns its place when you have unstructured text you can't address by key; here we have classifier outputs you can query by date and category.
 
 ---
 

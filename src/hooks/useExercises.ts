@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { getExercises } from '@/services/database';
-import { useNotionSync } from './NotionSyncContext';
 import type { Exercise } from '@/types';
 
 export function useExercises() {
@@ -8,7 +7,6 @@ export function useExercises() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
-  const { syncVersion } = useNotionSync();
 
   useEffect(() => {
     setLoading(true);
@@ -22,7 +20,7 @@ export function useExercises() {
         setError(message);
       })
       .finally(() => setLoading(false));
-  }, [reloadToken, syncVersion]);
+  }, [reloadToken]);
 
   return {
     exercises,

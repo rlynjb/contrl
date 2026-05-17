@@ -58,7 +58,7 @@ If you tune on test, test becomes contaminated — your model is now overfit to 
 
 ### Move 2.5 — Temporal vs random split
 
-For some problems (time-series, evolving distributions) you want temporal split: train on sessions before date X, test on sessions after. For contrl-mo's classifier, the failure modes don't shift over time at this scale; random session-level is sufficient.
+For some problems (time-series, evolving distributions) you want temporal split: train on sessions before date X, test on sessions after. For contrl's classifier, the failure modes don't shift over time at this scale; random session-level is sufficient.
 
 ### Move 3 — The principle
 

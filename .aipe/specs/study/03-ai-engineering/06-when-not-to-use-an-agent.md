@@ -27,7 +27,7 @@ For every place an agent *could* go, ask three questions:
 
 Only if all three are "no" does an agent earn its place.
 
-### Where contrl-mo does NOT use an agent
+### Where contrl does NOT use an agent
 
 | Surface | What it does | Why not an agent |
 |---|---|---|
@@ -38,7 +38,7 @@ Only if all three are "no" does an agent earn its place.
 | Session sync | Bidirectional Notion sync | Deterministic with conflict resolution. |
 | Recommend next exercise | Pick what to do today | Rule-based (B2C.14) first; learned recommender (B2C.15) later. NOT an agent. |
 
-### Where contrl-mo WILL use an agent (Phase 4 Path C)
+### Where contrl WILL use an agent (Phase 4 Path C)
 
 | Surface | What it does | Why an agent |
 |---|---|---|
@@ -150,7 +150,7 @@ Every interaction in the app fires an LLM call. Latency budget blown. Cost per u
 
 ### Sub-block 3 — the breakpoint
 
-Fine until **a feature genuinely requires the kind of reasoning only an agent provides**. The coaching surface is the only one in contrl-mo's scope that fits.
+Fine until **a feature genuinely requires the kind of reasoning only an agent provides**. The coaching surface is the only one in contrl's scope that fits.
 
 ### Sub-block 4 — what isn't a tradeoff
 
@@ -163,7 +163,7 @@ Some "obvious agent uses" — "AI assistant for the settings screen", "chatbot t
 ### Deliberate scope discipline
 
 - **Codebase uses:** Implicit; documented in this study guide for the first time.
-- **Why it's here:** the principle that keeps contrl-mo from sprawling into an agent-everywhere mess.
+- **Why it's here:** the principle that keeps contrl from sprawling into an agent-everywhere mess.
 - **Leading today:** "Use the simplest tool that works" — `adoption-leading` engineering wisdom, 2026.
 - **Why it leads:** every production deployment of agents converges to this principle once costs and reliability concerns surface.
 - **Runner-up:** Hype-driven AI everywhere — popular in pitch decks, expensive in production.
@@ -175,7 +175,7 @@ Some "obvious agent uses" — "AI assistant for the settings screen", "chatbot t
 ### [B4.6] Document where you don't use an agent
 
 - **Exercise ID:** `[B4.6]`
-- **What to build:** A "when NOT to use an agent" section in the agent-architecture spec, naming each non-agent surface in contrl-mo, the cheaper alternative chosen, and the reasoning.
+- **What to build:** A "when NOT to use an agent" section in the agent-architecture spec, naming each non-agent surface in contrl, the cheaper alternative chosen, and the reasoning.
 - **Why it earns its place:** the senior-level signal in interviews is articulating *what you didn't build*. This exercise produces that artifact.
 - **Files to touch:** `.aipe/specs/features/agent-architecture.md` (the Phase 4 Path C spec).
 - **Done when:** the spec enumerates rep counting, gate state, recommender, sync, classification — each with one paragraph on why an agent would be wrong.
@@ -187,7 +187,7 @@ Some "obvious agent uses" — "AI assistant for the settings screen", "chatbot t
 
 ### Concept recap
 
-Agents have a high cost floor — latency, tokens, stochasticity. They earn their place only when the work is genuinely beyond simpler alternatives: rules, single LLM calls, trained models. In contrl-mo, the only planned agent surface is end-of-session coaching (Phase 4 Path C). Everywhere else — rep counting, form classification, gates, sync, recommenders — simpler tools are the right choice. The constraint forcing this design is cost (financial + UX); the cost paid is bounded capability in the rule/model surfaces.
+Agents have a high cost floor — latency, tokens, stochasticity. They earn their place only when the work is genuinely beyond simpler alternatives: rules, single LLM calls, trained models. In contrl, the only planned agent surface is end-of-session coaching (Phase 4 Path C). Everywhere else — rep counting, form classification, gates, sync, recommenders — simpler tools are the right choice. The constraint forcing this design is cost (financial + UX); the cost paid is bounded capability in the rule/model surfaces.
 
 ### Key points
 
@@ -234,7 +234,7 @@ Why isn't there an agent for the home screen? Under 60 seconds.
 "Would you ever use an agent for rep counting?" Walk through what would have to change.
 
 ### Quick check — code reference test
-- How many planned agent surfaces in contrl-mo?
+- How many planned agent surfaces in contrl?
 - What's the deterministic alternative to rep counting?
 - What's the trained-model alternative to coaching?
 

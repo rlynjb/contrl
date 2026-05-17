@@ -1,6 +1,5 @@
 /**
  * Core domain types for the contrl game progression system.
- * Extended with sync fields (notion_page_id, updated_at) for Notion integration.
  */
 
 // ── Category ─────────────────────────────────────────────────

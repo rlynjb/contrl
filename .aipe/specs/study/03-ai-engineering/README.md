@@ -1,10 +1,10 @@
 # 03 — AI Engineering
 
-Curriculum-loaded mode. contrl-mo's AI scope is **Phase 4 Path C** of the curriculum: an LLM coaching agent that orchestrates over a trained form classifier. **No AI surface ships today** — every file in this section is **Case B** (concept not yet implemented; the file's `## In this codebase` says so and the `## Project exercises` block names the curriculum Build item that *would* implement it).
+Curriculum-loaded mode. contrl's AI scope is **Phase 4 Path C** of the curriculum: an LLM coaching agent that orchestrates over a trained form classifier. **No AI surface ships today** — every file in this section is **Case B** (concept not yet implemented; the file's `## In this codebase` says so and the `## Project exercises` block names the curriculum Build item that *would* implement it).
 
 ## Curriculum mapping
 
-| File | Concept ID | Build IDs | Status in contrl-mo |
+| File | Concept ID | Build IDs | Status in contrl |
 |---|---|---|---|
 | [01-tool-and-function-calling](./01-tool-and-function-calling.md) | C4.1 | B4C.1, B4C.2 | Not yet — Case B |
 | [02-agent-loop-and-termination](./02-agent-loop-and-termination.md) | C4.2 | B4C.1, B4C.3, B4.7 | Not yet — Case B |
@@ -17,9 +17,9 @@ Curriculum-loaded mode. contrl-mo's AI scope is **Phase 4 Path C** of the curric
 
 ## Sub-discipline groupings
 
-(Standard AI-engineering catalog. contrl-mo's curriculum-tagged scope is narrow — Phase 4 Path C only — so most sub-disciplines are absent here.)
+(Standard AI-engineering catalog. contrl's curriculum-tagged scope is narrow — Phase 4 Path C only — so most sub-disciplines are absent here.)
 
-### Agents and tool use *(in scope for contrl-mo)*
+### Agents and tool use *(in scope for contrl)*
 - [01-tool-and-function-calling](./01-tool-and-function-calling.md)
 - [02-agent-loop-and-termination](./02-agent-loop-and-termination.md)
 - [03-agent-memory](./03-agent-memory.md)
@@ -27,11 +27,11 @@ Curriculum-loaded mode. contrl-mo's AI scope is **Phase 4 Path C** of the curric
 - [05-error-recovery-in-agents](./05-error-recovery-in-agents.md)
 - [06-when-not-to-use-an-agent](./06-when-not-to-use-an-agent.md)
 - [07-building-effective-agents-patterns](./07-building-effective-agents-patterns.md)
-- [08-ml-in-the-loop-agents](./08-ml-in-the-loop-agents.md) — contrl-mo's interview-defining pattern
+- [08-ml-in-the-loop-agents](./08-ml-in-the-loop-agents.md) — contrl's interview-defining pattern
 
-### Sub-disciplines NOT in scope for contrl-mo
+### Sub-disciplines NOT in scope for contrl
 
-(These have no curriculum-tagged contrl-mo concepts. Anchored to loopd or aipe in the curriculum.)
+(These have no curriculum-tagged contrl concepts. Anchored to loopd or aipe in the curriculum.)
 - LLM foundations (loopd anchored)
 - Prompt engineering (aipe anchored)
 - Context and prompts (loopd anchored)
@@ -48,7 +48,7 @@ Curriculum-loaded mode. contrl-mo's AI scope is **Phase 4 Path C** of the curric
 | Progression recommender | Rule-based first, learned later | Planned — Phase 2C |
 | End-of-session coaching | LLM agent with ML-as-tool | Planned — Phase 4 Path C |
 
-**No surface in contrl-mo currently calls an LLM.** This section documents the planned agent so the design discussion is ready when Phase 4 Path C ships.
+**No surface in contrl currently calls an LLM.** This section documents the planned agent so the design discussion is ready when Phase 4 Path C ships.
 
 ## Where to drill in
 

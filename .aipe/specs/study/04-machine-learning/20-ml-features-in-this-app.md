@@ -3,7 +3,7 @@
 **Industry name(s):** Per-feature ML map, system summary, capability inventory
 **Type:** Project-specific
 
-> A summary of every ML surface contrl-mo plans to ship: what each is, what model type, where it runs, what data it produces. The reference card.
+> A summary of every ML surface contrl plans to ship: what each is, what model type, where it runs, what data it produces. The reference card.
 
 **See also:** Every file in this section.
 
@@ -63,7 +63,7 @@ The current app uses *pre-trained* ML (MediaPipe) but does no *trained* ML of it
 ## ML system summary
 
 ```
-contrl-mo = on-device classification + recommender
+contrl = on-device classification + recommender
 
 Data flow:
    pose landmarks (existing MediaPipe)
@@ -125,4 +125,4 @@ Every concept in this section traces back to a curriculum item. The mapping:
 
 ## Summary
 
-contrl-mo's ML scope spans Phase 2C (classifier + recommender), Phase 3 (eval + drift), Phase 4 Path C (LLM coaching agent on top of ML), and Phase 5 (on-device serving + retraining). Nothing ships today; the audit-trail (B2C.4) is the prerequisite for everything else because it provides the training data. The interview-defining payoff is the "three shapes" demonstration — CV (MediaPipe) + ML (classifier) + LLM (coaching agent) in one production path.
+contrl's ML scope spans Phase 2C (classifier + recommender), Phase 3 (eval + drift), Phase 4 Path C (LLM coaching agent on top of ML), and Phase 5 (on-device serving + retraining). Nothing ships today; the audit-trail (B2C.4) is the prerequisite for everything else because it provides the training data. The interview-defining payoff is the "three shapes" demonstration — CV (MediaPipe) + ML (classifier) + LLM (coaching agent) in one production path.

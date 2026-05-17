@@ -82,7 +82,7 @@ When the user reports "my pushup said elbow_flare but it was clean", you can pul
 
 ### Move 2.5 — Privacy considerations
 
-The audit trail is *local* (stays in SQLite). No upload to a server. For contrl-mo this matches the local-first principle. For server-side ML, audit trails go into a secured data lake with PII redaction.
+The audit trail is *local* (stays in SQLite). No upload to a server. For contrl this matches the local-first principle. For server-side ML, audit trails go into a secured data lake with PII redaction.
 
 ### Move 3 — The principle
 

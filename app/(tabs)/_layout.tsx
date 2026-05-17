@@ -1,35 +1,17 @@
-import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Tabs, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNotionSync } from '../../src/hooks/NotionSyncContext';
 import { colors, fonts } from '../../src/constants/theme';
 
 function HeaderBar() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { status, configured, syncNow } = useNotionSync();
-
-  const isSyncing = status === 'syncing';
 
   return (
     <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
       <Text style={styles.logoText}>contrl</Text>
       <View style={styles.headerRight}>
-        {configured && (
-          <Pressable
-            onPress={() => !isSyncing && syncNow()}
-            disabled={isSyncing}
-            hitSlop={8}
-            style={styles.syncButton}
-          >
-            {isSyncing ? (
-              <ActivityIndicator size={14} color={colors.primary} />
-            ) : (
-              <Feather name="refresh-cw" size={14} color={colors.muted} />
-            )}
-          </Pressable>
-        )}
         <Pressable onPress={() => router.push('/settings')} hitSlop={8}>
           <Feather name="settings" size={18} color={colors.muted} />
         </Pressable>
@@ -90,12 +72,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.extraBold,
     color: colors.primary,
     letterSpacing: 1.5,
-  },
-  syncButton: {
-    width: 28,
-    height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   tabBar: {
     backgroundColor: colors.surface,

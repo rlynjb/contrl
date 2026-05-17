@@ -118,6 +118,24 @@ async function migrate(database: SQLite.SQLiteDatabase): Promise<void> {
   if (!sessionColNames.has('passed')) await database.execAsync('ALTER TABLE sessions ADD COLUMN passed INTEGER');
   if (!sessionColNames.has('created_at')) await database.execAsync('ALTER TABLE sessions ADD COLUMN created_at TEXT');
 
+  // week_progress.week_start changed from Sunday-based to Monday-based.
+  // Re-key any Sunday-shaped row to the preceding Monday (date - 6 days).
+  const weekRows = await database.getAllAsync<{ week_start: string }>(
+    'SELECT week_start FROM week_progress'
+  );
+  for (const { week_start } of weekRows) {
+    const [y, m, d] = week_start.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    if (date.getDay() === 0) {
+      date.setDate(date.getDate() - 6);
+      const newKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      await database.runAsync(
+        'UPDATE week_progress SET week_start = ? WHERE week_start = ?',
+        [newKey, week_start]
+      );
+    }
+  }
+
   await database.execAsync(`
     CREATE INDEX IF NOT EXISTS idx_exercises_category ON exercises(category);
     CREATE INDEX IF NOT EXISTS idx_exercises_level ON exercises(level);
@@ -326,52 +344,6 @@ export async function getSessionsByCategory(category: Category): Promise<Workout
   return rows.map(rowToSession);
 }
 
-export async function getUnsyncedSessions(lastSync: string | null): Promise<WorkoutSession[]> {
-  const d = await getDatabase();
-  let rows;
-  if (lastSync) {
-    rows = await d.getAllAsync<{
-      id: string; date: string; level: number; category: string;
-      exercises_json: string; notes: string | null; created_at: string;
-      notion_page_id: string | null; updated_at: string;
-    }>('SELECT * FROM sessions WHERE notion_page_id IS NULL OR updated_at > ?', [lastSync]);
-  } else {
-    rows = await d.getAllAsync<{
-      id: string; date: string; level: number; category: string;
-      exercises_json: string; notes: string | null; created_at: string;
-      notion_page_id: string | null; updated_at: string;
-    }>('SELECT * FROM sessions WHERE notion_page_id IS NULL');
-  }
-  return rows.map(rowToSession);
-}
-
-export async function setSessionNotionPageId(sessionId: string, pageId: string): Promise<void> {
-  const d = await getDatabase();
-  await d.runAsync(
-    'UPDATE sessions SET notion_page_id = ? WHERE id = ?',
-    [pageId, sessionId]
-  );
-}
-
-export async function upsertSessionFromNotion(session: WorkoutSession): Promise<void> {
-  const d = await getDatabase();
-  await d.runAsync(
-    `INSERT OR REPLACE INTO sessions (id, date, level, category, exercises_json, notes, passed, notion_page_id, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      session.id,
-      session.date,
-      session.level,
-      session.category,
-      JSON.stringify(session.exercises),
-      session.notes ?? null,
-      session.passed != null ? (session.passed ? 1 : 0) : null,
-      session.notionPageId ?? null,
-      session.updatedAt ?? new Date().toISOString(),
-    ]
-  );
-}
-
 function rowToSession(row: {
   id: string; date: string; level: number; category: string;
   exercises_json: string; notes: string | null;
@@ -546,33 +518,3 @@ export async function deleteDraft(category: Category, level: number): Promise<vo
   await d.runAsync('DELETE FROM drafts WHERE id = ?', [`draft:${category}:${level}`]);
 }
 
-// ── Sync Deletions ──────────────────────────────────────────
-
-export async function recordDeletion(entityType: string, entityId: string, notionPageId: string): Promise<void> {
-  const d = await getDatabase();
-  await d.runAsync(
-    'INSERT INTO sync_deletions (entity_type, entity_id, notion_page_id, deleted_at) VALUES (?, ?, ?, ?)',
-    [entityType, entityId, notionPageId, new Date().toISOString()]
-  );
-}
-
-export async function getPendingDeletions(): Promise<{ id: number; entityType: string; entityId: string; notionPageId: string }[]> {
-  const d = await getDatabase();
-  const rows = await d.getAllAsync<{
-    id: number; entity_type: string; entity_id: string; notion_page_id: string;
-  }>('SELECT * FROM sync_deletions');
-
-  return rows.map(r => ({
-    id: r.id,
-    entityType: r.entity_type,
-    entityId: r.entity_id,
-    notionPageId: r.notion_page_id,
-  }));
-}
-
-export async function clearDeletions(ids: number[]): Promise<void> {
-  if (ids.length === 0) return;
-  const d = await getDatabase();
-  const placeholders = ids.map(() => '?').join(',');
-  await d.runAsync(`DELETE FROM sync_deletions WHERE id IN (${placeholders})`, ids);
-}

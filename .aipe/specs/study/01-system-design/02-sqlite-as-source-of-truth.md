@@ -188,7 +188,7 @@ If we'd put the database in the cloud, every read on the home screen would becom
 
 Operational cost: Supabase/Neon/RDS all start around \$20/month per environment, plus per-row egress past free tier. For a personal-use single-user app the cost is real and recurring.
 
-Multi-user support, on the other hand, would have been free — every backend already understands "WHERE user_id = ?". For contrl-mo's actual scope (single user, on-device), this is paying for a feature we don't need.
+Multi-user support, on the other hand, would have been free — every backend already understands "WHERE user_id = ?". For contrl's actual scope (single user, on-device), this is paying for a feature we don't need.
 
 ### Sub-block 3 — the breakpoint
 
@@ -224,7 +224,7 @@ Realm and WatermelonDB are the usual alternatives floated for "I want better DX 
 
 ### Concept recap
 
-contrl-mo stores every piece of app state in a single SQLite file (`contrl.db`) opened once via `getDatabase()` in `src/services/database.ts`. Migrations run on every open, additively, using `CREATE TABLE IF NOT EXISTS` + `PRAGMA table_info` introspection — there is no version table. WAL mode keeps reads non-blocking during writes. No ORM: SQL strings + hand-rolled row mappers. The constraint that forced this was the latency budget (sub-ms reads on hot paths) and the requirement to work fully offline. The cost is that schema changes must remain additive forever and there's no DB-level invariant enforcement.
+contrl stores every piece of app state in a single SQLite file (`contrl.db`) opened once via `getDatabase()` in `src/services/database.ts`. Migrations run on every open, additively, using `CREATE TABLE IF NOT EXISTS` + `PRAGMA table_info` introspection — there is no version table. WAL mode keeps reads non-blocking during writes. No ORM: SQL strings + hand-rolled row mappers. The constraint that forced this was the latency budget (sub-ms reads on hot paths) and the requirement to work fully offline. The cost is that schema changes must remain additive forever and there's no DB-level invariant enforcement.
 
 ### Key points
 

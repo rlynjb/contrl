@@ -171,7 +171,7 @@ Real-time drift detection (per-prediction) was not picked — PSI on a rolling w
 
 ### Concept recap
 
-PSI compares current prediction distribution against training distribution. Above 0.25, drift is significant and retraining is warranted. For contrl-mo's planned classifier, drift detection runs on a rolling window (e.g., last 100 sessions) and writes alerts to the ml-runs log. The constraint forcing this design is that the world moves between training cycles. The cost is periodic compute.
+PSI compares current prediction distribution against training distribution. Above 0.25, drift is significant and retraining is warranted. For contrl's planned classifier, drift detection runs on a rolling window (e.g., last 100 sessions) and writes alerts to the ml-runs log. The constraint forcing this design is that the world moves between training cycles. The cost is periodic compute.
 
 ### Key points
 

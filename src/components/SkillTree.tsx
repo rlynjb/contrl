@@ -52,7 +52,7 @@ export function SkillTree({ hideHeaders = false, hideSectionLabel = false }: Pro
     if (!sessions.length) return counts;
     const now = new Date();
     const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() - now.getDay());
+    weekStart.setDate(now.getDate() - ((now.getDay() + 6) % 7));
     weekStart.setHours(0, 0, 0, 0);
     for (const s of sessions) {
       if (new Date(s.date) >= weekStart) counts[s.category]++;
@@ -157,25 +157,25 @@ export function SkillTree({ hideHeaders = false, hideSectionLabel = false }: Pro
                     <View
                       style={[
                         styles.activeBadge,
-                        isDone
-                          ? { backgroundColor: colors.successDim, borderColor: 'rgba(52,211,153,0.25)' }
-                          : { backgroundColor: categoryDim[cat], borderColor: catBorder },
+                        { backgroundColor: categoryDim[cat], borderColor: catBorder },
                       ]}
                     >
-                      {isDone ? (
-                        <Feather name="check" size={16} color={colors.success} />
-                      ) : (
-                        <Text style={[styles.activeBadgeText, { color: catColor }]}>L{level}</Text>
-                      )}
+                      <Text style={[styles.activeBadgeText, { color: catColor }]}>L{level}</Text>
                     </View>
                     <Text style={[styles.activeCatName, { color: catColor }]}>
                       {cat.toUpperCase()}
                     </Text>
                     <Text style={styles.activeSubtext}>
-                      {isDone
-                        ? `Done${doneCount > 1 ? ` ${doneCount}×` : ''}`
-                        : `${levelExercises.length} exercises`}
+                      {`${levelExercises.length} exercises`}
                     </Text>
+                    <View style={styles.activeSessionRow}>
+                      <Text style={styles.activeSubtext}>
+                        {`${doneCount} session${doneCount === 1 ? '' : 's'}`}
+                      </Text>
+                      {isDone && (
+                        <Feather name="check" size={12} color={colors.success} />
+                      )}
+                    </View>
                     {gate.consecutivePasses > 0 && (
                       <View style={styles.activeGateGroup}>
                         <Text style={[styles.activeGateText, { color: catColor }]}>
@@ -463,6 +463,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     color: colors.textSecondary,
     textAlign: 'center',
+  },
+  activeSessionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
   },
   activeGateGroup: {
     alignItems: 'center',

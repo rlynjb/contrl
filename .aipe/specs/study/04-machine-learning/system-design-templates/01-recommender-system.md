@@ -49,7 +49,7 @@
   - `recommendation_log` — `{request_id, user_id, candidate_set, ranked_top_k, picked_id, ts}`
 
 - **Key components:**
-  - *Candidate generation*: content-based filter (similar to recent history) + collaborative filter (users like you also did) + rules (in-catalog, eligibility). For contrl-mo, content-only because one user.
+  - *Candidate generation*: content-based filter (similar to recent history) + collaborative filter (users like you also did) + rules (in-catalog, eligibility). For contrl, content-only because one user.
   - *Ranker*: LightGBM predicting P(engage|user, item). Features cover user-item interaction history + item attributes + recency.
   - *Post-processor*: diversity (no same item 3× in a row), freshness (boost new-to-user), fairness (don't over-promote popular items).
   - *Eval*: offline precision@k, MRR, NDCG on a held-out set; online CTR, completion rate, A/B vs control arm.
@@ -70,6 +70,6 @@
   - Cold-start (new users / new items). Mitigation: fallback to rules / popular items; threshold for learned model.
   - Echo chamber (model recommends similar to past clicks indefinitely). Mitigation: diversity injection in post-processing.
 
-- **Applies to this codebase:** `partially`. contrl-mo's planned progression recommender (Phase 2C) IS this template at single-user scale. Content-based only (no collaborative signal); rule-based v1 + learned v2; diversity check. The architecture matches; the scale doesn't (1 user vs ~1M).
+- **Applies to this codebase:** `partially`. contrl's planned progression recommender (Phase 2C) IS this template at single-user scale. Content-based only (no collaborative signal); rule-based v1 + learned v2; diversity check. The architecture matches; the scale doesn't (1 user vs ~1M).
 
-- **How to make it apply:** This template *is* contrl-mo's recommender plan. Phase 2C exercises B2C.14 (rules), B2C.15 (learned), B2C.16 (cold-start), B2C.17 (diversity), B2C.18 (single-user A/B) build it. After Phase 2C completes, this template is implemented at one-user scale; defending the template = defending Phase 2C.
+- **How to make it apply:** This template *is* contrl's recommender plan. Phase 2C exercises B2C.14 (rules), B2C.15 (learned), B2C.16 (cold-start), B2C.17 (diversity), B2C.18 (single-user A/B) build it. After Phase 2C completes, this template is implemented at one-user scale; defending the template = defending Phase 2C.

@@ -1,4 +1,4 @@
-# contrl-mo — system overview
+# contrl — system overview
 
 > Local-first bodyweight-progression mobile app. SQLite is source of truth. Notion is the cloud mirror. On-device MediaPipe pose detection counts reps. Derived game state (gates, levels, weeks, streaks) is recomputed from session history — never synced.
 

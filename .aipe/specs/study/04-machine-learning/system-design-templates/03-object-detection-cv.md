@@ -3,7 +3,7 @@
 **Industry name(s):** Object detection, computer vision pipeline, IK Module 4
 **Type:** Industry standard
 
-> Given an image (or video frame), produce bounding boxes + labels (or keypoints, or per-pixel segmentation). The architectural shape contrl-mo's pose pipeline shares — MediaPipe is exactly this template at pose-keypoint granularity.
+> Given an image (or video frame), produce bounding boxes + labels (or keypoints, or per-pixel segmentation). The architectural shape contrl's pose pipeline shares — MediaPipe is exactly this template at pose-keypoint granularity.
 
 **See also:** → [../13-on-device-inference.md](../13-on-device-inference.md) · → [../../01-system-design/07-pose-detection-pipeline.md](../../01-system-design/07-pose-detection-pipeline.md)
 
@@ -50,7 +50,7 @@
   - *Preprocessing*: resize to model input size, normalize pixel values, optionally convert color space (RGB ↔ BGR). On-device, ideally on the GPU.
   - *Backbone model*: the inference engine. Mobile-friendly architectures (MobileNet, EfficientDet-Lite, BlazePose) trade some accuracy for speed.
   - *Post-process*: NMS (non-maximum suppression) for object detection; pixel-to-coord for keypoints; argmax for segmentation.
-  - *Tracking (optional)*: associate detections across frames (Kalman / SORT for object tracking; temporal smoothing for keypoints — see [../06-domain-gap-and-transfer-learning.md] and the smoothing pattern in contrl-mo).
+  - *Tracking (optional)*: associate detections across frames (Kalman / SORT for object tracking; temporal smoothing for keypoints — see [../06-domain-gap-and-transfer-learning.md] and the smoothing pattern in contrl).
   - *Eval*: mAP for object detection; PCK (percentage of correct keypoints) for pose; IoU for segmentation.
 
 - **Scale concerns:**
@@ -69,6 +69,6 @@
   - Multiple subjects (model trained on one, scene has many). Mitigation: bigger model, or single-subject app constraint.
   - Latency variance (occasional 100ms inference). Mitigation: profile, prefer steady-state perf over peak.
 
-- **Applies to this codebase:** `yes`. contrl-mo's pose pipeline is exactly this template: camera → MediaPipe pose model (BlazePose architecture, GPU-delegated) → per-frame keypoints → JS-side FSM. The pose model is quantized (lite variant). Inference at ~30fps on-device. Skip-frame behavior is implicit in `RunningMode.LIVE_STREAM`.
+- **Applies to this codebase:** `yes`. contrl's pose pipeline is exactly this template: camera → MediaPipe pose model (BlazePose architecture, GPU-delegated) → per-frame keypoints → JS-side FSM. The pose model is quantized (lite variant). Inference at ~30fps on-device. Skip-frame behavior is implicit in `RunningMode.LIVE_STREAM`.
 
 - **How to make it apply: (already applies)**. The form classifier (Phase 2C) is a *downstream* CV pipeline that takes pose keypoints as input — making this template the foundation for both pose detection (shipped) and per-rep form classification (planned). Defending the template = defending the existing camera pipeline plus the planned classifier.

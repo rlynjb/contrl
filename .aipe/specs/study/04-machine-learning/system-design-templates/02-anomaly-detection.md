@@ -68,6 +68,6 @@
   - Class imbalance during training (anomalies are rare). Mitigation: oversample, class weights, semi-supervised methods.
   - Alert fatigue (too many false positives → ignored alerts). Mitigation: tune threshold harder; precision over recall.
 
-- **Applies to this codebase:** `partially`. contrl-mo's planned drift detection on the form classifier ([../17-drift-detection.md](../17-drift-detection.md)) IS anomaly detection at the model-output level: PSI > 0.25 = "anomalous distribution shift". Different scale and mechanism (population-level vs event-level), same family.
+- **Applies to this codebase:** `partially`. contrl's planned drift detection on the form classifier ([../17-drift-detection.md](../17-drift-detection.md)) IS anomaly detection at the model-output level: PSI > 0.25 = "anomalous distribution shift". Different scale and mechanism (population-level vs event-level), same family.
 
 - **How to make it apply:** The PSI-based drift detector in B3.13 is one instance. Per-rep anomaly detection (a rep so unusual the classifier shouldn't trust its prediction) would be a deeper application — train an unsupervised detector on "normal rep feature vectors", flag outliers for human review before they affect training data. Could be added to Phase 5 as an extension.

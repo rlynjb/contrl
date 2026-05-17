@@ -4,8 +4,8 @@ import { createGateProgress } from './gate-check'
 
 /**
  * Reconstruct user levels and gate progress from session history.
- * Used on reinstall when sessions are synced from Notion but local
- * progress data is empty.
+ * Used when sessions exist but local progress data is empty (e.g., after
+ * a fresh install with an imported sessions table).
  *
  * A session is "clean" when every exercise entry has hitTarget === true.
  * Gate passes require 3 consecutive clean sessions at a given level.

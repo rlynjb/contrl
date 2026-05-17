@@ -74,6 +74,6 @@
   - Confidence miscalibration (LLM confidence doesn't match actual correctness). Mitigation: calibrate against a labeled set; conservative threshold for escalation.
   - Prompt injection (user instructs the LLM to ignore the docs). Mitigation: sanitize inputs, system-prompt locks.
 
-- **Applies to this codebase:** `no`. contrl-mo has no support chatbot. The Phase 4 Path C coaching agent has structural similarities (LLM + tool calls + grounding in user data), but it's coaching, not support. This template is included because IK Module 5 names it as a canonical interview framing.
+- **Applies to this codebase:** `no`. contrl has no support chatbot. The Phase 4 Path C coaching agent has structural similarities (LLM + tool calls + grounding in user data), but it's coaching, not support. This template is included because IK Module 5 names it as a canonical interview framing.
 
 - **How to make it apply:** Adding an in-app "help" chatbot grounded in the SPEC.md and docs/ would map directly to this template. The retrieval layer would use sqlite-vec over the project docs; the LLM would be the same Claude integration as the coaching agent. Today it's a thought experiment.

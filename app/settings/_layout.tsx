@@ -12,8 +12,6 @@ export default function SettingsLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ title: 'Settings' }} />
-      <Stack.Screen name="notion-sync" options={{ title: 'Notion Sync' }} />
-      <Stack.Screen name="notion-guide" options={{ title: 'Setup Guide' }} />
     </Stack>
   );
 }

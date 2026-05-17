@@ -11,13 +11,11 @@ import { useFonts, Inter_400Regular, Inter_600SemiBold, Inter_700Bold, Inter_800
 import * as SplashScreen from 'expo-splash-screen';
 import { useDatabase } from '../src/hooks/useDatabase';
 import { colors } from '../src/constants/theme';
-import { NotionSyncProvider, useNotionSync } from '../src/hooks/NotionSyncContext';
 import { GameStateContext, useGameStateInternal } from '../src/hooks/useGameState';
-import { isNotionConfigured, isAutoSyncEnabled } from '../src/services/notion/config';
 
 SplashScreen.preventAutoHideAsync();
 
-function AppContent() {
+export default function RootLayout() {
   const { ready, error } = useDatabase();
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
@@ -26,25 +24,6 @@ function AppContent() {
     Inter_800ExtraBold,
   });
   const gameState = useGameStateInternal(ready);
-  const { syncNow } = useNotionSync();
-
-  // Auto-sync on app open. Routed through syncNow() so syncVersion bumps,
-  // which triggers game-state reload (and reinstall reconstruction) once
-  // sessions have been pulled in.
-  useEffect(() => {
-    if (!ready) return;
-    (async () => {
-      const configured = await isNotionConfigured();
-      const autoSync = await isAutoSyncEnabled();
-      if (configured && autoSync) {
-        try {
-          await syncNow();
-        } catch (err) {
-          console.warn('[contrl] Auto-sync failed:', err);
-        }
-      }
-    })();
-  }, [ready, syncNow]);
 
   useEffect(() => {
     if (ready && fontsLoaded) {
@@ -82,14 +61,6 @@ function AppContent() {
         }}
       />
     </GameStateContext.Provider>
-  );
-}
-
-export default function RootLayout() {
-  return (
-    <NotionSyncProvider>
-      <AppContent />
-    </NotionSyncProvider>
   );
 }
 

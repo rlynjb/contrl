@@ -66,7 +66,7 @@ Engineer pushes a button after a major data change (e.g., new labeling pass adde
 
 If retraining and deploy are automatic, a regression in the new model auto-ships. For high-stakes systems, the deploy decision is *manual* even when training is automatic.
 
-For contrl-mo, model updates are tied to app releases anyway (on-device bundle), so the human-in-the-loop is automatic.
+For contrl, model updates are tied to app releases anyway (on-device bundle), so the human-in-the-loop is automatic.
 
 ### Move 3 — The principle
 

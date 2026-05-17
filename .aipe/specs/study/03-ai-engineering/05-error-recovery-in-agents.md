@@ -65,7 +65,7 @@ This often self-corrects on the next turn — the model reads its own validation
 
 The LLM API returns 5xx, 429, or times out. Handled at the outer agent loop with the same retry-with-backoff pattern as [01-system-design/08-rate-limiting-and-backoff](../01-system-design/08-rate-limiting-and-backoff.md). After N retries, throw out to the caller — the user sees "coaching unavailable, try again later".
 
-### Move 2.5 — What contrl-mo's planned failures look like (B4C.5)
+### Move 2.5 — What contrl's planned failures look like (B4C.5)
 
 Curriculum item B4C.5 names three specific failure modes for the coaching agent:
 

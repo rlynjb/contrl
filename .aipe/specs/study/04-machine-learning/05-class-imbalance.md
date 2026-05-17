@@ -185,7 +185,7 @@ Discarding the rare classes was not a real option — they're exactly the classe
 
 ### Concept recap
 
-Class imbalance breaks accuracy as a metric and pushes models toward majority-class predictions. The fix has three parts: report per-class metrics (especially macro F1) instead of accuracy alone, use class weighting during training, and validate that the rare-class recall actually improved. For contrl-mo's planned classifier, `good` will be the dominant class; rare-failure recall is exactly what coaching needs, so the trade favors balanced training. The cost is some majority-class accuracy.
+Class imbalance breaks accuracy as a metric and pushes models toward majority-class predictions. The fix has three parts: report per-class metrics (especially macro F1) instead of accuracy alone, use class weighting during training, and validate that the rare-class recall actually improved. For contrl's planned classifier, `good` will be the dominant class; rare-failure recall is exactly what coaching needs, so the trade favors balanced training. The cost is some majority-class accuracy.
 
 ### Key points
 

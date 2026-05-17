@@ -3,7 +3,7 @@
 **Industry name(s):** On-device inference, edge ML, mobile inference, latency-bounded ML
 **Type:** Industry standard
 
-> Run the trained classifier on the user's phone, not on a server. Model exported to ONNX or TF Lite, bundled with the app, called per-rep at ~10ms. Same family as MediaPipe's pose model that already runs on-device in contrl-mo.
+> Run the trained classifier on the user's phone, not on a server. Model exported to ONNX or TF Lite, bundled with the app, called per-rep at ~10ms. Same family as MediaPipe's pose model that already runs on-device in contrl.
 
 **See also:** → [01-supervised-pipeline](./01-supervised-pipeline.md) · → [14-quantization](./14-quantization.md) · → [01-system-design/07-pose-detection-pipeline](../01-system-design/07-pose-detection-pipeline.md)
 
@@ -58,7 +58,7 @@ Target: ~10ms per rep on a mid-tier Android phone. LightGBM models are typically
 - Fewer trees (retrain with smaller `n_estimators`)
 - GPU delegation (if applicable)
 
-### Move 2.5 — What contrl-mo already does
+### Move 2.5 — What contrl already does
 
 MediaPipe's pose_landmarker_lite already runs on-device. The form classifier joins it. Both share the same shape: bundled model file + inference runtime + per-frame/per-rep call.
 

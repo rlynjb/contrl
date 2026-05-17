@@ -77,7 +77,7 @@ For the rare `hip` class:
 | **Micro** | Pool all TP/FP/FN, then compute | Aggregate behavior matters most |
 | **Weighted** | Weighted by class support | Imbalanced — weighting by frequency |
 
-For contrl-mo's classifier, **macro F1** is the primary metric. Every failure mode matters; we don't want the metric dominated by the abundant `good` class.
+For contrl's classifier, **macro F1** is the primary metric. Every failure mode matters; we don't want the metric dominated by the abundant `good` class.
 
 ### Move 2.5 — What confusion matrix reveals about *why* mistakes happen
 
@@ -204,7 +204,7 @@ Custom error metrics were not picked because standard precision/recall/F1 cover 
 
 ### Concept recap
 
-A confusion matrix shows actual vs predicted class counts in a K×K grid. Per-class precision/recall/F1 are derived from the cells. Macro F1 averages F1 over classes equally — the right summary for imbalanced problems. For contrl-mo, the matrix is the diagnostic tool that tells you which failure modes the classifier confuses, guiding feature engineering and label-set decisions. The constraint forcing this design is the need to evaluate at per-class granularity rather than aggregate. The cost is minimal — just a richer reporting format.
+A confusion matrix shows actual vs predicted class counts in a K×K grid. Per-class precision/recall/F1 are derived from the cells. Macro F1 averages F1 over classes equally — the right summary for imbalanced problems. For contrl, the matrix is the diagnostic tool that tells you which failure modes the classifier confuses, guiding feature engineering and label-set decisions. The constraint forcing this design is the need to evaluate at per-class granularity rather than aggregate. The cost is minimal — just a richer reporting format.
 
 ### Key points
 
@@ -224,7 +224,7 @@ A confusion matrix shows actual vs predicted class counts in a K×K grid. Per-cl
 A: Rows are actual class, columns are predicted. Diagonal cells are correct predictions; off-diagonal are confusions. Row sum is the count of that actual class in the test set; column sum is how many times we predicted that class. Per-class precision is the diagonal cell divided by the column sum; per-class recall is the diagonal cell divided by the row sum; F1 is the harmonic mean.
 
 **Q: Macro vs weighted F1 — when which?  [senior]**
-A: Macro averages F1 across classes equally — every class gets the same weight regardless of size. Use it when every failure mode is equally important (contrl-mo's case — `hip_sag` matters as much as `elbow_flare`). Weighted averages by class support — a rare class influences the result less than a common one. Use it when you care about overall performance proportional to real-world frequency.
+A: Macro averages F1 across classes equally — every class gets the same weight regardless of size. Use it when every failure mode is equally important (contrl's case — `hip_sag` matters as much as `elbow_flare`). Weighted averages by class support — a rare class influences the result less than a common one. Use it when you care about overall performance proportional to real-world frequency.
 
 **Q: At 50 classes, the matrix is unreadable. What now?  [arch]**
 A: Group classes by category (e.g., "depth issues", "alignment issues", "tempo issues") and report group-level macro F1 plus the within-group matrix only for groups where the metric is bad. Inspecting a 50×50 grid is wasted effort; inspecting two 5×5 grids of the problem groups is actionable.

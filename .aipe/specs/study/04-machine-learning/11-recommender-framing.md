@@ -13,7 +13,7 @@
 
 Recommender systems are IK ML Module 2's anchor and one of the most production-deployed ML shapes. Netflix recommends movies, Spotify recommends songs, your fitness app recommends what exercise to do today. Understanding the three classic strategies — and which fits which problem — is foundational.
 
-The pattern is **content + collaborative + diversity** — three independent design axes that you mix to fit the problem. For contrl-mo, the mix tilts heavily toward content because the user base is one person.
+The pattern is **content + collaborative + diversity** — three independent design axes that you mix to fit the problem. For contrl, the mix tilts heavily toward content because the user base is one person.
 
 ---
 
@@ -55,7 +55,7 @@ Even an "optimal" recommender produces bad outputs without constraints:
 
 Curriculum item B2C.17 names diversity as a freshness check: "never recommend the same exercise 3 sessions in a row, even if the model says it's optimal".
 
-### Move 2.5 — What contrl-mo actually needs
+### Move 2.5 — What contrl actually needs
 
 A single-user app:
 - Content-based is the dominant strategy.
@@ -81,7 +81,7 @@ Recommender systems are a fit-the-problem space. Naively reaching for "collabora
    needs: item features         needs: many users +           cohort suggests"
                                  their behavior
 
-   contrl-mo fit                contrl-mo fit                 contrl-mo fit
+   contrl fit                contrl fit                 contrl fit
    ─────────────                ─────────────                 ─────────────
    ✓ works with 1 user          ✗ no other users              ✓ degenerates to
    ✓ explainable                ✗ cold-start                    content-based
@@ -112,7 +112,7 @@ A recommender is a search over the item space, ranked by predicted user preferen
 
 ### Where this breaks down
 
-When the user base is too small for collaborative, the item space is too small for content-based to be useful (everything looks similar), or both. For contrl-mo, ~30 exercises across 3 categories × 5 levels is small but workable.
+When the user base is too small for collaborative, the item space is too small for content-based to be useful (everything looks similar), or both. For contrl, ~30 exercises across 3 categories × 5 levels is small but workable.
 
 ### What to explore next
 
@@ -142,7 +142,7 @@ Serendipity. A pure content-based recommender keeps recommending items similar t
 
 ### Sub-block 2 — what collaborative would cost
 
-A different app with users. Not relevant for contrl-mo today.
+A different app with users. Not relevant for contrl today.
 
 ### Sub-block 3 — the breakpoint
 
@@ -205,12 +205,12 @@ Random recommendation (no strategy) was not picked because it ignores all signal
 
 ### Concept recap
 
-Recommender systems decompose into content-based (item-similarity), collaborative (user-cohort similarity), and hybrid. contrl-mo's recommender is content-based because there's one user. v1 is rule-based (gate state + recent history); v2 is a learned classifier predicting clean-session probability. A diversity check prevents same-exercise-repeatedly. The constraint forcing this design is the single-user data model — collaborative isn't available. The cost paid is serendipity, which the diversity check partially restores.
+Recommender systems decompose into content-based (item-similarity), collaborative (user-cohort similarity), and hybrid. contrl's recommender is content-based because there's one user. v1 is rule-based (gate state + recent history); v2 is a learned classifier predicting clean-session probability. A diversity check prevents same-exercise-repeatedly. The constraint forcing this design is the single-user data model — collaborative isn't available. The cost paid is serendipity, which the diversity check partially restores.
 
 ### Key points
 
 - Content-based works on day 1 with item features.
-- Collaborative needs many users; not viable for contrl-mo.
+- Collaborative needs many users; not viable for contrl.
 - Diversity / freshness / fairness are post-strategy patches.
 - Single-user A/B validates v2 vs v1.
 
@@ -247,7 +247,7 @@ Sketch the three strategies + when each fits.
 Why no collaborative? Under 60 seconds.
 
 ### Level 3 — Apply it to a new scenario
-"A multi-user version of contrl-mo with shared workouts. Strategy?"
+"A multi-user version of contrl with shared workouts. Strategy?"
 
 ### Level 4 — Defend the decision you'd change
 "Skip the learned v2." When?

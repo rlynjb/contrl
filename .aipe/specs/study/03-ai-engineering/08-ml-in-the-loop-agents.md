@@ -3,7 +3,7 @@
 **Industry name(s):** ML-in-the-loop agents, classifier-feeding-LLM, model-tool agents
 **Type:** Industry standard · Project-specific composition
 
-> Most agents have only LLM-shaped tools (call an API, query a DB, run a search). contrl-mo's planned coaching agent has a *trained model* as one of its tools — the form classifier emits per-rep labels that the LLM reasons over. This is the curriculum's interview-defining pattern.
+> Most agents have only LLM-shaped tools (call an API, query a DB, run a search). contrl's planned coaching agent has a *trained model* as one of its tools — the form classifier emits per-rep labels that the LLM reasons over. This is the curriculum's interview-defining pattern.
 
 **See also:** → [01-tool-and-function-calling](./01-tool-and-function-calling.md) · → [04-machine-learning/01-supervised-pipeline](../04-machine-learning/01-supervised-pipeline.md)
 
@@ -11,7 +11,7 @@
 
 ## Why care
 
-Most candidates' AI portfolios show LLM agents calling APIs. The agent you ship in contrl-mo will show an LLM agent reading the output of a *model you trained* on labeled data. That contrast — generative + discriminative working together — is rare and interview-defining. It's the curriculum's three-shapes story made concrete.
+Most candidates' AI portfolios show LLM agents calling APIs. The agent you ship in contrl will show an LLM agent reading the output of a *model you trained* on labeled data. That contrast — generative + discriminative working together — is rare and interview-defining. It's the curriculum's three-shapes story made concrete.
 
 The pattern is **ML-in-the-loop agent** — orchestrating a trained classifier (or recommender, or detector) alongside an LLM. Same shape as systems like content-moderation agents (classifier flags → LLM writes the explanation), medical-triage chatbots (model rates risk → LLM communicates with patient). The combination is what gives the system both fast/deterministic *measurement* and flexible *communication*.
 

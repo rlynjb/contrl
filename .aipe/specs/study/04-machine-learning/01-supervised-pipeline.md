@@ -45,7 +45,7 @@ Per-class precision, recall, F1; confusion matrix; calibration plot. NOT just ac
 
 Export the model (ONNX or TF Lite), bundle with the app, run inference on-device. See [13-on-device-inference](./13-on-device-inference.md). Log every prediction for offline review (audit trail).
 
-### Move 2.5 — Phase A vs Phase B for contrl-mo
+### Move 2.5 — Phase A vs Phase B for contrl
 
 **Phase A (current):** No supervised pipeline exists. Rep counting uses an FSM ([02-dsa/05-rep-counter-state-machine](../02-dsa/05-rep-counter-state-machine.md)); no labeled-data pipeline.
 
@@ -131,7 +131,7 @@ Every stage can fail independently. The pipeline is a discipline of *isolating* 
 
 ### Where this breaks down
 
-Online learning (model updates from each new sample) doesn't fit the six-stage flow cleanly — the boundaries between "train" and "deploy" blur. For contrl-mo's planned classifier this isn't a concern; we retrain offline, deploy periodically.
+Online learning (model updates from each new sample) doesn't fit the six-stage flow cleanly — the boundaries between "train" and "deploy" blur. For contrl's planned classifier this isn't a concern; we retrain offline, deploy periodically.
 
 ### What to explore next
 
@@ -224,7 +224,7 @@ Skipping the supervised pipeline entirely (use only rules) was considered for v1
 
 ### Concept recap
 
-The supervised pipeline has six stages: collect labeled data, engineer features, split train/val/test, train, evaluate, deploy. Each stage has its own failure modes, which is why the discipline of staging matters. For contrl-mo's planned form classifier (Phase 2C), the pipeline starts with self-labeled session data, runs through engineered features (joint angles, ROM, asymmetry), splits at the session level, compares LR vs GBT models, evaluates on a held-out test set with per-class metrics, and deploys to-on-device via ONNX. The constraint forcing this design is the need for a *trained* classifier that recognizes failure modes — no pre-trained alternative exists. The cost paid is weeks of engineering plus ongoing label maintenance.
+The supervised pipeline has six stages: collect labeled data, engineer features, split train/val/test, train, evaluate, deploy. Each stage has its own failure modes, which is why the discipline of staging matters. For contrl's planned form classifier (Phase 2C), the pipeline starts with self-labeled session data, runs through engineered features (joint angles, ROM, asymmetry), splits at the session level, compares LR vs GBT models, evaluates on a held-out test set with per-class metrics, and deploys to-on-device via ONNX. The constraint forcing this design is the need for a *trained* classifier that recognizes failure modes — no pre-trained alternative exists. The cost paid is weeks of engineering plus ongoing label maintenance.
 
 ### Key points
 

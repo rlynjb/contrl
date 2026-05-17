@@ -1,6 +1,6 @@
 # 04 — Machine Learning
 
-Curriculum-loaded mode. contrl-mo's ML scope is **Phase 2C + Phase 3 ML + Phase 5 on-device** of the curriculum. **No ML surface ships today** beyond the pre-trained MediaPipe pose model — every file in this section is **Case B** (concept not yet implemented; `## In this codebase` says so and `## Project exercises` names the curriculum Build item that *would* implement it).
+Curriculum-loaded mode. contrl's ML scope is **Phase 2C + Phase 3 ML + Phase 5 on-device** of the curriculum. **No ML surface ships today** beyond the pre-trained MediaPipe pose model — every file in this section is **Case B** (concept not yet implemented; `## In this codebase` says so and `## Project exercises` names the curriculum Build item that *would* implement it).
 
 ## Curriculum phase mapping
 
@@ -48,7 +48,7 @@ Curriculum-loaded mode. contrl-mo's ML scope is **Phase 2C + Phase 3 ML + Phase 
 
 ### Synthesis
 - **[19-ml-system-design](./19-ml-system-design.md)** — three loops
-- **[20-ml-features-in-this-app](./20-ml-features-in-this-app.md)** — what contrl-mo plans
+- **[20-ml-features-in-this-app](./20-ml-features-in-this-app.md)** — what contrl plans
 
 ## ML features table
 

@@ -24,7 +24,6 @@ import {
 import { calculateStreak } from '@/lib/game/streaks';
 import { checkCategoryLevelUp } from '@/lib/game/progression';
 import { reconstructFromSessions } from '@/lib/game/reconstruct';
-import { useNotionSync } from './NotionSyncContext';
 
 export type LogSessionResult = {
   sessionResult: SessionResult;
@@ -74,7 +73,6 @@ export function useGameStateInternal(dbReady: boolean = true): UseGameStateRetur
   const [gateProgress, setGateProgress] = useState<Record<string, GateProgress>>({});
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const initRef = useRef(false);
-  const { syncVersion } = useNotionSync();
 
   const load = useCallback(async () => {
     setStatus('loading');
@@ -102,13 +100,10 @@ export function useGameStateInternal(dbReady: boolean = true): UseGameStateRetur
     loadedWeek = { ...loadedWeek, sessionsCompleted: recomputedCompleted };
     await db.updateWeekProgress(loadedWeek);
 
-    // Detect reinstall: sessions exist (typically pulled from Notion), all
-    // user levels are default, and no gate has recorded any progress yet.
-    // The earlier `!hasAnyGate` check was unreliable because a prior load()
-    // pass — fired before sync pulled sessions in — would already have
-    // created default L1 gates, causing reconstruction to be skipped on the
-    // post-sync reload. Reconstruction is idempotent on session history, so
-    // it is safe to run whenever we see this "freshly initialized" state.
+    // Detect reinstall: sessions exist, user levels are all default, and no
+    // gate has recorded any progress yet. Reconstruction is idempotent on
+    // session history, so it is safe to run whenever we see this "freshly
+    // initialized" state.
     const isDefaultLevels = CATEGORIES.every(c => loadedUser.levels[c] === 1);
     const existingGates = await Promise.all(
       CATEGORIES.map(c => db.getGateProgress(c, loadedUser.levels[c]))
@@ -167,19 +162,6 @@ export function useGameStateInternal(dbReady: boolean = true): UseGameStateRetur
       });
     }
   }, [dbReady, load]);
-
-  // Reload all game state after a Notion sync
-  const prevSyncVersion = useRef(syncVersion);
-  useEffect(() => {
-    if (syncVersion > prevSyncVersion.current) {
-      prevSyncVersion.current = syncVersion;
-      load().catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : 'Failed to refresh workout data';
-        setError(message);
-        setStatus('error');
-      });
-    }
-  }, [syncVersion, load]);
 
   // Use refs so logSession always reads latest state
   const userRef = useRef(user);

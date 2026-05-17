@@ -13,7 +13,7 @@ const categoryLabel: Record<Category, string> = {
   squat: 'SQUAT',
 };
 
-const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
 
 export default function HomeScreen() {
   const {
@@ -26,14 +26,14 @@ export default function HomeScreen() {
 
   const { error: exercisesError, reload: reloadExercises } = useExercises();
 
-  // Build a map of session dates this week keyed by day-of-week index (0=Sun)
+  // Build a map of session dates this week keyed by day-of-week index (0=Mon)
   const weekDaySessions = useMemo(() => {
     if (!sessions || !user) return new Array(7).fill(null);
 
     const now = new Date();
-    const dayOfWeek = now.getDay(); // 0=Sun
+    const offsetFromMonday = (now.getDay() + 6) % 7; // 0=Mon … 6=Sun
     const weekStartDate = new Date(now);
-    weekStartDate.setDate(now.getDate() - dayOfWeek);
+    weekStartDate.setDate(now.getDate() - offsetFromMonday);
     weekStartDate.setHours(0, 0, 0, 0);
 
     const result: (null | { category: Category; level: number })[] = new Array(7).fill(null);
@@ -41,7 +41,7 @@ export default function HomeScreen() {
     for (const s of sessions) {
       const sDate = new Date(s.date);
       if (sDate >= weekStartDate) {
-        const sDay = sDate.getDay();
+        const sDay = (sDate.getDay() + 6) % 7;
         result[sDay] = { category: s.category, level: s.level };
       }
     }
@@ -49,7 +49,7 @@ export default function HomeScreen() {
     return result;
   }, [sessions, user]);
 
-  const todayIndex = new Date().getDay();
+  const todayIndex = (new Date().getDay() + 6) % 7;
 
   if (status === 'loading') {
     return (

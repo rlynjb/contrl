@@ -211,7 +211,7 @@ A trained classifier that decides "should coach?" was not picked — it would be
 
 ### Concept recap
 
-Routing happens at two layers in contrl-mo's planned coaching agent. Outer layer is a heuristic gate (`shouldCoach`) that returns false for clean sessions and short-circuits the agent before any LLM call. Inner layer is the LLM's own tool-selection within the agent loop. The constraint forcing this design is cost — the outer gate keeps clean sessions free of LLM cost. The trade is one hard-coded threshold and a maintenance burden on the heuristic.
+Routing happens at two layers in contrl's planned coaching agent. Outer layer is a heuristic gate (`shouldCoach`) that returns false for clean sessions and short-circuits the agent before any LLM call. Inner layer is the LLM's own tool-selection within the agent loop. The constraint forcing this design is cost — the outer gate keeps clean sessions free of LLM cost. The trade is one hard-coded threshold and a maintenance burden on the heuristic.
 
 ### Key points
 

@@ -1,6 +1,6 @@
 # 04 / system design templates
 
-IK-style interview-prompt reframes for ML systems. Each file is a 9-bullet template covering the prompt, standard architecture, data model, key components, scale concerns, eval framing, common failure modes, applicability to contrl-mo, and how to make it apply.
+IK-style interview-prompt reframes for ML systems. Each file is a 9-bullet template covering the prompt, standard architecture, data model, key components, scale concerns, eval framing, common failure modes, applicability to contrl, and how to make it apply.
 
 ## File index
 
@@ -16,7 +16,7 @@ IK-style interview-prompt reframes for ML systems. Each file is a 9-bullet templ
 | 02-anomaly-detection | partially | PSI-based drift detection on the form classifier is an instance |
 | 03-object-detection-cv | yes | The existing MediaPipe pose pipeline implements this; the planned classifier is downstream |
 
-contrl-mo is unusual in that *all three* ML templates apply at least partially. That's the curriculum's "three shapes" payoff: a single project that defends multiple IK ML modules with real code.
+contrl is unusual in that *all three* ML templates apply at least partially. That's the curriculum's "three shapes" payoff: a single project that defends multiple IK ML modules with real code.
 
 ## Pattern
 

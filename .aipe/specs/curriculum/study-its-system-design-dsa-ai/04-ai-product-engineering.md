@@ -36,7 +36,7 @@ If you've never thought of "how I work with my AI tools" as a system, this chapt
 **Where it lives.** Two places, layered:
 
 - `.aipe/project/context.md` — the project memory bank. Read by AI agents on session start.
-- `~/.claude/projects/-Users-rein-Public-contrl-mo/memory/MEMORY.md` — per-tool, per-user persistent memory (mentioned in this very session's CLAUDE.md context). Holds longer-lived facts like "Galaxy S23 Ultra; Auto Blocker blocks adb until disabled."
+- `~/.claude/projects/-Users-rein-Public-contrl/memory/MEMORY.md` — per-tool, per-user persistent memory (mentioned in this very session's CLAUDE.md context). Holds longer-lived facts like "Galaxy S23 Ultra; Auto Blocker blocks adb until disabled."
 
 These layer cleanly: project memory belongs in the repo (it's about the code), tool memory belongs in the user's tool config (it's about how *this user* works with this tool).
 

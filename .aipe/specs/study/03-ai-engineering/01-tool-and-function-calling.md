@@ -13,7 +13,7 @@
 
 An LLM that can only generate text is a thesaurus with a personality. An LLM that can *do things* — query a database, send an email, call your trained ML model — is something else entirely. The bridge between "generates text" and "does things" is a contract: the LLM emits a structured request, your code interprets it, your code does the work, the result goes back into the conversation.
 
-The pattern is **tool calling** (sometimes called **function calling** — same thing, different vendor's preferred name). It belongs to the same family as RPC, REST handlers, and any "structured intent" pattern in NLU. The hard parts are: defining the tool schema, validating the LLM's output, deciding what to do when the LLM picks a tool that doesn't exist or sends bad arguments. Here's the shape of the concept and where it fits in contrl-mo's planned coaching agent.
+The pattern is **tool calling** (sometimes called **function calling** — same thing, different vendor's preferred name). It belongs to the same family as RPC, REST handlers, and any "structured intent" pattern in NLU. The hard parts are: defining the tool schema, validating the LLM's output, deciding what to do when the LLM picks a tool that doesn't exist or sends bad arguments. Here's the shape of the concept and where it fits in contrl's planned coaching agent.
 
 ---
 
@@ -85,7 +85,7 @@ The model can also emit text alongside the tool call. The orchestration layer:
 
 The model now has the function output in context. It uses that to produce the actual user-facing answer.
 
-### Move 2.5 — Where this lives in contrl-mo's planned agent
+### Move 2.5 — Where this lives in contrl's planned agent
 
 For Path C (coaching agent), the tool set will be small and specific to the workout domain. Curriculum item B4C.2 names the expected tools:
 
@@ -151,7 +151,7 @@ The full picture is below.
 
 ## In this codebase
 
-**Not yet implemented.** Phase 4 Path C of the curriculum is the planned build. No code in contrl-mo today uses an LLM, has a tool registry, or implements tool-calling orchestration.
+**Not yet implemented.** Phase 4 Path C of the curriculum is the planned build. No code in contrl today uses an LLM, has a tool registry, or implements tool-calling orchestration.
 
 Expected paths when implemented:
 - `src/services/ai/tools.ts` — tool registry + schema definitions
@@ -182,7 +182,7 @@ The other breakpoint: when the tool count grows past ~20. The LLM's accuracy at 
 
 - [02-agent-loop-and-termination](./02-agent-loop-and-termination.md) → how the orchestrator decides when to stop calling tools
 - [04-tool-routing](./04-tool-routing.md) → when to invoke the LLM vs. invoke a tool directly
-- [08-ml-in-the-loop-agents](./08-ml-in-the-loop-agents.md) → the unique contrl-mo twist
+- [08-ml-in-the-loop-agents](./08-ml-in-the-loop-agents.md) → the unique contrl twist
 
 ---
 
@@ -203,7 +203,7 @@ The other breakpoint: when the tool count grows past ~20. The LLM's accuracy at 
 
 ### Sub-block 1 — what we give up (planned)
 
-The cost is *latency per tool*. Each tool call is a round-trip through the LLM API, ~300ms+. A multi-step plan (e.g., "fetch history, then check progression, then generate coaching") is 3+ round-trips, sub-second to multi-second. For contrl-mo's planned coaching flow this is fine; for real-time interaction it would be unacceptable.
+The cost is *latency per tool*. Each tool call is a round-trip through the LLM API, ~300ms+. A multi-step plan (e.g., "fetch history, then check progression, then generate coaching") is 3+ round-trips, sub-second to multi-second. For contrl's planned coaching flow this is fine; for real-time interaction it would be unacceptable.
 
 The other cost: prompt-token budget. Every tool's schema + description is in every prompt. With 4 tools at ~200 tokens each, that's 800 tokens per request — ~$2/1000 requests at current Claude Sonnet pricing.
 
@@ -267,7 +267,7 @@ Fine-tuning a custom model to emit structured outputs without tool calling was n
 
 ### Concept recap
 
-Tool calling lets an LLM decide which JavaScript function to call and what arguments to pass; the orchestration layer executes the function and feeds the result back into the conversation. For contrl-mo's planned coaching agent (Phase 4 Path C), tools will be read-only accessors over the local data: form history, progression state, recent coaching, exercise cues. The constraint forcing this design is the LLM's stochastic output — structured tool calls give the surrounding deterministic system a contract to validate against. The cost is per-tool latency (one round-trip each) and prompt-token budget for tool schemas.
+Tool calling lets an LLM decide which JavaScript function to call and what arguments to pass; the orchestration layer executes the function and feeds the result back into the conversation. For contrl's planned coaching agent (Phase 4 Path C), tools will be read-only accessors over the local data: form history, progression state, recent coaching, exercise cues. The constraint forcing this design is the LLM's stochastic output — structured tool calls give the surrounding deterministic system a contract to validate against. The cost is per-tool latency (one round-trip each) and prompt-token budget for tool schemas.
 
 ### Key points
 
