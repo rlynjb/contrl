@@ -1,4 +1,5 @@
 import * as SQLite from 'expo-sqlite';
+import { pushChanges } from './sync';
 import type {
   User,
   Exercise,
@@ -226,6 +227,7 @@ export async function updateUserLevel(category: Category, level: number): Promis
     `UPDATE user_profile SET ${category}_level = ?, updated_at = ? WHERE id = ?`,
     [level, now, 'default']
   );
+  pushChanges().catch(() => {});  // fire-and-forget; suppressed if sync not configured
 }
 
 // ── Exercises ───────────────────────────────────────────────
@@ -275,18 +277,32 @@ export async function getExercisesByCategory(category: Category, level: number):
 export async function deleteSession(sessionId: string): Promise<void> {
   const d = await getDatabase();
   await d.runAsync('DELETE FROM sessions WHERE id = ?', [sessionId]);
+  await recordTombstone('sessions', sessionId);
+  pushChanges().catch(() => {});  // fire-and-forget; suppressed if sync not configured
 }
 
 export async function deleteAllExercises(): Promise<void> {
   const d = await getDatabase();
+  const toDelete = await d.getAllAsync<{ id: string }>('SELECT id FROM exercises');
   await d.runAsync('DELETE FROM exercises');
+  for (const { id } of toDelete) {
+    await recordTombstone('exercises', id);
+  }
+  pushChanges().catch(() => {});  // fire-and-forget; suppressed if sync not configured
 }
 
 export async function deleteExercisesNotIn(ids: string[]): Promise<void> {
   if (ids.length === 0) return deleteAllExercises();
   const d = await getDatabase();
   const placeholders = ids.map(() => '?').join(',');
+  const toDelete = await d.getAllAsync<{ id: string }>(
+    `SELECT id FROM exercises WHERE id NOT IN (${placeholders})`, ids
+  );
   await d.runAsync(`DELETE FROM exercises WHERE id NOT IN (${placeholders})`, ids);
+  for (const { id } of toDelete) {
+    await recordTombstone('exercises', id);
+  }
+  pushChanges().catch(() => {});  // fire-and-forget; suppressed if sync not configured
 }
 
 export async function upsertExercise(exercise: Exercise): Promise<void> {
@@ -309,6 +325,7 @@ export async function upsertExercise(exercise: Exercise): Promise<void> {
       exercise.updatedAt ?? now,
     ]
   );
+  pushChanges().catch(() => {});  // fire-and-forget; suppressed if sync not configured
 }
 
 // ── Sessions ────────────────────────────────────────────────
@@ -330,6 +347,7 @@ export async function insertSession(session: WorkoutSession): Promise<void> {
       now,
     ]
   );
+  pushChanges().catch(() => {});  // fire-and-forget; suppressed if sync not configured
 }
 
 export async function getSessions(): Promise<WorkoutSession[]> {
@@ -428,6 +446,7 @@ export async function updateGateProgress(gp: GateProgress): Promise<void> {
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [id, gp.level, gp.category, gp.status, gp.consecutivePasses, gp.lastSessionDate ?? null, gp.notionPageId ?? null, now]
   );
+  pushChanges().catch(() => {});  // fire-and-forget; suppressed if sync not configured
 }
 
 // ── Week Progress ───────────────────────────────────────────
@@ -491,6 +510,7 @@ export async function updateWeekProgress(wp: WeekProgress): Promise<void> {
       now,
     ]
   );
+  pushChanges().catch(() => {});  // fire-and-forget; suppressed if sync not configured
 }
 
 // ── Drafts ──────────────────────────────────────────────────
@@ -549,4 +569,30 @@ export async function setLastPushedAt(at: string): Promise<void> {
 export async function setLastPulledAt(at: string): Promise<void> {
   const d = await getDatabase();
   await d.runAsync(`UPDATE sync_state SET last_pulled_at = ? WHERE id = 'default'`, [at]);
+}
+
+// ── Tombstones (re-using sync_deletions for Supabase deletes) ──
+
+export async function recordTombstone(entityType: string, entityId: string): Promise<void> {
+  const d = await getDatabase();
+  await d.runAsync(
+    `INSERT INTO sync_deletions (entity_type, entity_id, notion_page_id, deleted_at)
+     VALUES (?, ?, NULL, ?)`,
+    [entityType, entityId, new Date().toISOString()]
+  );
+}
+
+export async function getPendingTombstones(): Promise<{ id: number; entityType: string; entityId: string }[]> {
+  const d = await getDatabase();
+  const rows = await d.getAllAsync<{ id: number; entity_type: string; entity_id: string }>(
+    'SELECT id, entity_type, entity_id FROM sync_deletions'
+  );
+  return rows.map(r => ({ id: r.id, entityType: r.entity_type, entityId: r.entity_id }));
+}
+
+export async function clearTombstones(ids: number[]): Promise<void> {
+  if (ids.length === 0) return;
+  const d = await getDatabase();
+  const placeholders = ids.map(() => '?').join(',');
+  await d.runAsync(`DELETE FROM sync_deletions WHERE id IN (${placeholders})`, ids);
 }
