@@ -276,18 +276,18 @@ export async function getExercisesByCategory(category: Category, level: number):
 
 export async function deleteSession(sessionId: string): Promise<void> {
   const d = await getDatabase();
-  await d.runAsync('DELETE FROM sessions WHERE id = ?', [sessionId]);
   await recordTombstone('sessions', sessionId);
+  await d.runAsync('DELETE FROM sessions WHERE id = ?', [sessionId]);
   pushChanges().catch(() => {});  // fire-and-forget; suppressed if sync not configured
 }
 
 export async function deleteAllExercises(): Promise<void> {
   const d = await getDatabase();
   const toDelete = await d.getAllAsync<{ id: string }>('SELECT id FROM exercises');
-  await d.runAsync('DELETE FROM exercises');
   for (const { id } of toDelete) {
     await recordTombstone('exercises', id);
   }
+  await d.runAsync('DELETE FROM exercises');
   pushChanges().catch(() => {});  // fire-and-forget; suppressed if sync not configured
 }
 
@@ -298,10 +298,10 @@ export async function deleteExercisesNotIn(ids: string[]): Promise<void> {
   const toDelete = await d.getAllAsync<{ id: string }>(
     `SELECT id FROM exercises WHERE id NOT IN (${placeholders})`, ids
   );
-  await d.runAsync(`DELETE FROM exercises WHERE id NOT IN (${placeholders})`, ids);
   for (const { id } of toDelete) {
     await recordTombstone('exercises', id);
   }
+  await d.runAsync(`DELETE FROM exercises WHERE id NOT IN (${placeholders})`, ids);
   pushChanges().catch(() => {});  // fire-and-forget; suppressed if sync not configured
 }
 
