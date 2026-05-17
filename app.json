@@ -46,13 +46,7 @@
       "router": {},
       "eas": {
         "projectId": "9a492aae-a4d8-448c-b66a-5b96c1ca5aa7"
-      },
-      "supabase": {
-        "url": "<paste-supabase-url>",
-        "anonKey": "<paste-anon-key>",
-        "authToken": "<paste-jwt>"
-      },
-      "userId": "<paste-user-id-uuid>"
+      }
     },
     "runtimeVersion": {
       "policy": "appVersion"
