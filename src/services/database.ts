@@ -96,7 +96,7 @@ async function migrate(database: SQLite.SQLiteDatabase): Promise<void> {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       entity_type TEXT NOT NULL,
       entity_id TEXT NOT NULL,
-      notion_page_id TEXT NOT NULL,
+      notion_page_id TEXT,
       deleted_at TEXT NOT NULL
     );
 
@@ -141,6 +141,30 @@ async function migrate(database: SQLite.SQLiteDatabase): Promise<void> {
         [newKey, week_start]
       );
     }
+  }
+
+  // Drop legacy NOT NULL constraint on sync_deletions.notion_page_id.
+  // The column was originally for Notion sync; it is now unused (Supabase
+  // tombstones pass NULL). SQLite cannot ALTER a column's NULL constraint,
+  // so we rebuild the table when the legacy shape is detected. Any pending
+  // tombstones at the moment of upgrade are local-only and acceptable to
+  // lose for a single-user MVP — they wouldn't have been pushable anyway
+  // under the broken constraint.
+  const syncDelCols = await database.getAllAsync<{ name: string; notnull: number }>(
+    'PRAGMA table_info(sync_deletions)'
+  );
+  const notionPageIdCol = syncDelCols.find(c => c.name === 'notion_page_id');
+  if (notionPageIdCol && notionPageIdCol.notnull === 1) {
+    await database.execAsync(`
+      DROP TABLE sync_deletions;
+      CREATE TABLE sync_deletions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        entity_type TEXT NOT NULL,
+        entity_id TEXT NOT NULL,
+        notion_page_id TEXT,
+        deleted_at TEXT NOT NULL
+      );
+    `);
   }
 
   await database.execAsync(`
