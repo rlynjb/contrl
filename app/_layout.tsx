@@ -10,6 +10,7 @@ LogBox.ignoreLogs([/\[RNScreens\]: .* prop is not available on Android/]);
 import { useFonts, Inter_400Regular, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
 import { useDatabase } from '../src/hooks/useDatabase';
+import { pullRestoreIfFresh, pushChanges } from '../src/services/sync';
 import { colors } from '../src/constants/theme';
 import { GameStateContext, useGameStateInternal } from '../src/hooks/useGameState';
 
@@ -30,6 +31,13 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [ready, fontsLoaded]);
+
+  useEffect(() => {
+    if (!ready) return;
+    pullRestoreIfFresh()
+      .then(() => pushChanges())
+      .catch(err => console.warn('[sync] startup sync failed:', err));
+  }, [ready]);
 
   if (error && fontsLoaded) {
     return (

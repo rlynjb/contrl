@@ -7,6 +7,11 @@ import {
   gateToRemote,
   weekToRemote,
   userToRemote,
+  sessionFromRemote,
+  exerciseFromRemote,
+  gateFromRemote,
+  weekFromRemote,
+  userFromRemote,
 } from './mapper';
 
 function logErr(label: string, e: unknown) {
@@ -108,4 +113,65 @@ export async function pushChanges(): Promise<void> {
 
   // 7. Advance watermark
   await db.setLastPushedAt(new Date().toISOString());
+}
+
+export async function pullRestoreIfFresh(): Promise<void> {
+  if (!isSyncConfigured()) return;
+
+  const { lastPulledAt } = await db.getSyncState();
+  if (lastPulledAt) return; // already restored once
+
+  const sessions = await db.getSessions();
+  if (sessions.length > 0) return; // not fresh
+
+  // RLS scopes by the JWT user_id claim; no client-side filter needed.
+  const [users, exercises, sessionRows, gates, weeks] = await Promise.all([
+    supabase.from('user_profile').select('*'),
+    supabase.from('exercises').select('*'),
+    supabase.from('sessions').select('*'),
+    supabase.from('gate_progress').select('*'),
+    supabase.from('week_progress').select('*'),
+  ]);
+
+  const anyError = [users, exercises, sessionRows, gates, weeks].find(r => r.error);
+  if (anyError?.error) {
+    logErr('pull', anyError.error);
+    return;
+  }
+
+  // Suppress the fire-and-forget pushChanges() that each db.* writer
+  // triggers — we don't want N concurrent pushes during restore.
+  restoreInProgress = true;
+  try {
+    for (const r of exercises.data ?? []) {
+      await db.upsertExercise(exerciseFromRemote(r));
+    }
+
+    if (users.data?.[0]) {
+      const u = userFromRemote(users.data[0]);
+      for (const cat of ['push', 'pull', 'squat'] as const) {
+        await db.updateUserLevel(cat, u.levels[cat]);
+      }
+    }
+
+    for (const r of sessionRows.data ?? []) {
+      await db.insertSession(sessionFromRemote(r));
+    }
+
+    for (const r of gates.data ?? []) {
+      await db.updateGateProgress(gateFromRemote(r));
+    }
+
+    for (const r of weeks.data ?? []) {
+      await db.updateWeekProgress(weekFromRemote(r));
+    }
+  } finally {
+    restoreInProgress = false;
+  }
+
+  // Mark restored AND set the push watermark so we don't immediately
+  // re-push everything we just pulled.
+  const now = new Date().toISOString();
+  await db.setLastPulledAt(now);
+  await db.setLastPushedAt(now);
 }
