@@ -206,7 +206,7 @@ The cost is recomputing on every `load()` — but at ~100 weeks per user this is
 
 ### Sub-block 2 — what a stored counter would have cost
 
-A stored streak (one row, one column) would have to be updated on every session save AND every session delete AND on Notion-side edits AND on reinstall. Forgetting any path means a stale counter. The derive-from-history approach is *always correct by construction* — see [01-system-design/05-derived-state](../01-system-design/05-derived-state.md) for the general principle.
+A stored streak (one row, one column) would have to be updated on every session save AND every session delete AND on remote-side edits AND on reinstall. Forgetting any path means a stale counter. The derive-from-history approach is *always correct by construction* — see [01-system-design/05-derived-state](../01-system-design/05-derived-state.md) for the general principle.
 
 ### Sub-block 3 — the breakpoint
 
@@ -250,7 +250,7 @@ A: Start at zero. For each week in oldest-to-newest order: if all three categori
 ```
 
 **Q: Why is the streak recomputed instead of stored?  [senior]**
-A: Two reasons. First, the streak is a pure function of session history — storing it would create a second source of truth that *should* agree with the recompute but might not, which is the worst kind of bug. Second, the cost is trivial: O(weeks) at sub-millisecond per call. The recompute happens once per app load; it's free. Storing would create an obligation to update it on every session save, delete, and Notion-side edit — a much larger surface to maintain.
+A: Two reasons. First, the streak is a pure function of session history — storing it would create a second source of truth that *should* agree with the recompute but might not, which is the worst kind of bug. Second, the cost is trivial: O(weeks) at sub-millisecond per call. The recompute happens once per app load; it's free. Storing would create an obligation to update it on every session save, delete, and remote-side edit — a much larger surface to maintain.
 
 ```
    Recompute (taken)                     │   Stored (alternative)
@@ -305,3 +305,6 @@ Reference `streaks.ts` L18.
 - What predicate gates the increment?
 
 Then verify.
+
+---
+Updated: 2026-05-17 — "Notion-side edits" replaced with "remote-side edits" for provider neutrality.

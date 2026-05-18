@@ -1,35 +1,35 @@
 # Project context
 
-contrl is a fitness progression app for bodyweight training. It tracks workouts across three categories (push, pull, squat) through a 5-level skill tree. Users log sets/reps, use camera-based pose detection for rep counting, and sync with Notion.
+contrl is a fitness progression app for bodyweight training. It tracks workouts across three categories (push, pull, squat) through a 5-level skill tree. Users log sets/reps, use camera-based pose detection for rep counting, and sync with Supabase.
 
 ## Stack
 - **Runtime / framework:** Expo SDK 55, React Native 0.83, React 19, expo-router (file-based routing)
 - **Language:** TypeScript (strict)
 - **Local storage:** SQLite (expo-sqlite) with additive migrations on open; secure key storage via expo-secure-store
-- **Remote / sync:** Notion API (databases for exercises, sessions, user profile)
+- **Remote / sync:** Supabase (anon key + URL only, RLS disabled, single-tenant via hardcoded USER_ID)
 - **Computer vision:** MediaPipe pose landmarker via `react-native-mediapipe-posedetection` + `react-native-vision-camera` + worklets
 - **Styling:** NativeWind (Tailwind-for-RN) over a hand-rolled dark theme; Inter typeface
 
 ## Data model
-- **Exercise** — reference data, sourced from Notion; cached in SQLite. Fields: id, name, category, level, targetSets, targetReps, isHold (derived from tempo), sortOrder, tempo, notes (tip/next/scaleDown), notionPageId, updatedAt.
-- **WorkoutSession** — user-generated, bidirectional sync. Holds an `ExerciseEntry[]` with actualSets/Reps/HoldSeconds, checkedSets, hitTarget. Has `passed`, `notionPageId`, `updatedAt`.
+- **Exercise** — reference data, cached in SQLite. Fields: id, name, category, level, targetSets, targetReps, isHold (derived from tempo), sortOrder, tempo, notes (tip/next/scaleDown), notionPageId (dead schema, kept for column compatibility), updatedAt.
+- **WorkoutSession** — user-generated, write-mostly mirror to Supabase. Holds an `ExerciseEntry[]` with actualSets/Reps/HoldSeconds, checkedSets, hitTarget. Has `passed`, `notionPageId` (dead schema), `updatedAt`.
 - **GateProgress** — derived state per (level, category): status, consecutivePasses (0–3), lastSessionDate. Reconstructed from sessions on reinstall.
-- **WeekProgress** — derived: weekStart (Sun YYYY-MM-DD), sessionsCompleted Record<Category, boolean>.
+- **WeekProgress** — derived: weekStart (Mon YYYY-MM-DD), sessionsCompleted Record<Category, boolean>.
 - **DraftSession** — autosaved every 500ms during logging.
 - **User** — id, levels Record<Category, number>, notionPageId, updatedAt.
 
 Sync rules:
-1. Reference data (exercises): Notion is source of truth → upsert + prune.
-2. User-generated (sessions): bidirectional, last-edit-wins with 2-min remote bias.
+1. Reference data (exercises): seeded from JSON; mirrored to Supabase on push.
+2. User-generated (sessions): write-mostly mirror to Supabase; pull runs only on fresh install (`last_pulled_at IS NULL AND sessions empty`). Push uses `updated_at > last_pushed_at` watermark.
 3. Derived (levels, gates, weeks, streaks): never synced — recomputed from sessions.
-4. IDs: remote-sourced records use remote ID; locally created records get a generated ID and are bound to a remote ID after first push.
+4. IDs: locally generated UUIDs; `notionPageId` columns kept on entity tables as dead schema (no longer written).
 
 ## File structure
 ```
 app/                        Expo Router screens
   (tabs)/                   home, history
   log/[category]            log-workout flow + result
-  settings/                 Notion config + sync controls
+  settings/                 sync status + controls (polls sync_state via useFocusEffect)
 src/
   components/
     SkillTree.tsx           5x3 grid; active-level cell renders as workout card
@@ -37,7 +37,7 @@ src/
     ui/                     CategoryBadge, ProgressBar, HoldTimerModal, etc.
   constants/                theme (colors, fonts)
   hooks/                    useGameState, useExerciseForm, useExercises,
-                            useDatabase, NotionSyncContext
+                            useDatabase
   lib/
     game/                   gate-check, progression, week-progress,
                             streaks, reconstruct
@@ -45,7 +45,7 @@ src/
                             landmarks, exercises/{pushup,squat,plank}
   services/
     database.ts             SQLite CRUD + migrations
-    notion/                 api, config, mapper, sync
+    sync/                   client, config, mapper, supabase-sync, index
   types/                    domain + Notion types
   data/                     exercises-seed.json
 android/                    prebuild output (committed)
@@ -54,17 +54,19 @@ models/                     MediaPipe pose-landmarker assets
 
 ## Key algorithms / decisions
 - **Gate state machine:** clean session → consecutivePasses++; dirty → reset to 0; reaches 3 → level up (capped at MAX_LEVEL = 5). Cleanliness comes from per-entry `hitTarget`, not exercise-ID matching.
-- **Reconstruction on reinstall:** sort sessions chronologically, replay through gate evaluation; idempotent. Triggered by `syncVersion` bump after auto-sync pull (not on the initial DB-ready load, which sees zero sessions).
+- **Reconstruction on reinstall:** sort sessions chronologically, replay through gate evaluation; idempotent. Triggered after `pullRestoreIfFresh()` completes in the `app/_layout.tsx` useEffect on `ready`.
 - **Rep counter:** finite state machine `idle → ready → down → bottom → up → ready` with exponential smoothing on joint angles and 10° hysteresis to prevent jitter. Per-exercise angle definitions (push-up: shoulder-elbow-wrist; squat: hip-knee-ankle; plank: shoulder-hip-ankle deviation from 180°).
-- **Sync ordering:** pull exercises (upsert + prune) → pull sessions (merge w/ 2-min remote bias) → push local → process deletions → bump `syncVersion` → reload state.
-- **Rate limiting:** 350ms min between Notion requests; exponential backoff on 5xx (3 retries); respects 429 Retry-After.
+- **Sync ordering:** on app ready — `pullRestoreIfFresh()` (only if `last_pulled_at IS NULL AND sessions empty`) then `pushChanges()` (watermark push). Writes also fire `pushChanges().catch(() => {})` at end of each writer in `database.ts`.
+- **Sync state:** `sync_state(id='default', last_pushed_at, last_pulled_at)` SQLite table tracks watermarks.
 - **Auto-save draft:** debounced 500ms while logging; cleared on save.
-- **Week:** Sun–Sat, one slot per category.
+- **Week:** Mon–Sun, one slot per category.
 
 ## What must not change
-- Notion remains source of truth for exercises (inverting this would invalidate the prune step and risk data loss).
 - Derived state (gates, levels, weeks, streaks) is never synced — only sessions are. Reinstall reconstruction depends on this.
 - `MAX_LEVEL = 5` cap (UI assumes the 5-row tree).
 - Session `hitTarget` per entry is the cleanliness signal — not a separate gate criteria table (gates.json was removed for this reason).
-- 2-minute remote bias in last-edit-wins conflict resolution for sessions.
 - Reconstruction must remain idempotent (post-sync `load()` re-run is allowed to repeat).
+- `restoreInProgress` flag must be cleared before writes fire `pushChanges()` to avoid pushing JSON-seed pollution during restore.
+
+---
+Updated: 2026-05-17 — Notion sync replaced by Supabase write-mostly mirror; NotionSyncContext/useNotionSync/syncVersion removed; week boundary changed Sun→Mon.

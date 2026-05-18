@@ -19,15 +19,15 @@ If a pattern crosses two steps, it's listed in both. A pattern with no step is e
 
 ## File index
 
-- **[01-local-first-architecture](./01-local-first-architecture.md)** — SQLite as source of truth; Notion as mirror; reads never hit the network. (steps 1, 4)
+- **[01-local-first-architecture](./01-local-first-architecture.md)** — SQLite as source of truth; Supabase as mirror; reads never hit the network. (steps 1, 4)
 - **[02-sqlite-as-source-of-truth](./02-sqlite-as-source-of-truth.md)** — embedded SQLite, WAL mode, application-managed additive migrations, no ORM. (step 1)
-- **[03-bidirectional-sync](./03-bidirectional-sync.md)** — fixed 4-step pipeline: pull exercises → pull sessions → push sessions → archive deletions. (steps 2, 5)
-- **[04-conflict-resolution-last-edit-wins](./04-conflict-resolution-last-edit-wins.md)** — LWW with 2-min Notion-side bias absorbs the API's write-back jitter. (step 5)
+- **[03-bidirectional-sync](./03-bidirectional-sync.md)** — (TODO: file pending decision — rewrite for Supabase OR remove. See 11-supabase-mirror-sync.md.) (steps 2, 5)
+- **[04-conflict-resolution-last-edit-wins](./04-conflict-resolution-last-edit-wins.md)** — (TODO: file pending decision — Notion LWW-with-bias removed. See 11-supabase-mirror-sync.md.) (step 5)
 - **[05-derived-state](./05-derived-state.md)** — gates, levels, weeks, streaks never sync; they're always computed from sessions. (step 4)
 - **[06-reconstruction-on-reinstall](./06-reconstruction-on-reinstall.md)** — pure idempotent replay of session history; fires on the freshly-initialized fingerprint. (steps 4, 5)
 - **[07-pose-detection-pipeline](./07-pose-detection-pipeline.md)** — camera → GPU-delegated MediaPipe → JS-side per-exercise FSM. (step 2)
-- **[08-rate-limiting-and-backoff](./08-rate-limiting-and-backoff.md)** — 350ms client-side throttle + bounded retry + `Retry-After` honoring on every Notion call. (steps 5, 6)
-- **[09-react-context-and-sync-versioning](./09-react-context-and-sync-versioning.md)** — monotonic `syncVersion` counter + `useEffect` watching it; the connective tissue between sync engine and UI. (steps 2, 4)
+- **[08-rate-limiting-and-backoff](./08-rate-limiting-and-backoff.md)** — (TODO: file pending decision — Notion-specific, no Supabase equivalent. See 11-supabase-mirror-sync.md.) (steps 5, 6)
+- **[09-react-context-and-sync-versioning](./09-react-context-and-sync-versioning.md)** — (TODO: file pending decision — NotionSyncContext + syncVersion removed. See 11-supabase-mirror-sync.md.) (steps 2, 4)
 - **[10-debounced-draft-autosave](./10-debounced-draft-autosave.md)** — 500ms trailing debounce on form changes; `INSERT OR REPLACE` on the `drafts` table. (steps 3, 5)
 
 ## Full system map
@@ -36,7 +36,9 @@ The diagram in [`../00-overview.md`](../00-overview.md) is the load-bearing visu
 
 ## Where to drill in
 
-- Need to understand sync end-to-end? Start at **03-bidirectional-sync**, then **04-conflict-resolution-last-edit-wins**, then **08-rate-limiting-and-backoff**.
+- Need to understand sync end-to-end? See **11-supabase-mirror-sync.md** (planned) or read `src/services/sync/supabase-sync.ts` directly. Files 03, 04, 08, 09 are Notion-era and flagged as TODO.
 - Need to understand state ownership? Start at **05-derived-state**, then **06-reconstruction-on-reinstall**.
 - Need to understand the camera pipeline? Start at **07-pose-detection-pipeline**.
-- Need to understand how the UI knows data changed? **09-react-context-and-sync-versioning**.
+
+---
+Updated: 2026-05-17 — File index entries for 01, 03, 04, 08, 09 updated to reflect Supabase migration; stale Notion-era files flagged with TODO.

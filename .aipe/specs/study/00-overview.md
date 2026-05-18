@@ -1,15 +1,15 @@
 # contrl — system overview
 
-> Local-first bodyweight-progression mobile app. SQLite is source of truth. Notion is the cloud mirror. On-device MediaPipe pose detection counts reps. Derived game state (gates, levels, weeks, streaks) is recomputed from session history — never synced.
+> Local-first bodyweight-progression mobile app. SQLite is source of truth. Supabase is the cloud mirror (write-mostly, restore on fresh install). On-device MediaPipe pose detection counts reps. Derived game state (gates, levels, weeks, streaks) is recomputed from session history — never synced.
 
 ```
 ┌─ UI layer (Expo + React Native, expo-router) ──────────────────────────────────────────────────┐
 │                                                                                                │
 │   app/_layout.tsx           app/(tabs)/index.tsx       app/log/[category]/...                  │
-│   NotionSyncProvider   →    SkillTree + WorkoutCard    →   PoseCamera + form + result          │
+│   (sync useEffect)  →       SkillTree + WorkoutCard    →   PoseCamera + form + result          │
 │   GameStateContext                                                                             │
 │        │                                                                                       │
-│        │ useGameState() / useNotionSync()                                                      │
+│        │ useGameState()                                                                        │
 └────────┼───────────────────────────────────────────────────────────────────────────────────────┘
          │
          ▼
@@ -45,45 +45,56 @@
 │        week_progress               │
 │        drafts                      │
 │        sync_deletions              │
+│        sync_state                  │
+│          (last_pushed_at,          │
+│           last_pulled_at)          │
 │      Additive migrations on open   │
 │      (PRAGMA table_info + ALTER)   │
 │                                    │
 └────────────┬───────────────────────┘
              │
-             ▼  pull then push, ordered
-┌─ Network boundary (HTTPS to Notion API) ───────────────────────────────────────────────────────┐
+             ▼  pull on fresh install; push on ready + after writes
+┌─ Network boundary (HTTPS to Supabase) ─────────────────────────────────────────────────────────┐
 │                                                                                                │
-│   src/services/notion/                                                                         │
-│      api.ts        rateLimit() 350ms + retry 5xx (3×) + Retry-After on 429                     │
-│      sync.ts       syncAll: pullExercises → pullSessions → pushSessions → processDeletions     │
-│                    conflict resolution: last-edit-wins with 2-min remote bias                  │
-│      mapper.ts     domain ↔ Notion properties                                                  │
-│      config.ts     token + db ids in expo-secure-store                                         │
+│   src/services/sync/                                                                           │
+│      client.ts     supabase client (anon key + URL from EXPO_PUBLIC_* env vars)               │
+│      config.ts     USER_ID = '00000000-0000-0000-0000-000000000001' (single-tenant)           │
+│      mapper.ts     domain ↔ Supabase row shapes                                               │
+│      supabase-sync.ts                                                                          │
+│         pushChanges()          watermark push: updated_at > last_pushed_at                    │
+│         pullRestoreIfFresh()   one-shot restore on fresh install                               │
+│         clearLocalForRestore() wipes JSON-seed pollution before upsert                        │
+│      index.ts      re-exports                                                                  │
 │                                                                                                │
-└─ Provider layer (Notion) ──────────────────────────────────────────────────────────────────────┘
-   notion.so/databases    Exercises DB  ·  Sessions DB  ·  User profile DB
+└─ Provider layer (Supabase Postgres) ───────────────────────────────────────────────────────────┘
+   Supabase Postgres    exercises · sessions · gate_progress · week_progress · user_profile
+                        (single tenant via USER_ID; RLS disabled)
 
-After syncAll completes:
-   syncVersion++   →   useGameState reloads   →   reconstructFromSessions runs if state is "fresh"
-                                                  (idempotent on session history)
+On app ready (app/_layout.tsx useEffect on `ready`):
+   pullRestoreIfFresh()  →   pushChanges()   →   useGameState reloads
+   (skipped if last_pulled_at set or sessions exist)
+   reconstructFromSessions runs if reinstall fingerprint detected (idempotent)
 ```
 
 ## Legend
 
-- **NotionSyncProvider** — React context owning sync status + `syncVersion` counter. Bumped after every successful `syncAll()`. Components depending on it re-run their effects when it changes.
-- **GameStateContext** — React context owning user, week, streak, gates, sessions. Re-runs `load()` when `syncVersion` increases.
+- **GameStateContext** — React context owning user, week, streak, gates, sessions. Re-runs `load()` on mount and after sync completes.
+- **`pushChanges()`** — `src/services/sync/supabase-sync.ts`. Watermark push of rows with `updated_at > last_pushed_at`; fires on app ready and at end of each write in `database.ts`.
+- **`pullRestoreIfFresh()`** — `src/services/sync/supabase-sync.ts`. One-shot restore on fresh install (`last_pulled_at IS NULL AND sessions empty`); runs `clearLocalForRestore()` then full remote upsert.
+- **`supabase`** — `src/services/sync/client.ts`. Supabase JS client configured with anon key + URL from `EXPO_PUBLIC_*` env vars.
+- **`sync_state` table** — SQLite table with `id='default'`, `last_pushed_at`, `last_pulled_at`. Tracks watermarks for push/pull decisions.
 - **`useGameStateInternal(dbReady)`** — `src/hooks/useGameState.ts` L68. Owns the load orchestration and the reinstall-reconstruction trigger.
 - **`load()`** — Reads from SQLite, detects reinstall (sessions present + default levels + untouched gates), runs `reconstructFromSessions` if so, persists, then sets state.
 - **`reconstructFromSessions(sessions)`** — `src/lib/game/reconstruct.ts` L13. Pure: sort chronologically, replay each session through gate evaluation. Idempotent.
-- **`syncAll()`** — `src/services/notion/sync.ts` L33. Pull exercises (upsert + prune missing) → pull sessions (with conflict resolution) → push unsynced → process pending deletions → bump lastSync timestamp.
-- **`rateLimit()`** — `src/services/notion/api.ts` L9. Sleeps to enforce 350ms minimum between requests. Module-level `lastRequestTime`.
-- **`notionFetch`** — Single HTTP wrapper. Handles 429 (Retry-After header), 5xx (3 retries with `(n+1)*2000ms` backoff), and rate-limit gate.
 - **`RepCounter`** — `src/lib/pose/rep-counter.ts` L21. Finite state machine, 10° hysteresis, no external state.
 - **`calculateAngle(a, b, c)`** — `src/lib/pose/angles.ts` L7. Vector-dot-product joint angle in degrees, clamps to `[-1, 1]` for `acos` safety.
 - **`smoothAngle(current, prev, factor)`** — Exponential smoothing, `factor = 0.4` per exercise processor.
 - **`useExerciseForm`** — `src/hooks/useExerciseForm.ts` L20. Owns log-screen state; `setTimeout(save, 500)` cleared on each keystroke so only the last write hits SQLite.
 - **`drafts` table** — Keyed by `draft:${category}:${level}`. One row per active log-flow. Deleted on successful session save.
-- **`sync_deletions` table** — Records local deletions that need to archive their Notion page on next sync. Skipped on first sync (no prior `lastSync`).
+- **`sync_deletions` table** — Records local deletions that need to propagate to Supabase as DELETE on next push (originally a Notion-era table, repurposed for Supabase tombstones; `notion_page_id` column now nullable).
 - **Reinstall detection** — `useGameStateInternal` L112–L119: sessions exist AND all levels are 1 AND all current-level gates have `consecutivePasses === 0` and no `lastSessionDate`. Then `reconstructFromSessions` runs.
 
 → Section indexes: [01-system-design/README.md](./01-system-design/README.md) · [02-dsa/README.md](./02-dsa/README.md) · [03-ai-engineering/README.md](./03-ai-engineering/README.md) · [04-machine-learning/README.md](./04-machine-learning/README.md)
+
+---
+Updated: 2026-05-17 — Notion replaced by Supabase throughout; NotionSyncProvider/useNotionSync/syncAll/rateLimit/notionFetch removed from legend; pushChanges/pullRestoreIfFresh/supabase client/sync_state added; sync_deletions description updated; week boundary Mon–Sun.

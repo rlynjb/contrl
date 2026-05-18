@@ -3,7 +3,7 @@
 **Industry name(s):** Upsert-then-prune, set difference, list reconciliation
 **Type:** Industry standard · Language-agnostic
 
-> `pullExercises` upserts every Notion exercise locally, then calls `deleteExercisesNotIn(notionIds)` to remove anything not in the remote set. Same shape used in `pullSessions` to detect remote deletions: build a Set of active remote IDs, find local rows whose Notion ID isn't in that Set, delete them.
+> `pullExercises` (historical) upserted every remote exercise locally, then called `deleteExercisesNotIn(remoteIds)` to remove anything not in the remote set. Same shape was used to detect remote deletions: build a Set of active remote IDs, find local rows whose remote ID isn't in that Set, delete them. This pattern has been removed from the codebase; it is documented here as a general DSA pattern.
 
 **See also:** → [01-system-design/03-bidirectional-sync](../01-system-design/03-bidirectional-sync.md)
 
@@ -40,35 +40,35 @@ export async function deleteExercisesNotIn(ids: string[]): Promise<void> {
 
 The complexity is `O(n)` where `n` is the table size (`DELETE` scans for matching rows), plus the `NOT IN` membership test which is `O(m)` per row where `m` is the in-list size. SQLite optimizes `NOT IN` over indexed columns, so effective cost is `O(n + m log n)` for our index.
 
-### `pullSessions` — the JS Set diff
+### Remote-set diff (JS pseudocode)
 
 ```typescript
-const activeNotionPageIds = new Set<string>();
+const activeRemoteIds = new Set<string>();
 for (const page of allPages) {
   if (page.archived) continue;
-  activeNotionPageIds.add(page.id);
+  activeRemoteIds.add(page.id);
   // ... upsert logic
 }
 
 for (const local of localSessions) {
-  if (local.notionPageId && !activeNotionPageIds.has(local.notionPageId)) {
+  if (local.remoteId && !activeRemoteIds.has(local.remoteId)) {
     await deleteSession(local.id);
   }
 }
 ```
 
-`src/services/notion/sync.ts` L130 + L197–L202. Same logic, different layer:
+General pattern, same logic at different layers:
 1. Iterate the remote set, build a `Set<string>` of remote IDs.
 2. Iterate the local set, check membership in the remote set.
-3. Anything local that *was* synced (has `notionPageId`) but isn't in the remote set anymore was deleted on Notion's side. Delete locally.
+3. Anything local that has a remote ID but isn't in the remote set anymore was deleted remotely. Delete locally.
 
 `Set.has()` is O(1). Building the set is O(n_remote). The diff loop is O(n_local). Total: O(n_remote + n_local) for the whole reconciliation.
 
 ### Why two layers (SQL + JS)?
 
-`pullExercises` does the diff in SQL because exercises is a *single table* with no complex matching logic — just "id is or isn't in this list". The query engine handles it.
+The SQL form (`deleteExercisesNotIn`) handles single-table diffs with no extra side effects — the query engine does the work.
 
-`pullSessions` does the diff in JS because sessions need fuzzy matching (try `contrl ID` first, fall back to `notionPageId`), and the deletion path needs side effects beyond `DELETE` (e.g., logging which sessions were removed). Doing this in SQL would require a temporary table or a complex `WITH` clause.
+The JS form is better when deletion needs side effects beyond `DELETE` (e.g., logging which rows were removed, or fuzzy ID matching). Doing this in SQL would require a temporary table or a complex `WITH` clause.
 
 ### Move 2.5 — the empty-set edge case
 
@@ -103,25 +103,25 @@ For 1000 sessions × 1000 remote pages: 1M comparisons brute force, 2K with the 
 
 ```
 remoteSessions = [
-  { notionId: 'A', ... },
-  { notionId: 'B', ... },
-  { notionId: 'D', ... },
+  { remoteId: 'A', ... },
+  { remoteId: 'B', ... },
+  { remoteId: 'D', ... },
 ]
 localSessions = [
-  { id: 'session1', notionPageId: 'A' },
-  { id: 'session2', notionPageId: 'C' },  ← stale: C deleted from Notion
-  { id: 'session3', notionPageId: 'D' },
+  { id: 'session1', remoteId: 'A' },
+  { id: 'session2', remoteId: 'C' },  ← stale: C deleted remotely
+  { id: 'session3', remoteId: 'D' },
 ]
 
 Step 1: build remote set
-  activeNotionPageIds = Set { 'A', 'B', 'D' }
+  activeRemoteIds = Set { 'A', 'B', 'D' }
 
 Step 2: diff loop
-  session1.notionPageId = 'A'
+  session1.remoteId = 'A'
     'A' in set? YES → keep
-  session2.notionPageId = 'C'
+  session2.remoteId = 'C'
     'C' in set? NO → deleteSession('session2')
-  session3.notionPageId = 'D'
+  session3.remoteId = 'D'
     'D' in set? YES → keep
 
 Final local state:
@@ -137,10 +137,10 @@ At ≤ 100 of each list (current scale), even the `O(n × m)` brute force is fin
 ## Set diffing — diagram
 
 ```
-┌─ Remote (Notion) ──────────────┐         ┌─ Local (SQLite) ─────────────────┐
-│  page A                        │         │  session1  notionId=A            │
-│  page B                        │         │  session2  notionId=C  ←─ stale  │
-│  page D                        │         │  session3  notionId=D            │
+┌─ Remote ───────────────────────┐         ┌─ Local (SQLite) ─────────────────┐
+│  page A                        │         │  session1  remoteId=A            │
+│  page B                        │         │  session2  remoteId=C  ←─ stale  │
+│  page D                        │         │  session3  remoteId=D            │
 └──────────┬─────────────────────┘         └──────────────┬──────────────────┘
            │                                              │
            ▼  build Set                                   │
@@ -152,9 +152,9 @@ At ≤ 100 of each list (current scale), even the `O(n × m)` brute force is fin
                 │◄──────────────────────────────────────────┘
                 ▼
    ┌──────────────────────────────┐
-   │  session1 (notionId=A) → in  │
-   │  session2 (notionId=C) → OUT │  → deleteSession('session2')
-   │  session3 (notionId=D) → in  │
+   │  session1 (remoteId=A) → in  │
+   │  session2 (remoteId=C) → OUT │  → deleteSession('session2')
+   │  session3 (remoteId=D) → in  │
    └──────────────────────────────┘
 ```
 
@@ -162,12 +162,10 @@ At ≤ 100 of each list (current scale), even the `O(n × m)` brute force is fin
 
 ## In this codebase
 
-**SQL anti-join:**
-- `src/services/database.ts` L257 `deleteExercisesNotIn(ids)`
-- Used in `src/services/notion/sync.ts` L94 after iterating remote exercises
+The set-based diff pattern previously lived in `src/services/notion/sync.ts` (removed in commit b057136 when Notion sync was replaced by Supabase). The general DSA pattern remains valid and is documented here for future reference; the closest analog in current code is `clearLocalForRestore()` followed by full remote upsert in `pullRestoreIfFresh()` — that's a "wipe all local, take all remote" replacement rather than a set-diff.
 
-**JS Set diff:**
-- `src/services/notion/sync.ts` L130 (build set), L197–L202 (delete loop)
+**SQL anti-join (still present, but no longer called by sync):**
+- `src/services/database.ts` `deleteExercisesNotIn(ids)` — the SQL form of the pattern; kept as a utility.
 
 ---
 
@@ -230,7 +228,7 @@ A `WITH` CTE in SQL for the JS Set use case wasn't a real option — SQLite woul
 
 ### Concept recap
 
-Reconciling local SQLite against remote Notion is a set operation: keep what's in both, remove what's only local. SQL form: `DELETE WHERE id NOT IN (?, ?, ?)` with dynamic placeholder generation and an empty-list guard. JS form: build `Set<string>` of remote IDs, iterate local rows, delete any whose `notionPageId` isn't in the set. Both are O(n + m); the brute force is O(n × m). The constraint that forced this was Notion's "no tombstone" model — we have to detect deletions by absence rather than by event. The cost is one full enumeration of remote IDs per sync.
+Reconciling local SQLite against a remote source is a set operation: keep what's in both, remove what's only local. SQL form: `DELETE WHERE id NOT IN (?, ?, ?)` with dynamic placeholder generation and an empty-list guard. JS form: build `Set<string>` of remote IDs, iterate local rows, delete any whose remote ID isn't in the set. Both are O(n + m); the brute force is O(n × m). The constraint that forced this was a "no tombstone" remote model — detecting deletions by absence rather than by event. The cost is one full enumeration of remote IDs per sync.
 
 ### Key points
 
@@ -258,7 +256,7 @@ A: Set membership is O(1); a nested loop is O(n×m). With 1000 remote sessions a
 ```
 
 **Q: Why does `deleteExercisesNotIn` have an empty-list early return?  [senior]**
-A: Empty `IN ()` is invalid SQL. Without the guard, a fresh-empty Notion database produces a 0-id list and the query throws. The semantics we want is "Notion has no exercises → delete all local". The early return implements that explicitly. Without it, the sync logs an error and the local DB silently keeps stale exercises forever.
+A: Empty `IN ()` is invalid SQL. Without the guard, a remote source with zero items produces a 0-id list and the query throws. The semantics we want is "remote has nothing → delete all local". The early return implements that explicitly. Without it, the sync logs an error and the local DB silently keeps stale exercises forever.
 
 ```
    Without the guard (bug)            │   With guard (taken)
@@ -293,7 +291,7 @@ A: The Set is fine in memory (1M strings ≈ 100 MB — large but feasible). The
 Sketch the remote / local arrays and the Set used to diff them.
 
 ### Level 2 — Explain it out loud
-Explain why we need this for Notion. Under 60 seconds.
+Explain the set-based diff pattern and when to use it. Under 60 seconds.
 
 ### Level 3 — Apply it to a new scenario
 "Add `deleteSessionsNotIn(notionIds)` — same pattern, applied to sessions." Reference `database.ts` L257.
@@ -307,3 +305,6 @@ Explain why we need this for Notion. Under 60 seconds.
 - What `Set` method does the JS form use?
 
 Then verify.
+
+---
+Updated: 2026-05-17 — Notion-specific codebase anchor removed (sync.ts deleted in b057136); In this codebase block updated to note deprecation and Supabase analog; pseudocode neutralized to remoteId.

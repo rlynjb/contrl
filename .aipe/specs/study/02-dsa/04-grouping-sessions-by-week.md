@@ -51,7 +51,7 @@ function buildWeekHistory(sessions: WorkoutSession[]): WeekProgress[] {
 
 `src/hooks/useGameState.ts` L329–L351.
 
-**Pass 1 — group.** For each session, compute `weekStart` via `getWeekStart` (`'YYYY-MM-DD'` of the Sunday of that week — see [07-week-start-derivation](./07-week-start-derivation.md)). If the Map doesn't have that key yet, initialize an empty Set. Add `s.category` to the Set for that week.
+**Pass 1 — group.** For each session, compute `weekStart` via `getWeekStart` (`'YYYY-MM-DD'` of the Monday of that week — see [07-week-start-derivation](./07-week-start-derivation.md)). If the Map doesn't have that key yet, initialize an empty Set. Add `s.category` to the Set for that week.
 
 The `!byWeek.has(...)` check is the "lazy initialization" idiom: only create the inner Set when we first need it. Doing it upfront for every possible week would be wasteful (many weeks have no sessions).
 
@@ -76,44 +76,44 @@ The bridge from frontend: this is the same pattern as React's `Set` use for uniq
 
 ```
 sessions:
-  [ { date: '2026-04-12', category: 'push'   },   ← Sunday
-    { date: '2026-04-13', category: 'pull'   },   ← Monday
-    { date: '2026-04-14', category: 'push'   },   ← (dupe push, same week)
-    { date: '2026-04-19', category: 'squat'  } ]  ← next week Sunday
+  [ { date: '2026-04-13', category: 'push'   },   ← Monday
+    { date: '2026-04-14', category: 'pull'   },   ← Tuesday
+    { date: '2026-04-15', category: 'push'   },   ← (dupe push, same week)
+    { date: '2026-04-20', category: 'squat'  } ]  ← next week Monday
 
 Pass 1 — group:
 
-  s = { 2026-04-12, push }
-  weekStart = getWeekStart(2026-04-12) = '2026-04-12'
-  byWeek.has('2026-04-12')?  no  →  byWeek.set(..., new Set())
+  s = { 2026-04-13, push }
+  weekStart = getWeekStart(2026-04-13) = '2026-04-13'  ← Monday
+  byWeek.has('2026-04-13')?  no  →  byWeek.set(..., new Set())
   byWeek.get(...).add('push')
-  byWeek = { '2026-04-12': Set{ push } }
+  byWeek = { '2026-04-13': Set{ push } }
 
-  s = { 2026-04-13, pull }
-  weekStart = '2026-04-12'
+  s = { 2026-04-14, pull }
+  weekStart = '2026-04-13'
   byWeek.has(...)?  yes
   byWeek.get(...).add('pull')
-  byWeek = { '2026-04-12': Set{ push, pull } }
+  byWeek = { '2026-04-13': Set{ push, pull } }
 
-  s = { 2026-04-14, push }
-  weekStart = '2026-04-12'
+  s = { 2026-04-15, push }
+  weekStart = '2026-04-13'
   byWeek.get(...).add('push')   ← Set dedupes; no change
-  byWeek = { '2026-04-12': Set{ push, pull } }
+  byWeek = { '2026-04-13': Set{ push, pull } }
 
-  s = { 2026-04-19, squat }
-  weekStart = '2026-04-19'
+  s = { 2026-04-20, squat }
+  weekStart = '2026-04-20'  ← next Monday
   byWeek.has(...)?  no  →  byWeek.set(..., new Set())
   byWeek.get(...).add('squat')
-  byWeek = { '2026-04-12': Set{ push, pull },
-             '2026-04-19': Set{ squat } }
+  byWeek = { '2026-04-13': Set{ push, pull },
+             '2026-04-20': Set{ squat } }
 
-Pass 2 — project (currentWeekStart = '2026-04-19'):
+Pass 2 — project (currentWeekStart = '2026-04-20'):
 
-  filter out current week ('2026-04-19')
-  remaining:  [ ['2026-04-12', Set{ push, pull }] ]
+  filter out current week ('2026-04-20')
+  remaining:  [ ['2026-04-13', Set{ push, pull }] ]
   sort by ws (only one entry)
   result:
-    [ { weekStart: '2026-04-12',
+    [ { weekStart: '2026-04-13',
         sessionsCompleted: { push: true, pull: true, squat: false } } ]
 ```
 
@@ -124,11 +124,11 @@ Pass 2 — project (currentWeekStart = '2026-04-19'):
 ```
 sessions (unordered)                                  byWeek (after pass 1)
 ─────────────────────                                 ─────────────────────────
-{2026-04-12, push}  ──┐                               '2026-04-12' → {push,
-{2026-04-13, pull}  ──┤  ─── group by weekStart ──►                  pull,
-{2026-04-14, push}  ──┤                                              push}*
-{2026-04-19, squat} ──┘                                              ← Set
-                                                       '2026-04-19' → {squat}
+{2026-04-13, push}  ──┐                               '2026-04-13' → {push,
+{2026-04-14, pull}  ──┤  ─── group by weekStart ──►                  pull,
+{2026-04-15, push}  ──┤                                              push}*
+{2026-04-20, squat} ──┘                                              ← Set
+                                                       '2026-04-20' → {squat}
                                                                 * dedupe
 
                           │  pass 2: project + filter + sort
@@ -227,7 +227,7 @@ A nested object (`{ [weekStart]: { push: bool, pull: bool, squat: bool } }`) was
 ### Likely questions
 
 **Q: Walk me through the group-by.  [mid]**
-A: Iterate sessions. For each, compute the Sunday-of-its-week string. Look it up in a Map; lazily initialize a Set if missing. Add the session's category to the Set. Once all sessions are grouped, iterate the Map entries: project each `(weekStart, Set)` to a `WeekProgress` record with three boolean flags. Filter out the current week. Sort ascending by week start. Return.
+A: Iterate sessions. For each, compute the Monday-of-its-week string. Look it up in a Map; lazily initialize a Set if missing. Add the session's category to the Set. Once all sessions are grouped, iterate the Map entries: project each `(weekStart, Set)` to a `WeekProgress` record with three boolean flags. Filter out the current week. Sort ascending by week start. Return.
 
 ```
    Map<weekStart, Set<Category>>
@@ -290,3 +290,6 @@ Reference `useGameState.ts` L329.
 - Why exclude the current week?
 
 Then verify.
+
+---
+Updated: 2026-05-17 — Week boundary now Monday-start, matching getWeekStart() change in week-progress.ts.

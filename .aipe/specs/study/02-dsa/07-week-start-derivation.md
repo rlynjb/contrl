@@ -3,7 +3,7 @@
 **Industry name(s):** Date-floor, period-truncation, calendar arithmetic
 **Type:** Industry standard · Language-agnostic
 
-> Given any date, `getWeekStart` returns the YYYY-MM-DD of the most recent Sunday. Uses `Date.getDay()` (0 = Sunday) and subtracts that many days. The output is a string key, not a Date — so it's safe to use as a Map key, a SQL primary key, or a JSON value.
+> Given any date, `getWeekStart` returns the YYYY-MM-DD of the **Monday** of the week containing that date. Uses `Date.getDay()` and a modular-arithmetic offset `(getDay() + 6) % 7` to find the Monday. The output is a string key, not a Date — so it's safe to use as a Map key, a SQL primary key, or a JSON value.
 
 **See also:** → [04-grouping-sessions-by-week](./04-grouping-sessions-by-week.md) · → [08-streak-fold](./08-streak-fold.md)
 
@@ -19,13 +19,13 @@ The pattern is **period truncation** — round down a timestamp to the start of 
 
 ## How it works
 
-Find the day-of-week (0–6), subtract that many days, format as ISO date.
+Compute a Monday-based offset via modular arithmetic, subtract it, format as ISO date.
 
 ```typescript
 export function getWeekStart(date: Date): string {
   const d = new Date(date);
-  const day = d.getDay();           // 0 = Sun … 6 = Sat
-  d.setDate(d.getDate() - day);
+  const offsetFromMonday = (d.getDay() + 6) % 7;  // 0=Mon … 6=Sun
+  d.setDate(d.getDate() - offsetFromMonday);
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
@@ -37,9 +37,9 @@ export function getWeekStart(date: Date): string {
 
 **Step 1 — Clone the date.** `new Date(date)` copies so the caller's date isn't mutated. `setDate` is destructive.
 
-**Step 2 — Day-of-week.** `getDay()` returns 0 for Sunday, 6 for Saturday. (Note: `getDate()` returns the day-of-month, 1–31. Easy to confuse, common bug.)
+**Step 2 — Monday-based offset.** `getDay()` returns 0 for Sunday, 6 for Saturday. `(getDay() + 6) % 7` remaps this so Monday = 0, Tuesday = 1, …, Sunday = 6. (Note: `getDate()` returns the day-of-month, 1–31. Easy to confuse, common bug.)
 
-**Step 3 — Subtract days.** `setDate(d.getDate() - day)` rolls back to Sunday. JavaScript's `Date` handles month/year underflow automatically — subtracting 3 days from April 2nd correctly produces March 30th.
+**Step 3 — Subtract offset.** `setDate(d.getDate() - offsetFromMonday)` rolls back to Monday. JavaScript's `Date` handles month/year underflow automatically — subtracting 3 days from April 2nd correctly produces March 30th.
 
 **Step 4 — Format YYYY-MM-DD.** Manual padding because `Date.toISOString()` includes time and timezone (`'2026-04-12T00:00:00.000Z'`). We want just the date portion.
 
@@ -64,13 +64,13 @@ The bridge from frontend: this is the same instinct as using stable string IDs f
 ## Brute force vs optimal — same complexity
 
 ```
-getWeekStart (taken):              date-fns startOfWeek (alternative):
-─────────────────────────────      ─────────────────────────────────────
-const d = new Date(date);          import { startOfWeek, format } from 'date-fns'
-const day = d.getDay();            const start = startOfWeek(date, {weekStartsOn: 0})
-d.setDate(d.getDate() - day);      return format(start, 'yyyy-MM-dd')
+getWeekStart (taken):                        date-fns startOfWeek (alternative):
+─────────────────────────────────────────    ─────────────────────────────────────
+const d = new Date(date);                    import { startOfWeek, format } from 'date-fns'
+const offsetFromMonday = (d.getDay()+6)%7;   const start = startOfWeek(date, {weekStartsOn: 1})
+d.setDate(d.getDate() - offsetFromMonday);   return format(start, 'yyyy-MM-dd')
 return `${yyyy}-${mm}-${dd}`;
-~9 LOC, no dep                     ~3 LOC, 70KB dependency
+~9 LOC, no dep                               ~3 LOC, 70KB dependency
 ```
 
 The library version is shorter to read but adds bundle weight. For two functions (`getWeekStart` and the format) we can write nine lines ourselves.
@@ -78,39 +78,40 @@ The library version is shorter to read but adds bundle weight. For two functions
 ### Execution trace
 
 ```
-Input: date = 2026-04-15 (Wednesday)
+Input: date = 2026-04-14 (Tuesday)
 
-Step 1: d = new Date(2026-04-15)         // Wed
-Step 2: day = d.getDay()                  // 3 (Wednesday)
-Step 3: d.setDate(15 - 3) = setDate(12)   // Sunday April 12
+Step 1: d = new Date(2026-04-14)              // Tue
+Step 2: getDay() = 2  (Tuesday)
+        offsetFromMonday = (2 + 6) % 7 = 1
+Step 3: d.setDate(14 - 1) = setDate(13)       // Monday April 13
 Step 4:
   yyyy = 2026
   mm   = '04'  (zero-padded)
-  dd   = '12'
+  dd   = '13'
 
-Output: '2026-04-12'
+Output: '2026-04-13'
 
 ────────────────────────────────────────
 
 Edge case: date = 2026-04-01 (Wednesday)  // start of month
 
 Step 1: d = new Date(2026-04-01)
-Step 2: day = 3
-Step 3: setDate(1 - 3) = setDate(-2)
-        → Date rolls back: March 29
+Step 2: getDay() = 3; offsetFromMonday = (3+6)%7 = 2
+Step 3: setDate(1 - 2) = setDate(-1)
+        → Date rolls back: March 30
 
-Output: '2026-03-29'
+Output: '2026-03-30'
 
 ────────────────────────────────────────
 
-Edge case: date = 2026-04-12 (Sunday)      // already on Sunday
+Edge case: date = 2026-04-13 (Monday)      // already on Monday
 
-Step 1: d = new Date(2026-04-12)
-Step 2: day = 0
-Step 3: setDate(12 - 0) = setDate(12)      // no change
-Step 4: yyyy=2026, mm='04', dd='12'
+Step 1: d = new Date(2026-04-13)
+Step 2: getDay() = 1; offsetFromMonday = (1+6)%7 = 0
+Step 3: setDate(13 - 0) = setDate(13)      // no change
+Step 4: yyyy=2026, mm='04', dd='13'
 
-Output: '2026-04-12'
+Output: '2026-04-13'
 ```
 
 ### When brute force is fine
@@ -122,20 +123,21 @@ This *is* the brute force. There's nothing simpler unless you're willing to depe
 ## Period truncation — diagram
 
 ```
-   Wed 2026-04-15
-        │  day = 3 (Wed)
-        │  setDate(d.getDate() - 3)
+   Tue 2026-04-14
+        │  getDay() = 2 (Tuesday)
+        │  offsetFromMonday = (2 + 6) % 7 = 1
+        │  setDate(d.getDate() - 1)
         ▼
-   Sun 2026-04-12   ← weekStart
+   Mon 2026-04-13   ← weekStart
 
-         ┌─ Sun ─┬─ Mon ─┬─ Tue ─┬─ Wed ─┬─ Thu ─┬─ Fri ─┬─ Sat ─┐
-   day:    0       1       2       3       4       5       6
+         ┌─ Mon ─┬─ Tue ─┬─ Wed ─┬─ Thu ─┬─ Fri ─┬─ Sat ─┬─ Sun ─┐
+   offset: 0       1       2       3       4       5       6
          └──────────────┬─────────────────────────────────────────┘
                         │
-                       (any of these dates with these days
-                        all produce weekStart = 2026-04-12)
+                       (any of these dates with these offsets
+                        all produce weekStart = 2026-04-13)
 
-   getDay() returns the offset; we subtract it to land on Sunday.
+   (getDay() + 6) % 7 gives offset from Monday; we subtract it to land on Monday.
 
    Format choice:
    ────────────────────────────────────────────────
@@ -173,9 +175,9 @@ Period keys should be strings, not Dates. Strings compare by value, are stable, 
 
 ### Where this breaks down
 
-Timezone-sensitive cases. A user logging at 11pm Pacific Saturday is still in Saturday local but already in Sunday UTC. `getWeekStart` uses local time, so the session groups into the right week locally — but if the same user later moves to UTC, the historical sessions don't shift. This is acceptable because Notion stores ISO date strings (no time) for the session `date` field, so the "what day was this" answer is determined at logging time, not at read time.
+Timezone-sensitive cases. A user logging at 11pm Pacific Saturday is still in Saturday local but already in Sunday UTC. `getWeekStart` uses local time, so the session groups into the right week locally — but if the same user later moves to UTC, the historical sessions don't shift. This is acceptable because the session `date` field is stored as an ISO date string (no time), so the "what day was this" answer is determined at logging time, not at read time.
 
-Other breakpoint: weeks-start-on-Monday. Currently hard-coded to Sunday (`day = getDay()`, `0 = Sunday`). To switch to Monday, we'd subtract `(day === 0 ? 6 : day - 1)`. Not a feature; would be one-line change.
+Other breakpoint: weeks-start-on-Sunday or arbitrary days. Currently hard-coded to Monday (matches `getWeekStart()` in `week-progress.ts`). To switch to a different start day, change the modular offset formula. The switch from Sunday-start to Monday-start was applied via a one-shot SQLite migration in `migrate()` that re-keyed Sunday-shaped `week_progress` rows to their preceding Monday.
 
 ### What to explore next
 
@@ -221,12 +223,12 @@ Using `toISOString` was not picked because of the UTC vs local-time issue. It wo
 
 ### Concept recap
 
-`getWeekStart(date)` clones the input date, subtracts `getDay()` days to land on Sunday, and formats `YYYY-MM-DD` using local-time getters (`getFullYear`, `getMonth`, `getDate`). The result is a stable string usable as a Map key, SQL primary key, or JSON value. The constraint forcing this design was: avoid library dependency for a small function; produce string keys for stable comparison; use local time to match user-perception week boundaries. The cost is needing to maintain our own test coverage and a hard-coded Sunday-start.
+`getWeekStart(date)` clones the input date, computes `(getDay() + 6) % 7` to get a Monday-based offset, subtracts that many days to land on Monday, and formats `YYYY-MM-DD` using local-time getters (`getFullYear`, `getMonth`, `getDate`). The result is a stable string usable as a Map key, SQL primary key, or JSON value. The constraint forcing this design was: avoid library dependency for a small function; produce string keys for stable comparison; use local time to match user-perception week boundaries. The cost is needing to maintain our own test coverage.
 
 ### Key points
 
-- `getDay()` returns 0–6 with 0 = Sunday.
-- Subtracting `day` days lands on the Sunday of the week containing the input.
+- `(getDay() + 6) % 7` maps JS day-of-week (0=Sun…6=Sat) to a Monday-based offset (0=Mon…6=Sun).
+- Subtracting the offset lands on the Monday of the week containing the input.
 - The output is a string, not a Date — safe for Map keys and SQL.
 - Local time is intentional; UTC would shift week boundaries near midnight.
 - Cloning the date (`new Date(date)`) avoids mutating the caller's value.
@@ -238,16 +240,17 @@ Using `toISOString` was not picked because of the UTC vs local-time issue. It wo
 ### Likely questions
 
 **Q: Walk me through the function.  [mid]**
-A: Take the input date, clone it (to avoid mutating the caller's), find the day-of-week with `getDay()` (returns 0 for Sunday through 6 for Saturday), then `setDate(getDate() - day)` rolls the cloned date back to Sunday. Format YYYY-MM-DD with zero-padded month and day, return as a string.
+A: Take the input date, clone it (to avoid mutating the caller's), compute `(getDay() + 6) % 7` to get a Monday-based offset, then `setDate(getDate() - offset)` rolls the cloned date back to Monday. Format YYYY-MM-DD with zero-padded month and day, return as a string.
 
 ```
-Wed 2026-04-15  ──► getDay() = 3  ──► setDate(15 - 3) = setDate(12)
+Tue 2026-04-14  ──► getDay() = 2  ──► offsetFromMonday = (2+6)%7 = 1
+                                       setDate(14 - 1) = setDate(13)
                                                             │
                                                             ▼
-                                                     Sun 2026-04-12
+                                                     Mon 2026-04-13
                                                             │
                                                             ▼
-                                                     '2026-04-12'
+                                                     '2026-04-13'
 ```
 
 **Q: Why not `toISOString().slice(0, 10)`?  [senior]**
@@ -276,7 +279,7 @@ A: Each user's week key is in their local timezone at the time of logging. Once 
 
 ### One-line anchors
 
-- Day-of-week minus day-of-week lands on the start of the week.
+- `(getDay() + 6) % 7` gives Monday-based offset; subtract to land on Monday.
 - Use local time; UTC shifts boundaries.
 - Output strings, never Dates.
 - Cloning prevents `setDate` from leaking.
@@ -297,11 +300,14 @@ Why not `toISOString`? Under 60 seconds.
 Reference `week-progress.ts` L7.
 
 ### Level 4 — Defend the decision you'd change
-"Add Monday-start weeks. What changes?"
+"Switch to Sunday-start weeks. What changes?"
 
 ### Quick check — code reference test
 - What file has `getWeekStart`?
-- What's the day-of-week sentinel for Sunday?
+- What formula converts `getDay()` to a Monday-based offset?
 - Why clone the date first?
 
 Then verify.
+
+---
+Updated: 2026-05-17 — Algorithm switched from Sunday-start to Monday-start; modular-arithmetic offset `(getDay()+6)%7`; one-shot SQLite migration re-keys legacy Sunday rows.

@@ -35,7 +35,7 @@ Only if all three are "no" does an agent earn its place.
 | Form classification | Label per-rep failures | Trained classifier (Phase 2C) — fast, repeatable, well-defined output space. |
 | Gate state machine | Track 3 consecutive cleans | Deterministic rules. No ambiguity. |
 | Streak / week stats | Aggregate sessions | Pure functions. No reasoning needed. |
-| Session sync | Bidirectional Notion sync | Deterministic with conflict resolution. |
+| Session sync | Write-mostly Supabase push with restore-on-fresh-install pull | Deterministic; no LLM judgment involved. |
 | Recommend next exercise | Pick what to do today | Rule-based (B2C.14) first; learned recommender (B2C.15) later. NOT an agent. |
 
 ### Where contrl WILL use an agent (Phase 4 Path C)
@@ -239,3 +239,6 @@ Why isn't there an agent for the home screen? Under 60 seconds.
 - What's the trained-model alternative to coaching?
 
 Then verify.
+
+---
+Updated: 2026-05-17 — Session sync row updated from Notion to Supabase write-mostly mirror.

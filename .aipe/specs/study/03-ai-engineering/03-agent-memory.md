@@ -41,7 +41,7 @@ The model "remembers" everything in this array. It does not remember anything ou
 
 Long-term facts live in:
 - SQLite tables (sessions, gates, weeks, classifier outputs once Phase 2C ships)
-- Notion (sessions, exercises)
+- Supabase (sessions, exercises, gate_progress, week_progress, user_profile)
 - Local files (e.g., recent coaching log)
 
 The agent retrieves these via tool calls: `get_form_history(category)`, `get_recent_coaching()`, etc. The retrieved data becomes part of short-term memory for the duration of the conversation.
@@ -253,3 +253,6 @@ Reference the planned `coaching_log`.
 - Which tool reads from it?
 
 Then verify against the curriculum.
+
+---
+Updated: 2026-05-17 — Long-term memory list: "Notion (sessions, exercises)" replaced with "Supabase (sessions, exercises, gate_progress, week_progress, user_profile)".
