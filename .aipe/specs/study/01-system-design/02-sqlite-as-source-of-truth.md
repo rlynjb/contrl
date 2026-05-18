@@ -154,7 +154,7 @@ Multi-process access (a widget process and the app process both reading the same
 
 ### What to explore next
 
-- [04-conflict-resolution-last-edit-wins](./04-conflict-resolution-last-edit-wins.md) → reconciling local writes with remote
+- [11-supabase-mirror-sync](./11-supabase-mirror-sync.md) → how local writes flow to the remote mirror
 - [05-derived-state](./05-derived-state.md) → which tables get synced and which don't
 - [02-dsa/02-composite-key-lookups](../02-dsa/02-composite-key-lookups.md) → how `${cat}:${level}` keys work
 
@@ -195,7 +195,7 @@ Multi-user support, on the other hand, would have been free — every backend al
 
 ### Sub-block 3 — the breakpoint
 
-Fine until **multi-device sync becomes a primary feature**. Two users on two phones editing the same session is the breakpoint. The local-first stack handles this via 2-min remote bias (see [04-conflict-resolution-last-edit-wins](./04-conflict-resolution-last-edit-wins.md)), but that rule is correct for single-user-on-two-devices, not multi-user. If the app added shared workout plans or trainer-shared programming, SQLite-as-truth would need a server-as-truth alternative.
+Fine until **multi-device sync becomes a primary feature**. Two users on two phones editing the same session is the breakpoint. Under the current Supabase mirror (see [11-supabase-mirror-sync](./11-supabase-mirror-sync.md)), the model is local-wins on push + remote-wins on empty-DB restore — fine for single-user-on-two-devices in sequence, not concurrent multi-user. If the app added shared workout plans or trainer-shared programming, SQLite-as-truth would need a server-as-truth alternative.
 
 ### Sub-block 4 — what wasn't a tradeoff
 

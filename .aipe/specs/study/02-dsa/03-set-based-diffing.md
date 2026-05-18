@@ -5,7 +5,7 @@
 
 > `pullExercises` (historical) upserted every remote exercise locally, then called `deleteExercisesNotIn(remoteIds)` to remove anything not in the remote set. Same shape was used to detect remote deletions: build a Set of active remote IDs, find local rows whose remote ID isn't in that Set, delete them. This pattern has been removed from the codebase; it is documented here as a general DSA pattern.
 
-**See also:** → [01-system-design/03-bidirectional-sync](../01-system-design/03-bidirectional-sync.md)
+**See also:** → [01-system-design/11-supabase-mirror-sync](../01-system-design/11-supabase-mirror-sync.md)
 
 ---
 
@@ -187,7 +187,7 @@ The other breakpoint: at very large N, holding both sets in memory becomes expen
 
 ### What to explore next
 
-- [01-system-design/03-bidirectional-sync](../01-system-design/03-bidirectional-sync.md) → where this diff fits in the sync flow
+- [01-system-design/11-supabase-mirror-sync](../01-system-design/11-supabase-mirror-sync.md) → the current Supabase sync model (no set diff anymore — watermark-based instead)
 - [04-grouping-sessions-by-week](./04-grouping-sessions-by-week.md) → another use of Set/Map
 
 ---

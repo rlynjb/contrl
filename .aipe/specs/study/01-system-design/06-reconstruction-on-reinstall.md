@@ -5,7 +5,7 @@
 
 > When the local DB has sessions but no derived state (the reinstall fingerprint), `reconstructFromSessions` chronologically replays every session through the gate-state machine. Pure function, deterministic, safe to run twice — running it again with the same input produces the same output.
 
-**See also:** → [05-derived-state](./05-derived-state.md) · → [09-react-context-and-sync-versioning](./09-react-context-and-sync-versioning.md)
+**See also:** → [05-derived-state](./05-derived-state.md) · → [11-supabase-mirror-sync](./11-supabase-mirror-sync.md)
 
 ---
 
@@ -222,7 +222,7 @@ The other breakpoint: when projections aren't pure. Anything that depends on "no
 
 - [05-derived-state](./05-derived-state.md) → why this rule exists in the first place
 - [02-dsa/01-sorting-sessions-chronologically](../02-dsa/01-sorting-sessions-chronologically.md) → the sort step in detail
-- [09-react-context-and-sync-versioning](./09-react-context-and-sync-versioning.md) → the trigger after sync
+- [11-supabase-mirror-sync](./11-supabase-mirror-sync.md) → the sync engine that fires this on app open
 
 ---
 

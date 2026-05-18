@@ -5,7 +5,7 @@
 
 > The phone owns the data. The network is an enhancement, not a dependency. Every read hits SQLite; every write commits locally first; the cloud is a mirror that reconciles in the background.
 
-**See also:** → [02-sqlite-as-source-of-truth](./02-sqlite-as-source-of-truth.md) · → [03-bidirectional-sync](./03-bidirectional-sync.md) · → [05-derived-state](./05-derived-state.md)
+**See also:** → [02-sqlite-as-source-of-truth](./02-sqlite-as-source-of-truth.md) · → [11-supabase-mirror-sync](./11-supabase-mirror-sync.md) · → [05-derived-state](./05-derived-state.md)
 
 ---
 
@@ -131,7 +131,7 @@ The other breakpoint: multi-user collaboration. Local-first works beautifully fo
 ### What to explore next
 
 - [02-sqlite-as-source-of-truth](./02-sqlite-as-source-of-truth.md) → the storage layer in detail
-- [03-bidirectional-sync](./03-bidirectional-sync.md) → how the mirror reconciles
+- [11-supabase-mirror-sync](./11-supabase-mirror-sync.md) → how the mirror reconciles
 - [05-derived-state](./05-derived-state.md) → the derive-don't-sync rule
 - [06-reconstruction-on-reinstall](./06-reconstruction-on-reinstall.md) → what makes the rule load-bearing
 

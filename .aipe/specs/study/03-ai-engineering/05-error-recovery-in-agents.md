@@ -63,7 +63,7 @@ This often self-corrects on the next turn — the model reads its own validation
 
 ### Failure mode 3 — Provider call fails
 
-The LLM API returns 5xx, 429, or times out. Handled at the outer agent loop with the same retry-with-backoff pattern as [01-system-design/08-rate-limiting-and-backoff](../01-system-design/08-rate-limiting-and-backoff.md). After N retries, throw out to the caller — the user sees "coaching unavailable, try again later".
+The LLM API returns 5xx, 429, or times out. Handled at the outer agent loop with retry-with-backoff (exponential delay, capped retries). After N retries, throw out to the caller — the user sees "coaching unavailable, try again later".
 
 ### Move 2.5 — What contrl's planned failures look like (B4C.5)
 
@@ -124,7 +124,7 @@ The full picture is below.
 Expected paths:
 - `src/services/ai/agent.ts` (new) — try/catch around `dispatch`
 - `src/services/ai/tools.ts` (new) — Zod schemas for inputs
-- Provider-level retry (5xx, 429) — pattern from [01-system-design/08-rate-limiting-and-backoff](../01-system-design/08-rate-limiting-and-backoff.md) applied to LLM calls
+- Provider-level retry (5xx, 429) — exponential backoff + capped retries applied to LLM calls
 
 ---
 
@@ -147,7 +147,6 @@ The other breakpoint: when a tool succeeds *silently incorrectly*. The model doe
 ### What to explore next
 
 - [02-agent-loop-and-termination](./02-agent-loop-and-termination.md) → the loop that catches runaway-retry loops
-- [01-system-design/08-rate-limiting-and-backoff](../01-system-design/08-rate-limiting-and-backoff.md) → provider-level retry pattern
 
 ---
 
