@@ -150,6 +150,10 @@ export async function pullRestoreIfFresh(): Promise<void> {
   // triggers — we don't want N concurrent pushes during restore.
   restoreInProgress = true;
   try {
+    // Cloud is authoritative on restore: wipe local synced tables first so
+    // any stale rows (e.g. from the offline JSON seed) don't survive.
+    await db.clearLocalForRestore();
+
     for (const r of exercises.data ?? []) {
       await db.upsertExercise(exerciseFromRemote(r));
     }

@@ -620,3 +620,17 @@ export async function clearTombstones(ids: number[]): Promise<void> {
   const placeholders = ids.map(() => '?').join(',');
   await d.runAsync(`DELETE FROM sync_deletions WHERE id IN (${placeholders})`, ids);
 }
+
+// Clear local rows from the synced tables in preparation for a full
+// pull-restore from cloud. Skips user_profile (always a single seeded row;
+// pull updates levels in place) and does NOT record tombstones (the caller
+// is replacing this data wholesale from cloud, not deleting it).
+export async function clearLocalForRestore(): Promise<void> {
+  const d = await getDatabase();
+  await d.execAsync(`
+    DELETE FROM exercises;
+    DELETE FROM sessions;
+    DELETE FROM gate_progress;
+    DELETE FROM week_progress;
+  `);
+}
