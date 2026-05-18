@@ -176,13 +176,16 @@ export async function pullRestoreIfFresh(): Promise<void> {
     for (const r of weeks.data ?? []) {
       await db.updateWeekProgress(weekFromRemote(r));
     }
+
+    // Mark restored AND set the push watermark BEFORE clearing the flag.
+    // If we set the watermark after clearing, a stray pushChanges() can
+    // slip in with since=null and re-push everything we just pulled
+    // under whatever the current USER_ID is — which previously caused
+    // duplicate rows in Supabase when USER_ID had changed.
+    const now = new Date().toISOString();
+    await db.setLastPulledAt(now);
+    await db.setLastPushedAt(now);
   } finally {
     restoreInProgress = false;
   }
-
-  // Mark restored AND set the push watermark so we don't immediately
-  // re-push everything we just pulled.
-  const now = new Date().toISOString();
-  await db.setLastPulledAt(now);
-  await db.setLastPushedAt(now);
 }
