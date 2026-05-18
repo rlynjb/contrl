@@ -19,7 +19,7 @@ The pattern is called **local-first software**. The principle: treat the device'
 
 ## How it works
 
-You're standing at the bottom of a basement gym. The Wi-Fi is rubbish. You tap a checkbox, and three things happen, in this order: the UI shows the box checked, the SQLite write commits, and *eventually* the Notion page updates. The order matters more than any one of those three steps does.
+You're standing at the bottom of a basement gym. The Wi-Fi is rubbish. You tap a checkbox, and three things happen, in this order: the UI shows the box checked, the SQLite write commits, and *eventually* the Supabase row updates. The order matters more than any one of those three steps does.
 
 The strategy is: **commit locally first, treat the cloud as eventual**.
 
@@ -31,25 +31,25 @@ All seven tables live here: `user_profile`, `exercises`, `sessions`, `gate_progr
 
 ### The cloud as a mirror, not a master
 
-Notion is *not* the source of truth for sessions. Session reads go to SQLite, never to the Notion API. The Notion sync (`src/services/notion/sync.ts`) runs in the background, copies new sessions up, pulls remote edits down, and updates the local rows. If Notion is unreachable, the app still works — every screen still renders, every workout can still be logged. The bridge from frontend: this is like React Query with `staleTime: Infinity` and a manual revalidation trigger, except the cache *is* the database, not a memory layer over it.
+Supabase is *not* the source of truth for sessions. Session reads go to SQLite, never to the Supabase API. The sync module (`src/services/sync/`) runs in the background: `pushChanges()` upserts every row modified since the last push watermark; `pullRestoreIfFresh()` fires only on a fresh install (when `last_pulled_at IS NULL` and the sessions table is empty). If Supabase is unreachable, the app still works — every screen still renders, every workout can still be logged. The bridge from frontend: this is like React Query with `staleTime: Infinity` and a manual revalidation trigger, except the cache *is* the database, not a memory layer over it.
 
-The practical consequence: if you uninstall the app and reinstall it on a new phone, the first sync pulls every session row from Notion into SQLite. Then `reconstructFromSessions` (see [06-reconstruction-on-reinstall](./06-reconstruction-on-reinstall.md)) replays the session history to rebuild gate state and levels. The cloud holds the *facts*; the local DB holds the facts *plus* derived state.
+The practical consequence: if you uninstall the app and reinstall it on a new phone, `pullRestoreIfFresh()` pulls every row from Supabase across five tables into SQLite. Then `reconstructFromSessions` (see [06-reconstruction-on-reinstall](./06-reconstruction-on-reinstall.md)) stands by as a fallback — derived state (gates, levels, weeks) is also pulled directly from Supabase, so replay is only needed if the Supabase pull fails. The cloud holds the *facts*; the local DB holds the facts *plus* derived state.
 
-### Derived state never crosses the wire
+### Derived state and the sync surface
 
-`gate_progress`, `week_progress`, current level, current streak — none of these sync to Notion. They live only in SQLite. The rule: if it can be recomputed from sessions, it stays local. The pattern is called **derive-don't-sync**.
+`gate_progress`, `week_progress`, current level, and current streak are all pushed to Supabase — not because they're facts, but because pushing them makes restore fast (no recompute needed on reinstall). The rule has been refined: if it can be recomputed from sessions, it *can* stay local, but the storage cost of pushing it to Supabase is negligible and the restore-time benefit is real. The fallback path (`reconstructFromSessions`) is still in the code for the case where Supabase is unreachable on first launch.
 
-If you're coming from frontend, this is the same principle as `useMemo` over a derived value vs. storing it in state — except across a network boundary. The reason it matters: if both client and server can compute the same derived state, you have two sources of truth that can disagree, and reconciliation gets ugly fast. By making sessions the only synced entity, conflict resolution only has to handle one shape of data.
+If you're coming from frontend, the distinction is between a `useMemo` for *read performance* and a `useMemo` for *correctness* — derived state in Supabase is a convenience copy, not the source of truth. SQLite remains authoritative; Supabase is the mirror.
 
 ### What happens on the network boundary
 
-Every Notion write goes through `notionFetch` (`src/services/notion/api.ts` L18). Sessions push as Notion pages; exercises pull as Notion pages; deletions archive Notion pages. The boundary is narrow on purpose — only one HTTP wrapper, one rate limiter, one retry policy. If the Notion API goes away tomorrow, you swap one provider directory and the rest of the app doesn't notice.
+Every cloud write goes through `supabase.from('<table>').upsert(rows, { onConflict: '...' })` via the Supabase JS client (`src/services/sync/client.ts`). Config comes from `.env` as `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`. Network failures in `pushChanges()` are silent — a `logErr + return` pattern keeps the local write committed and retries naturally on the next push. The boundary is narrow on purpose: `src/services/sync/client.ts` is the only file that imports Supabase. If the provider goes away tomorrow, that single file is what swaps.
 
 ### Move 2.5 — Phase A vs Phase B
 
-**Phase A (current):** local-first with manual + auto-sync to Notion. Single user. Notion is the cloud mirror. No multi-device conflict possible beyond the 2-minute remote-bias window because the same user can't realistically log on two devices simultaneously.
+**Phase A (current):** local-first with write-mostly Supabase mirror + restore-on-fresh-install pull. Single user. Supabase is the cloud mirror. `pushChanges()` fires on every write (watermark-based diff); `pullRestoreIfFresh()` fires only once (fresh install). No multi-device conflict handling — the same user on one device at a time is the design assumption.
 
-**Phase B (planned, not built):** the audit-trail spec (Phase 2C of the curriculum) adds *raw pose data per rep* to the local database. That data stays local — it never syncs to Notion. The schema didn't have to change much: the existing local-first architecture already assumes some data is local-only. Adding the form-classifier audit trail just adds one more local-only table.
+**Phase B (planned, not built):** the audit-trail spec (Phase 2C of the curriculum) adds *raw pose data per rep* to the local database. That data stays local — it never syncs to Supabase. The schema didn't have to change much: the existing local-first architecture already assumes some data is local-only. Adding the form-classifier audit trail just adds one more local-only table.
 
 ### The principle
 
@@ -77,16 +77,17 @@ The full picture is below.
 └──────────┬────────────────────────────────────┬──────────────────────────────────────────────┘
            │                                    │
            ▼  sync triggered                    │  on app open: load()
-           │  (auto on open OR user-requested)  │  reads SQLite directly
+           │  (auto on open, write-mostly)      │  reads SQLite directly
            ▼                                    ▼
 ┌─ Network boundary (HTTPS, optional) ─────────────────────────────────────────────────────────┐
 │                                                                                              │
-│   src/services/notion/sync.ts                                                                │
-│      pullExercises  →  pullSessions  →  pushSessions  →  processDeletions                    │
-│      every request through rateLimit() + retry/backoff                                       │
+│   src/services/sync/supabase-sync.ts                                                         │
+│      pullRestoreIfFresh()  →  5-table SELECT + upsert (fresh install only)                   │
+│      pushChanges()         →  5-table UPSERT + tombstone DELETE (every write)                │
+│      network errors: logErr + return (silent, retried on next push)                          │
 │                                                                                              │
 └─ Provider layer (cloud mirror) ──────────────────────────────────────────────────────────────┘
-   Notion API   ·   Exercises DB   ·   Sessions DB   ·   User profile DB
+   Supabase Postgres   ·   exercises   ·   sessions   ·   gate_progress   ·   week_progress   ·   user_profile
 
 If the network is gone, the boundary is just unreachable.
 Everything above the boundary still works.
@@ -102,11 +103,12 @@ Everything above the boundary still works.
 
 The single entry point is `getDatabase()` — module-scoped singleton, opens `contrl.db` once per app lifetime, runs additive migrations, seeds exercises if empty.
 
-**Sync orchestrator:** `src/services/notion/sync.ts` L33 `syncAll()`
-**Sync version bump:** `src/hooks/NotionSyncContext.tsx` L53 `setSyncVersion(v => v + 1)`
-**State reload on sync:** `src/hooks/useGameState.ts` L173 (`useEffect` on `syncVersion`)
+**Sync engine:**  `src/services/sync/supabase-sync.ts` — `pushChanges()` L34–L123, `pullRestoreIfFresh()` L125–L190
+**Client:**       `src/services/sync/client.ts` — supabase singleton
+**Watermark:**    `src/services/database.ts` — sync_state table, `getSyncState` L577, `setLastPushedAt` L588, `setLastPulledAt` L593
+**Trigger:**      `app/_layout.tsx` — `useEffect` on `ready` fires `pullRestoreIfFresh().then(pushChanges)` L37–L42
 
-The audit trail of "local writes that need to archive a Notion page" lives in `sync_deletions` (database.ts L94–L100) — the only acknowledgement that the local DB is more authoritative than the cloud.
+The tombstone outbox (`sync_deletions`) records deletes before they happen locally — `recordTombstone` is called before the local DELETE so no write is ever lost silently.
 
 ---
 
@@ -146,7 +148,7 @@ The other breakpoint: multi-user collaboration. Local-first works beautifully fo
 │ Code complexity    │ Sync engine + conflict logic   │ Network handlers + UI fallbacks    │
 │ Conflict surface   │ Only on multi-device sync      │ Constant (every write races)       │
 │ Cloud cost         │ Near-zero (sync rarely)        │ Pays per read + per write          │
-│ Vendor lock-in     │ Low — Notion swappable         │ High — tied to backend stack       │
+│ Vendor lock-in     │ Low — Supabase swappable       │ High — tied to backend stack       │
 │ Debugging          │ Single source on device        │ Need to inspect client + server    │
 │ Reinstall recovery │ Pull + replay (deterministic)  │ Authoritative server, trivial      │
 └────────────────────┴────────────────────────────────┴────────────────────────────────────┘
@@ -156,7 +158,7 @@ The other breakpoint: multi-user collaboration. Local-first works beautifully fo
 
 The biggest cost is reinstall recovery. When a user uninstalls and reinstalls, the local DB is empty. Cloud-first apps just hit the server again and the data is there. Local-first apps have to *re-derive* everything from the synced inputs: `reconstructFromSessions` is the load-bearing function that makes this work, and it's not free — it's a chronological replay through every session ever logged. At 10,000 sessions that's still milliseconds, but the recipe-for-disaster version of this (replay through 100k sessions, with side effects) is the reason most apps don't bother trying.
 
-The other cost is multi-device. With one user on one phone the conflict surface is tiny. The 2-minute remote-bias rule in `pullSessions` handles the rare case where a user opens Notion in a browser, edits a session, then opens the phone. But this rule is a heuristic, not a CRDT — at multi-device scale it would break, and we know it.
+The other cost is multi-device. With one user on one phone the conflict surface is tiny. There is no active conflict rule — `pushChanges()` watermark means the last local write wins at the Supabase row level. At multi-device scale (two phones pushing concurrently) this would break, and we know it.
 
 A third cost: developer onboarding. A new engineer has to learn the sync engine, the migration system, the reconstruction flow, AND the React side. That's ~3 days of code-reading. A cloud-first version of the same app would let them skip everything below the network boundary.
 
@@ -164,7 +166,7 @@ A third cost: developer onboarding. A new engineer has to learn the sync engine,
 
 If contrl were cloud-first, the gym-basement workflow would mean every set-tap shows a spinner, then either succeeds (200ms+) or fails and re-queues. The user-perceived cost is enormous — that's not a feature, that's a bug they'd report on day one. The fix in a cloud-first app is to add an optimistic UI layer on top, then a cache, then a queue, then a retry policy — which is *more code* than the local-first approach, not less, because you end up rebuilding most of the local-first stack as an afterthought.
 
-The infrastructure cost would also be real: hosting an authenticated backend with a database, paying per-request, monitoring for outages. Local-first pays Notion's free-tier API and is otherwise infrastructure-free.
+The infrastructure cost would also be real: hosting an authenticated backend with a database, paying per-request, monitoring for outages. Local-first pays Supabase's free-tier Postgres and is otherwise infrastructure-free.
 
 ### Sub-block 3 — the breakpoint
 
@@ -186,13 +188,13 @@ A common "obvious alternative" people raise is Firestore/Supabase realtime. They
 - **Why it leads:** ships with the Expo SDK; battle-tested WAL mode; mirrors the SQLite C API directly. Zero bridge cost for Expo projects.
 - **Runner-up:** `op-sqlite` — `innovation-leading` JSI-direct binding for bare React Native projects. Faster on hot read paths, but ejecting from Expo to get it isn't a good trade for this app.
 
-### Notion API as cloud provider
+### @supabase/supabase-js + Supabase Postgres
 
-- **Codebase uses:** Direct `fetch` to `api.notion.com/v1` via `src/services/notion/api.ts` L26. No SDK.
-- **Why it's here:** the cloud mirror. Users already keep their training notes in Notion; making the app push there for free is the killer feature.
-- **Leading today:** Notion API — `adoption-leading` for user-facing personal database mirrors, 2026.
-- **Why it leads:** zero infrastructure to operate; users already own their data in Notion; database-style records map cleanly to the domain.
-- **Runner-up:** Supabase — `innovation-leading` for managed Postgres + auth + RLS + Storage; the alternative if "general-purpose backend" became a requirement.
+- **Codebase uses:** `@supabase/supabase-js` against managed Supabase Postgres as the cloud mirror. `pushChanges()` upserts dirty rows; `pullRestoreIfFresh()` does the one-shot restore. Client singleton at `src/services/sync/client.ts`.
+- **Why it's here:** the write-mostly remote mirror that receives every local write so the user can restore on a fresh install. If it were missing, the app still works (local-first) but reinstalls lose history.
+- **Leading today:** Supabase — `adoption-leading` for managed Postgres + auth + RLS in 2026.
+- **Why it leads:** managed Postgres + RLS + Storage + auth in one console; SDK mirrors PostgREST so `.upsert(rows, { onConflict: '...' })` is one call. No backend code needed to ship a useful sync layer.
+- **Runner-up:** Neon + Drizzle — `innovation-leading` typed SQL with branch-per-PR; Convex is the reactive-first alternative.
 
 ### NativeWind + dark theme
 
@@ -208,15 +210,15 @@ A common "obvious alternative" people raise is Firestore/Supabase realtime. They
 
 ### Concept recap
 
-Local-first means SQLite is the source of truth and Notion is the mirror. Every read in contrl hits the local database; every write commits locally first and reconciles to Notion in the background. The constraint that forced it was the workout context — basement gyms, weak cellular, latency budget under 50ms for a checkbox tap. The cost paid is the reinstall-recovery story (we rebuild derived state from session history via `reconstructFromSessions`) plus a sync engine that has to handle pull-then-push ordering, conflict resolution, and deletions.
+Local-first means SQLite is the source of truth and Supabase is the mirror. Every read in contrl hits the local database; every write commits locally first and `pushChanges()` reconciles to Supabase in the background. The constraint that forced it was the workout context — basement gyms, weak cellular, latency budget under 50ms for a checkbox tap. The cost paid is the reinstall-recovery story (`pullRestoreIfFresh()` pulls 5 tables from Supabase; `reconstructFromSessions` is the fallback if that fails) plus a sync engine that handles watermark-based push, fresh-install pull, and tombstone deletions.
 
 ### Key points
 
 - Lives in step 1 (Data model) and step 4 (State ownership) of the system-design checklist.
-- Every read goes to SQLite; the Notion API is never on the read path.
-- Only sessions sync to Notion; gates, levels, weeks, streaks are derived locally and never synced.
-- A reinstall pulls sessions from Notion, then replays them through `reconstructFromSessions` to rebuild derived state.
-- The 2-minute remote-bias conflict rule is the entire multi-device story — it works because the user is realistically only on one device at a time.
+- Every read goes to SQLite; the Supabase API is never on the read path.
+- All five entity tables sync to Supabase (sessions, exercises, gate_progress, week_progress, user_profile); `drafts` and `sync_state` are local-only.
+- A reinstall calls `pullRestoreIfFresh()` which pulls all 5 tables from Supabase; `reconstructFromSessions` is the fallback if Supabase is unreachable.
+- There is no multi-device conflict rule — the design assumption is one user on one device; `pushChanges()` watermark ensures only changed rows are pushed.
 - The cost paid is reinstall complexity; the alternative (cloud-first) would have paid that cost as constant network-fragility tax instead.
 
 ---
@@ -230,7 +232,7 @@ Behind "why local-first" is "have you understood your latency budget, your offli
 ### Likely questions
 
 **Q: Why did you pick local-first over a Firestore-style cached cloud DB?  [mid]**
-A: The user-perceived latency budget for a "tap a set checkbox" interaction is ~50ms. A cached cloud DB still requires a round-trip on cold reads and writes; SQLite is sub-millisecond regardless. The app is fully usable offline as a free side effect. The cost is a sync engine I had to write, which is several hundred lines of code in `src/services/notion/sync.ts` — but the alternative was rebuilding an optimistic-UI layer in every screen, which is much more code.
+A: The user-perceived latency budget for a "tap a set checkbox" interaction is ~50ms. A cached cloud DB still requires a round-trip on cold reads and writes; SQLite is sub-millisecond regardless. The app is fully usable offline as a free side effect. The cost is a sync engine I had to write, which is several hundred lines of code in `src/services/sync/supabase-sync.ts` — but the alternative was rebuilding an optimistic-UI layer in every screen, which is much more code.
 
 ```
 tap checkbox        local-first             cloud-first w/ cache
@@ -242,7 +244,7 @@ tap checkbox        local-first             cloud-first w/ cache
 ```
 
 **Q: How do you handle a multi-device conflict?  [senior]**
-A: The sync engine uses last-edit-wins with a 2-minute Notion bias — if the remote `last_edited_time` is within 2 minutes of the local `updated_at`, Notion wins. The reasoning is that for a single-user fitness app, the realistic conflict scenario is "I edited the session in Notion browser, then opened the phone". The remote bias protects that case. If I had multi-user collaboration as a requirement I'd need CRDTs or an OT engine — this rule would not survive it.
+A: There is no conflict rule — the design assumes one user on one device. `pushChanges()` uses a watermark (`updated_at > last_pushed_at`) to diff dirty rows and upserts them by `(user_id, id)` conflict key. If the same user somehow pushed from two devices, the last write wins at the Supabase row level. For a single-user fitness app the realistic conflict scenario doesn't occur — gym sessions don't get logged simultaneously on two phones. If multi-device collaboration ever became a requirement I'd need CRDTs or a server-side merge rule; the current engine would not survive it.
 
 ```
    Path taken (last-edit-wins + 2min remote bias)   │   Alternative (CRDT-based merge)
@@ -255,20 +257,22 @@ A: The sync engine uses last-edit-wins with a 2-minute Notion bias — if the re
 ```
 
 **Q: What happens at 100,000 sessions on reinstall — does this still work?  [arch]**
-A: `reconstructFromSessions` is O(n) over session count, but the constant is small (a sort and a per-session FSM step). 100k sessions is still well inside JS event-loop budget — probably 200ms — and it runs once, on reinstall, blocking only the initial post-sync render. The Notion pull is the actual scale concern: pagination caps at 100 pages per request, so 100k sessions is 1000 paginated calls × 350ms rate limit = ~6 minutes for the initial pull. Beyond ~10k sessions per user I'd need server-side pagination cursoring and probably a "rebuild from snapshot" path instead of replay.
+A: `reconstructFromSessions` is O(n) over session count, but the constant is small (a sort and a per-session FSM step). 100k sessions is still well inside JS event-loop budget — probably 200ms — and it runs only if Supabase is unreachable. The normal reinstall path is `pullRestoreIfFresh()` pulling all 5 tables from Supabase in one batch per table; the scale concern is Supabase response time for large row counts, not JS replay time. At 100k sessions that is still a single `.select('*')` paginated by PostgREST defaults — I'd need cursor pagination past ~1000 rows per table.
 
 ```
 ┌─ at 100k sessions ──────────────────────────────────┐
-│  Notion pull (10k pages × 350ms)   ~6 min  ←─ breaks first
-│  SQLite insert (10k rows)          <1 sec
-│  Reconstruct replay                ~200ms
+│  Supabase pull (5 × select)        ~1–5 sec  ←─ breaks first
+│  SQLite upsert (100k rows)         several sec
+│  Reconstruct replay (fallback)     ~200ms
 └─────────────────────────────────────────────────────┘
 ```
 
 ### The question candidates always dodge
 
-**Q: Why not just keep the cloud as the source of truth and cache aggressively?**
+**Q: Why not just keep Supabase as the source of truth and cache aggressively?**
 A: That's the path I'd take if the app were team-collaborative. For a single-user app the cache-aggressively approach pays the cost of cloud-first (network fragility, latency on first read, queue + retry) and inherits the cost of caching (cache invalidation bugs, staleness windows). I'd rather pay the cost of *being* local-first cleanly than the cost of *pretending* to be by way of a cache. The honest version of cloud-first-with-cache is "we have a cache but the source of truth disagrees with it sometimes" — which is the worst of both worlds.
+
+If Supabase went away tomorrow, `src/services/sync/client.ts` is the only file to swap. Every screen, every hook, every migration stays unchanged.
 
 ```
    What I picked              vs   Cloud + aggressive cache
@@ -284,17 +288,17 @@ A: That's the path I'd take if the app were team-collaborative. For a single-use
 
 - The phone owns the data; the cloud is a mirror.
 - Sources of truth replicate; derivations don't.
-- The 2-minute remote bias is the entire multi-device story.
-- Reinstall correctness is paid for once, in `reconstructFromSessions`.
+- Push is write-mostly via watermark diff; pull is a one-shot on fresh install.
+- Reinstall correctness: `pullRestoreIfFresh()` first; `reconstructFromSessions` as fallback.
 
 ---
 
 ## Validate your understanding
 
 ### Level 1 — Reconstruct the diagram
-Close this file. Draw the layered diagram: UI → Domain → Storage layer (SQLite) — with a network-boundary line below storage, and Notion below the boundary. Label `syncAll` as the only thing crossing the boundary. Re-open and compare.
+Close this file. Draw the layered diagram: UI → Domain → Storage layer (SQLite) — with a network-boundary line below storage, and Supabase below the boundary. Label `pushChanges` and `pullRestoreIfFresh` as the only things crossing the boundary. Re-open and compare.
 
-✓ Pass: your diagram has SQLite *above* the network boundary and Notion *below*, with `syncAll` as the single crossing.
+✓ Pass: your diagram has SQLite *above* the network boundary and Supabase *below*, with `pushChanges`/`pullRestoreIfFresh` as the single crossing pair.
 
 ### Level 2 — Explain it out loud
 Explain local-first to an imaginary colleague who just asked "why is the app fast even with no signal?" Under 90 seconds.
@@ -305,17 +309,21 @@ Checkpoints:
 - Did you name the tradeoff in one sentence (reinstall recovery cost)?
 
 ### Level 3 — Apply it to a new scenario
-"You're asked to add a 'workout history' export feature that produces a CSV of all sessions. Should the export hit Notion or SQLite, and why?"
+"You're asked to add a 'workout history' export feature that produces a CSV of all sessions. Should the export hit Supabase or SQLite, and why?"
 
 Write your answer. 3–5 sentences. Then open `src/services/database.ts` L307 (`getSessions`) and check whether your answer matches what the codebase would do.
 
 ### Level 4 — Defend the decision you'd change
-"If I were starting contrl today, would I still pick local-first?" Answer in writing. Reference `src/services/notion/sync.ts` to support what exists, and name what would need to change for the alternative.
+"If I were starting contrl today, would I still pick local-first?" Answer in writing. Reference `src/services/sync/supabase-sync.ts` to support what exists, and name what would need to change for the alternative.
 
 ### Quick check — code reference test
 Without opening files:
 - What file does the SQLite open + migration live in?
-- What function name is the sync orchestrator?
-- Approximately what line range is the migration block?
+- What are the two sync function names and which file are they in?
+- Approximately what line does `pushChanges` start in `supabase-sync.ts`?
 
 Then open and verify.
+
+---
+
+_Updated: 2026-05-17 — Cloud mirror swapped Notion → Supabase; sync module now `src/services/sync/`; push/pull functions renamed; Phase A/B box, diagram, interview Q&As, and tech-reference section all updated._

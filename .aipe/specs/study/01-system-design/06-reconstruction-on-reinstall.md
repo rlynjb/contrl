@@ -11,7 +11,7 @@
 
 ## Why care
 
-A user uninstalls the app, walks away for three months, reinstalls on a different phone. The local DB starts empty. The first sync pulls every session row from Notion. Now the app has the *facts* — but none of the *interpretation*: what level are they at, which gates have they passed, what's their streak? You can't ship the home screen until you've answered those questions.
+A user uninstalls the app, walks away for three months, reinstalls on a different phone. The local DB starts empty. The first sync calls `pullRestoreIfFresh()`, which pulls every row from Supabase across 5 tables: exercises, sessions, gate_progress, week_progress, user_profile. The app gets back both the *facts* (sessions) and the *interpretation* (gate state, levels) in one pass — the home screen renders correctly without any recomputation. The `reconstructFromSessions` replay is the fallback for the case where Supabase is unreachable on first launch.
 
 The pattern is **event replay**, sometimes called **projection rebuild** in CQRS systems. It's the same idea as `git reset --hard $(git log --reverse | first commit)` followed by re-applying every commit: take the inputs, run them through your derivation function, and the output state is exactly what it should be. The trick is making the replay *idempotent* — running it twice on the same data must produce the same result, even if some derivations were already partially in place. Here's how that works in this codebase.
 
@@ -137,36 +137,45 @@ The full picture is below.
 │                                                                                   │
 └──────────┬────────────────────────────────────────────────────────────────────────┘
            │
-           │  app/_layout.tsx L34 — auto-sync on app open if configured
+           │  app/_layout.tsx L37–L42 — useEffect on `ready`
            ▼
-┌─ Sync runs ───────────────────────────────────────────────────────────────────────┐
+┌─ Sync runs (pullRestoreIfFresh) ──────────────────────────────────────────────────┐
 │                                                                                   │
-│   syncAll()  ──► pullSessions(...)  →  upsertSessionFromNotion × N                │
-│   syncVersion++                                                                   │
+│   pullRestoreIfFresh()                                                             │
+│        │                                                                          │
+│        ├─ check: last_pulled_at IS NULL?                                          │
+│        ├─ check: sessions table empty?                                            │
+│        │  (if either fails → early return; not a fresh install)                  │
+│        │                                                                          │
+│        ├─ supabase.from('exercises').select('*')                                  │
+│        ├─ supabase.from('sessions').select('*')                                   │
+│        ├─ supabase.from('gate_progress').select('*')                              │
+│        ├─ supabase.from('week_progress').select('*')                              │
+│        ├─ supabase.from('user_profile').select('*')                               │
+│        │                                                                          │
+│        ├─ restoreInProgress = true                                                │
+│        ├─ clearLocalForRestore()  // wipes JSON-seed pollution before upsert      │
+│        ├─ for each row → db.upsert* (writers fire pushChanges, blocked by flag)  │
+│        ├─ set last_pulled_at = now, last_pushed_at = now  (inside try-finally)   │
+│        └─ restoreInProgress = false                                               │
+│                                                                                   │
+│   .then(() => pushChanges())  ←─ fires after restore completes                   │
 │                                                                                   │
 └──────────┬────────────────────────────────────────────────────────────────────────┘
            │
-           │  useGameState.tsx L173 — syncVersion change triggers load() again
+           │  useGameState load() re-fires (React state update from db writes)
            ▼
-┌─ Post-sync load ──────────────────────────────────────────────────────────────────┐
+┌─ Post-restore load ───────────────────────────────────────────────────────────────┐
 │                                                                                   │
-│   load() called second time                                                       │
+│   load() sees sessions + gate_progress + week_progress already populated          │
 │                                                                                   │
-│   allSessions = db.getSessions()  →  [N rows just pulled]                         │
-│   isDefaultLevels = true  (no logSession has run)                                 │
-│   gatesAreUntouched = true  (default L1 gates exist but have consec=0)            │
+│   isDefaultLevels? — likely false (user_profile levels restored from Supabase)    │
+│   gatesAreUntouched? — likely false (gate rows restored with real progress)       │
+│   → fingerprint does NOT match → reconstructFromSessions does NOT run             │
 │                                                                                   │
-│   ┌─────────── all three true → fingerprint matched ──────────┐                   │
-│   │                                                            │                  │
-│   │   reconstructed = reconstructFromSessions(allSessions)     │                  │
-│   │     sort chronologically                                   │                  │
-│   │     for each: evaluate cleanness, advance/reset gate       │                  │
-│   │     if consec >= 3: mark passed, advance level             │                  │
-│   │                                                            │                  │
-│   │   persist: updateUserLevel × per-cat                       │                  │
-│   │            updateGateProgress × per-gate                   │                  │
-│   │   loadedUser = db.getUser()                                │                  │
-│   └────────────────────────────────────────────────────────────┘                  │
+│   ── fallback path (Supabase unreachable on first launch) ──────────────────────  │
+│   If pull failed silently: sessions present, levels default, gates untouched      │
+│   → fingerprint matches → reconstructFromSessions runs as recovery               │
 │                                                                                   │
 │   build gates, compute streak, set React state                                    │
 │                                                                                   │
@@ -187,7 +196,9 @@ Trigger logic:
 
 Supporting:
 - `createGateProgress(category, level, userLevel)` — `src/lib/game/gate-check.ts` L23
-- The reload trigger after sync: `useEffect` watching `syncVersion` in `useGameState.ts` L173
+- The restore trigger: `app/_layout.tsx` L37–L42 — `useEffect` on `ready` fires `pullRestoreIfFresh().then(() => pushChanges())`
+- Restore engine: `src/services/sync/supabase-sync.ts` — `pullRestoreIfFresh()` L125–L190
+- Restore flag: `restoreInProgress` (module-level in `supabase-sync.ts`) blocks fire-and-forget pushes during restore
 
 ---
 
@@ -240,15 +251,17 @@ The second cost is *all-or-nothing* — the fingerprint either matches and the f
 
 ### Sub-block 2 — what a snapshot strategy would have cost
 
-If we stored a "current state" snapshot in Notion (latest user levels + gate states), reinstall would be faster — pull the snapshot, apply, done. But: every `logSession` would need to push the snapshot, doubling sync write traffic. The snapshot could be stale vs. the actual session log if a sync only partially completed. Adding a new derivation (e.g., a "biggest gain this month" stat) would require backfilling snapshots for every existing user. Bug surface inverts: instead of "replay drifted from incremental", we'd have "snapshot drifted from sessions".
+If we stored a "current state" snapshot in a dedicated Supabase table (latest user levels + gate states as a single row), reinstall would be faster — pull the snapshot, apply, done. But: every `logSession` would need to push the snapshot, doubling sync write traffic. The snapshot could be stale vs. the actual session log if a sync only partially completed. Adding a new derivation (e.g., a "biggest gain this month" stat) would require backfilling snapshots for every existing user. Bug surface inverts: instead of "replay drifted from incremental", we'd have "snapshot drifted from sessions". The current approach — push each entity table's rows individually — is effectively the snapshot strategy without the dedicated snapshot table, since all rows arrive atomically in `pullRestoreIfFresh()`.
 
 ### Sub-block 3 — the breakpoint
 
 Fine until session count exceeds ~50,000 (about 50 years of daily training × 3 categories). At that point full replay is ~300ms and post-sync reload becomes visibly slow. The fix is checkpointing — persist state-as-of-week-W and replay only the tail. The schema doesn't have to change; we'd add a `state_snapshots` table with one row per checkpoint and modify the trigger to use the latest snapshot + tail replay.
 
-### Sub-block 4 — what wasn't actually a tradeoff
+### Sub-block 4 — what wasn't a tradeoff under the new model
 
-Storing derived state in Notion was not a real option. Notion's database properties are read-write for users — a user could manually edit "current level" in Notion and break the local recompute. The only safe storage for derived state is local-only.
+Storing derived state in Supabase IS what the current model does. The concern that blocked this under Notion ("a user could manually edit 'current level' in the remote DB and break the local recompute") still exists with Supabase, but the risk is bounded: `pushChanges()` uses a watermark, so any subsequent local write will overwrite a manually edited Supabase row. The remote is the mirror; the local is authoritative. A developer editing Supabase directly is fine — the next push wins.
+
+What wasn't a tradeoff: full-replay-only (no remote derived state). Derived state in Supabase removes a restore-time race that made the reconstruct fingerprint fragile. Keeping it local-only would have required maintaining the fingerprint check indefinitely and accepting that a network failure during the session pull could produce a partially rebuilt state.
 
 ---
 
@@ -268,16 +281,17 @@ Storing derived state in Notion was not a real option. Notion's database propert
 
 ### Concept recap
 
-When the local DB has sessions but no derived state — the "reinstall fingerprint" of default levels + untouched gates + non-empty sessions — `reconstructFromSessions` runs. It sorts every session chronologically, replays each one through the gate-state machine starting from clean state, and returns the projected user levels and gate progress. The caller persists both. The function is pure, idempotent, and safe to invoke twice. The constraint forcing this design is the local-first + derive-don't-sync rule from [05-derived-state](./05-derived-state.md) — you can only afford to not sync derivations if you can rebuild them from inputs. The cost is the discipline that incremental updates must always match what a full replay produces.
+On a fresh install, `pullRestoreIfFresh()` pulls all 5 entity tables from Supabase and upserts them locally — derived state (gates, levels, weeks) arrives pre-built, no recomputation needed. The `reconstructFromSessions` replay is the fallback: it fires if the Supabase pull fails and the reinstall fingerprint matches (sessions present, levels default, gates untouched). The replay function sorts every session chronologically, evaluates each through the gate-state machine starting from clean state, and returns projected user levels and gate progress. The function is pure, idempotent, and safe to invoke twice. The cost is the discipline that incremental updates (`logSession`) must always match what a full replay produces.
 
 ### Key points
 
 - Lives in step 4 (State ownership) and step 5 (Failure handling) of the system-design checklist.
+- Normal reinstall: `pullRestoreIfFresh()` pulls 5 tables from Supabase; reconstruction not needed.
+- Fallback reinstall: Supabase unreachable → fingerprint check → `reconstructFromSessions`.
 - Fingerprint: sessions present, all levels default, all current-level gates untouched.
 - The replay function is pure — no clock reads, no I/O — which is what makes it idempotent.
 - Sort chronologically; gate state depends on the order of clean vs. dirty sessions.
-- Sessions at a level above the derived current level are skipped, not advanced through.
-- Reconstruction is the recovery path; `logSession` is the steady-state path; both must agree.
+- `reconstructFromSessions` and `logSession` must always produce the same output for the same session sequence.
 
 ---
 
@@ -290,11 +304,13 @@ Behind "what happens on reinstall" is "do you have a real recovery story for der
 ### Likely questions
 
 **Q: What runs on app reinstall?  [mid]**
-A: On reinstall, `getDatabase()` creates a fresh `contrl.db` with empty tables. Then the auto-sync (if configured) pulls every session from Notion via `pullSessions`. The post-sync reload of `useGameState` detects the reinstall fingerprint: sessions present, all levels default, all current-level gates have no recorded progress. That triggers `reconstructFromSessions`, which sorts sessions chronologically and replays each through the gate state machine. The resulting levels and gates get persisted, and the home screen renders with the correct state.
+A: On reinstall, `getDatabase()` creates a fresh `contrl.db` with empty tables. Then `_layout.tsx`'s `useEffect` on `ready` calls `pullRestoreIfFresh()`, which checks that `last_pulled_at IS NULL` and `sessions` is empty — both true on a fresh install. It then selects all rows from all 5 Supabase tables (exercises, sessions, gate_progress, week_progress, user_profile), wipes any JSON-seed pollution via `clearLocalForRestore()`, upserts each row, and sets both watermarks to now. The home screen renders with the correct state directly from the pulled rows. `reconstructFromSessions` is the fallback only if the Supabase pull fails.
 
 ```
-   reinstall  →  empty DB  →  syncAll pulls sessions  →  load() detects
-   fingerprint  →  reconstructFromSessions(sessions)  →  persist  →  render
+   reinstall → empty DB → pullRestoreIfFresh() → 5-table Supabase SELECT
+             → clearLocalForRestore() → upsert each row → set watermarks
+             → load() sees populated DB → render home screen
+             (reconstructFromSessions: fallback only if Supabase unreachable)
 ```
 
 **Q: Why does the function never read existing gate state?  [senior]**
@@ -322,7 +338,7 @@ A: Full replay is O(n) per session and per-session work is constant — read dat
 ### The question candidates always dodge
 
 **Q: What happens if reconstruction *would* produce a different result than the incremental updates produced (because of a code change to one path but not the other)?**
-A: Today, nothing — the bug is silent until the user reinstalls, at which point the reconstructed state replaces the incrementally-built state and the user sees a different home screen than they had yesterday. There's no test catching this. The mitigation is a property test: generate random session sequences, apply both `logSession` (incremental) and `reconstructFromSessions` (replay), assert identical output. That doesn't exist yet — call it tech debt. The alternative (rip out the incremental updates and always replay) would be slow on every save.
+A: Under the new model, reconstruction is the fallback — it only fires when Supabase was unreachable on first launch. So the bug is less likely to surface in normal use. But it's still silent when it does surface: reconstructed state replaces incrementally-built state, and the user sees a different home screen. There's no test catching this divergence. The mitigation is a property test: generate random session sequences, apply both `logSession` (incremental) and `reconstructFromSessions` (replay), assert identical output. That doesn't exist yet — call it tech debt. The alternative (always replay on load) would be slow on every save but would eliminate the divergence.
 
 ```
    Picked (incremental + replay)    │   Always-replay (alternative)
@@ -335,10 +351,10 @@ A: Today, nothing — the bug is silent until the user reinstalls, at which poin
 
 ### One-line anchors
 
-- Pure functions enable idempotent replay.
-- The fingerprint is the trigger; the trigger only fires when the cache is empty.
-- Two code paths (incremental + replay) must produce the same answer.
-- The session log is the only durable copy; everything else is rebuildable.
+- Normal reinstall: `pullRestoreIfFresh()` is the primary path; no replay needed.
+- Fallback: fingerprint match → `reconstructFromSessions` → idempotent replay.
+- Pure functions enable idempotent replay; initializing from zero each run is what makes it safe.
+- Two code paths (incremental `logSession` + fallback `reconstructFromSessions`) must produce the same answer.
 
 ---
 
@@ -348,7 +364,7 @@ A: Today, nothing — the bug is silent until the user reinstalls, at which poin
 Sketch the trigger condition (3 booleans) and the replay flow (sort → loop → return). Compare against the diagram.
 
 ### Level 2 — Explain it out loud
-Explain reconstruction to a teammate who's seen a user report "I uninstalled and reinstalled and my levels were wrong". Under 90 seconds.
+Explain the reinstall flow to a teammate who's seen a user report "I uninstalled and reinstalled and my levels were wrong". Under 90 seconds. Name both the primary path (Supabase pull) and the fallback path (reconstruction) and explain when each fires.
 
 ### Level 3 — Apply it to a new scenario
 "A user logs a clean session at L4 in `push`, but their current `push` level is L2 (this shouldn't happen normally, but say it did). What does reconstruction do?"
@@ -356,11 +372,15 @@ Explain reconstruction to a teammate who's seen a user report "I uninstalled and
 Trace through `reconstruct.ts` L36–L37. Then check whether your answer matches what the code skips.
 
 ### Level 4 — Defend the decision you'd change
-"Would you ever cache reconstruction output remotely so the next reinstall doesn't have to replay?" Reference the cost-benefit table.
+"Derived state now syncs to Supabase, so reconstruction is just a fallback. Is keeping `reconstructFromSessions` worth the maintenance cost of two code paths?" Reference the cost-benefit table.
 
 ### Quick check — code reference test
 - What file holds the replay function?
 - What's the fingerprint condition (3 parts)?
-- What line does the sort happen on?
+- What file and line fires `pullRestoreIfFresh()` on app open?
 
 Then verify.
+
+---
+
+_Updated: 2026-05-17 — Trigger diagram rewritten for pullRestoreIfFresh() 5-table Supabase pull; why-care narrative updated; Sub-block 4 reframed (derived state IS now in Supabase); interview Q updated from Notion/pullSessions to Supabase/pullRestoreIfFresh; reconstructFromSessions repositioned as fallback not primary path._

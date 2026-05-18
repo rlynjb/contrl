@@ -103,15 +103,16 @@ The full picture is below.
 │      │ ─derived─       │  │ ─derived─       │  │ ─session-scoped─ │                     │
 │      └─────────────────┘  └─────────────────┘  └──────────────────┘                     │
 │                                                                                         │
-│      ┌────────────────────┐                                                             │
-│      │ sync_deletions     │  ← outbox: rows to archive on next sync                     │
-│      └────────────────────┘                                                             │
+│      ┌────────────────────┐  ┌─────────────────────────────────────────────┐            │
+│      │ sync_deletions     │  │ sync_state                                  │            │
+│      │ ─tombstone outbox─ │  │  id, last_pushed_at, last_pulled_at         │            │
+│      └────────────────────┘  └─────────────────────────────────────────────┘            │
 │                                                                                         │
 │      migrate():                                                                         │
 │        CREATE TABLE IF NOT EXISTS  (idempotent)                                         │
 │        PRAGMA table_info(...) → set     (introspection)                                 │
 │        ALTER TABLE ... ADD COLUMN       (when column absent)                            │
-│        Indexes on category/level/notion_page_id/updated_at                              │
+│        Indexes on category/level/notion_page_id(dead schema)/updated_at                 │
 │                                                                                         │
 └─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -127,11 +128,13 @@ The full picture is below.
 Public domain operations (all in `src/services/database.ts`):
 - User: `getUser` L171, `updateUserLevel` L194
 - Exercises: `getExercises` L230, `upsertExercise` L264, `deleteExercisesNotIn` L257
-- Sessions: `insertSession` L288, `getSessions` L307, `getUnsyncedSessions` L329, `upsertSessionFromNotion` L356
+- Sessions: `insertSession` L288, `getSessions` L307
 - Gate progress: `getAllGateProgress` L417, `updateGateProgress` L440
 - Week progress: `getAllWeekProgress` L474, `updateWeekProgress` L497
 - Drafts: `saveDraft` L516, `getDraft` L526, `deleteDraft` L544
-- Deletions outbox: `recordDeletion` L551, `getPendingDeletions` L559, `clearDeletions` L573
+- Sync watermark: `getSyncState` L577, `setLastPushedAt` L588, `setLastPulledAt` L593
+- Tombstone outbox: `recordTombstone` L600, `getPendingTombstones` L609, `clearTombstones` L617
+- Restore utility: `clearLocalForRestore` L628
 
 ---
 
@@ -196,7 +199,7 @@ Fine until **multi-device sync becomes a primary feature**. Two users on two pho
 
 ### Sub-block 4 — what wasn't a tradeoff
 
-Realm and WatermelonDB are the usual alternatives floated for "I want better DX than raw SQL". Neither was a real option because: (a) Expo's managed workflow makes Realm a pain (it requires native module config that fights the prebuild flow), and (b) the schema is so small (7 tables) that an ORM's value-add is minimal vs. its onboarding cost.
+Realm and WatermelonDB are the usual alternatives floated for "I want better DX than raw SQL". Neither was a real option because: (a) Expo's managed workflow makes Realm a pain (it requires native module config that fights the prebuild flow), and (b) the schema is so small (8 tables) that an ORM's value-add is minimal vs. its onboarding cost.
 
 ---
 
@@ -224,7 +227,7 @@ Realm and WatermelonDB are the usual alternatives floated for "I want better DX 
 
 ### Concept recap
 
-contrl stores every piece of app state in a single SQLite file (`contrl.db`) opened once via `getDatabase()` in `src/services/database.ts`. Migrations run on every open, additively, using `CREATE TABLE IF NOT EXISTS` + `PRAGMA table_info` introspection — there is no version table. WAL mode keeps reads non-blocking during writes. No ORM: SQL strings + hand-rolled row mappers. The constraint that forced this was the latency budget (sub-ms reads on hot paths) and the requirement to work fully offline. The cost is that schema changes must remain additive forever and there's no DB-level invariant enforcement.
+contrl stores every piece of app state in a single SQLite file (`contrl.db`) opened once via `getDatabase()` in `src/services/database.ts`. Migrations run on every open, additively, using `CREATE TABLE IF NOT EXISTS` + `PRAGMA table_info` introspection — there is no version table. WAL mode keeps reads non-blocking during writes. No ORM: SQL strings + hand-rolled row mappers. 8 tables total: 5 entity tables (exercises, sessions, gate_progress, week_progress, user_profile), plus drafts, sync_deletions (tombstone outbox), and sync_state (push/pull watermarks). The constraint that forced this was the latency budget (sub-ms reads on hot paths) and the requirement to work fully offline. The cost is that schema changes must remain additive forever and there's no DB-level invariant enforcement.
 
 ### Key points
 
@@ -246,7 +249,7 @@ Behind "why SQLite" is "do you understand storage tradeoffs, or did you pick the
 ### Likely questions
 
 **Q: Why no ORM?  [mid]**
-A: The schema is small (7 tables) and the queries are simple. An ORM's value-add scales with query complexity and schema size — at this scale it would be all overhead and no win. The cost of raw SQL is `rowToX` mappers; the benefit is the SQL is right there in the code, no black-box behavior, no "what query did the ORM generate" debugging. If the schema grew past ~15 tables I'd reconsider Drizzle.
+A: The schema is small (8 tables) and the queries are simple. An ORM's value-add scales with query complexity and schema size — at this scale it would be all overhead and no win. The cost of raw SQL is `rowToX` mappers; the benefit is the SQL is right there in the code, no black-box behavior, no "what query did the ORM generate" debugging. If the schema grew past ~15 tables I'd reconsider Drizzle.
 
 ```
    With ORM                    Without ORM
@@ -278,7 +281,7 @@ A: Migrations are idempotent. Every `CREATE TABLE` is `IF NOT EXISTS`; every `AL
 ```
 
 **Q: How does this scale to 1M users?  [arch]**
-A: It doesn't. SQLite-as-source-of-truth assumes one device, one user. At 1M users you wouldn't put the database on each device-as-truth; you'd put it in a cloud DB with per-tenant rows. The local SQLite would become a *cache* of the cloud, and the conflict model would flip from "local wins unless 2-min remote bias" to "cloud wins, local is read cache". The migration would be a rewrite of `src/services/notion/sync.ts`, but the rest of `database.ts` could stay structurally similar.
+A: It doesn't. SQLite-as-source-of-truth assumes one device, one user. At 1M users you wouldn't put the database on each device-as-truth; you'd put it in a cloud DB with per-tenant rows. The local SQLite would become a *cache* of the cloud, and the conflict model would flip from "local wins" to "cloud wins, local is read cache". The migration would be concentrated in `src/services/sync/supabase-sync.ts` — that's the only file that encodes the push/pull policy. The rest of `database.ts` could stay structurally similar.
 
 ```
 ┌─ at 1M users ────────────────────────────────────────────┐
@@ -314,7 +317,7 @@ A: They're faster for key-value reads but they're *not* a database. No indexes (
 ## Validate your understanding
 
 ### Level 1 — Reconstruct the diagram
-Draw the table layout: 7 tables, which 3 are "derived & not synced", which one is the "outbox" for deletions. Then open and compare.
+Draw the table layout: 8 tables (add `sync_state`), which entities are "derived" (gate_progress, week_progress, user_profile.*_level), which is the "tombstone outbox" (sync_deletions), and which is the "sync watermark" (sync_state). Then open and compare.
 
 ### Level 2 — Explain it out loud
 Explain to a frontend engineer why this codebase doesn't use Prisma. Under 90 seconds.
@@ -338,3 +341,7 @@ Write your answer (3–5 sentences). Then open `src/services/database.ts` L102�
 - Approximately what line range is the column-addition migration logic?
 
 Then open and verify.
+
+---
+
+_Updated: 2026-05-17 — Added sync_state as 8th table; replaced Notion-era functions (getUnsyncedSessions, upsertSessionFromNotion) with Supabase-era functions (getSyncState, setLastPushedAt, setLastPulledAt, recordTombstone, getPendingTombstones, clearTombstones, clearLocalForRestore); notion_page_id noted as dead schema; migration answer updated to reference supabase-sync.ts._

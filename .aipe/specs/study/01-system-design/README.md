@@ -29,6 +29,7 @@ If a pattern crosses two steps, it's listed in both. A pattern with no step is e
 - **[08-rate-limiting-and-backoff](./08-rate-limiting-and-backoff.md)** — (TODO: file pending decision — Notion-specific, no Supabase equivalent. See 11-supabase-mirror-sync.md.) (steps 5, 6)
 - **[09-react-context-and-sync-versioning](./09-react-context-and-sync-versioning.md)** — (TODO: file pending decision — NotionSyncContext + syncVersion removed. See 11-supabase-mirror-sync.md.) (steps 2, 4)
 - **[10-debounced-draft-autosave](./10-debounced-draft-autosave.md)** — 500ms trailing debounce on form changes; `INSERT OR REPLACE` on the `drafts` table. (steps 3, 5)
+- **[11-supabase-mirror-sync](./11-supabase-mirror-sync.md)** — write-mostly Supabase mirror; `pushChanges` watermark + `pullRestoreIfFresh` on fresh install; `clearLocalForRestore` wipes JSON-seed pollution; single-tenant via hardcoded `USER_ID`. (steps 2, 5)
 
 ## Full system map
 
@@ -36,7 +37,7 @@ The diagram in [`../00-overview.md`](../00-overview.md) is the load-bearing visu
 
 ## Where to drill in
 
-- Need to understand sync end-to-end? See **11-supabase-mirror-sync.md** (planned) or read `src/services/sync/supabase-sync.ts` directly. Files 03, 04, 08, 09 are Notion-era and flagged as TODO.
+- Need to understand sync end-to-end? Read **11-supabase-mirror-sync**. Files 03, 04, 08, 09 are Notion-era and flagged as TODO (pending decision: rewrite vs remove).
 - Need to understand state ownership? Start at **05-derived-state**, then **06-reconstruction-on-reinstall**.
 - Need to understand the camera pipeline? Start at **07-pose-detection-pipeline**.
 

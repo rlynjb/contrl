@@ -3,7 +3,7 @@
 **Industry name(s):** Derive-don't-sync, computed state, projection from event log, single-source-of-truth + derivations
 **Type:** Industry standard
 
-> Sessions are the only inputs that sync. Gates, levels, weeks, and streaks are all computed from session history at load time. Never stored as truth, never synced. The session log is the only source of fact; everything else is a projection.
+> Sessions are the canonical inputs. Gates, levels, and weeks are pushed to Supabase as a convenience for restore, but are also recomputable from session history. SQLite is the source of truth; Supabase is the mirror. Streaks are computed at render time and never stored remotely.
 
 **See also:** → [01-local-first-architecture](./01-local-first-architecture.md) · → [06-reconstruction-on-reinstall](./06-reconstruction-on-reinstall.md)
 
@@ -21,25 +21,26 @@ The pattern is **derive-don't-sync**. Sometimes called **single-source-of-truth 
 
 Picture a single notebook of dated journal entries (the sessions). Anything you'd want to know — "what's my current level", "have I worked out this week", "what's my streak" — can be answered by flipping through the notebook. You don't need a second notebook that says "current level: 3" because you can always recompute it.
 
-The strategy: **inputs sync; derivations are reads, not writes**.
+The strategy: **inputs and derived state both push to Supabase; on reinstall, pull restores everything; reconstruction is the fallback**.
 
 ### Inputs vs derivations
 
-Looking at the seven SQLite tables:
+Looking at all SQLite tables and their sync status:
 
-| Table | Role | Synced to Notion? |
+| Table | Role | Synced to Supabase? |
 |---|---|---|
-| `exercises` | reference data (Notion authoritative) | yes (pulled) |
-| `sessions` | the input log | yes (bidirectional) |
-| `user_profile.*_level` | derived from sessions | **no** |
-| `gate_progress` | derived from sessions | **no** |
-| `week_progress` | derived from sessions | **no** |
-| `drafts` | session-in-progress | **no** (ephemeral) |
-| `sync_deletions` | outbox | **no** (transport state) |
+| `exercises` | reference data (seeded locally, synced for restore) | yes (push + pull-restore) |
+| `sessions` | the input log | yes (push + pull-restore) |
+| `gate_progress` | derived from sessions | yes (push + pull-restore; derivable as fallback) |
+| `week_progress` | derived from sessions | yes (push + pull-restore; derivable as fallback) |
+| `user_profile` | derived levels + profile | yes (push + pull-restore) |
+| `drafts` | session-in-progress | **no** (transient by design) |
+| `sync_state` | push/pull watermarks | **no** (local-only sync metadata) |
+| `sync_deletions` | tombstone outbox | **no** (local-only outbox) |
 
-Only `exercises` (reference data) and `sessions` (the input log) cross the network boundary. Everything else is recomputable.
+All five entity tables cross the network boundary. Derived state (gates, weeks, levels) is pushed to Supabase as a convenience — removing a class of restore-time race — but is also recomputable from sessions via `reconstructFromSessions` if Supabase is unreachable.
 
-If you're coming from frontend, the analogy is Redux: `sessions` is the action log; gates/levels/weeks are selectors. You wouldn't dispatch an action to "set the current filtered list"; you'd dispatch the underlying mutation and let the selector recompute. Same instinct here, but across a network.
+If you're coming from frontend, the analogy is Redux: `sessions` is the action log; gates/levels/weeks are selectors *and* also persisted to a remote cache. You persist the selector output for the same reason you persist a `useMemo` result to localStorage — not because it's truth, but because recomputing on cold start has a cost.
 
 ### Why even store derivations locally?
 
@@ -63,13 +64,13 @@ if (allSessions.length > 0 && isDefaultLevels && gatesAreUntouched) {
 }
 ```
 
-`useGameState.ts` L112–L133. The condition detects a "freshly initialized" state: sessions exist (we just pulled them from Notion) but levels are default and gates have no recorded progress. That's the reinstall fingerprint — sessions arrived, derivation didn't. The fix is to recompute from the session log. See [06-reconstruction-on-reinstall](./06-reconstruction-on-reinstall.md) for the replay itself.
+`useGameState.ts` L112–L133. The condition detects a "freshly initialized" state: sessions exist (we just pulled them from Supabase, but the derived rows didn't populate correctly) but levels are default and gates have no recorded progress. That's the reinstall fingerprint — sessions arrived, derivation didn't. The fix is to recompute from the session log. Under the normal reinstall path this trigger should not fire, because `pullRestoreIfFresh()` pulls all five tables including gate_progress and week_progress. See [06-reconstruction-on-reinstall](./06-reconstruction-on-reinstall.md) for the replay itself.
 
 This works *because* the rule is upheld everywhere else: gates/levels/weeks are *always* a function of sessions. If we ever broke that rule (e.g., let users manually set their level), reconstruction would silently overwrite their manual edits.
 
 ### The principle
 
-If a piece of state can be derived from another, deriving it (instead of storing it as a separate truth) eliminates an entire class of bugs — the disagreement bug. Two pieces of truth that should agree but sometimes don't is the most insidious failure mode in any system. The cure is to have one source of truth and project everything else from it. This is what people mean when they say "event-sourcing" or "single source of truth" — it's the same instinct dressed in different vocabulary.
+Derived state (gates, weeks) IS pushed to Supabase as a convenience for restore, but is also derivable from sessions if Supabase is unavailable. SQLite remains the source of truth — Supabase is the mirror. The local rebuild path (`reconstructFromSessions` in `src/lib/game/reconstruct.ts`) is the proof that derived state is never *required* from the cloud — it can always be recomputed from the canonical session log. Pushing derived state to Supabase removes a class of restore-time race (recompute vs. eager population), and Supabase is cheap enough that the storage cost is irrelevant.
 
 The full picture is below.
 
@@ -78,36 +79,41 @@ The full picture is below.
 ## Derived state — diagram
 
 ```
-┌─ Synced layer ──────────────────────────────────────────────────────────────────────┐
-│                                                                                     │
-│   sessions   ◄────────── pull/push ──────────►   Notion: Sessions DB                │
-│                                                                                     │
-│   exercises  ◄────────── pull only ──────────►   Notion: Exercises DB               │
-│                                                                                     │
-└──────────┬──────────────────────────────────────────────────────────────────────────┘
+┌─ Pushed to Supabase (live, on every write) ──────────────────────────────────────────┐
+│                                                                                      │
+│   sessions       ──────► push ──────►  Supabase: sessions                            │
+│   exercises      ──────► push ──────►  Supabase: exercises                           │
+│   gate_progress  ──────► push ──────►  Supabase: gate_progress                       │
+│   week_progress  ──────► push ──────►  Supabase: week_progress                       │
+│   user_profile   ──────► push ──────►  Supabase: user_profile                        │
+│                                                                                      │
+│   ◄── pull (fresh install only) ──  all 5 tables via pullRestoreIfFresh()            │
+│                                                                                      │
+└──────────┬───────────────────────────────────────────────────────────────────────────┘
            │
-           │  (reads only, in `load()` and `reconstructFromSessions`)
+           │  (reads in `load()` and `reconstructFromSessions` — fallback path)
            │
            ▼
-┌─ Derived layer (local only — never synced) ─────────────────────────────────────────┐
-│                                                                                     │
-│   reconstructFromSessions(sessions)                                                 │
-│      ↓                                                                              │
-│   ┌─────────────────────────────┐    ┌──────────────────────────────────┐           │
-│   │ user_profile.*_level        │    │ gate_progress                    │           │
-│   │  (current per-cat level)    │    │  (status, consecutivePasses,     │           │
-│   │                             │    │   lastSessionDate per cat:level) │           │
-│   └─────────────────────────────┘    └──────────────────────────────────┘           │
-│                                                                                     │
-│   buildWeekHistory(sessions) + getWeekStart(today)                                  │
-│      ↓                                                                              │
-│   ┌─────────────────────────────┐    ┌──────────────────────────────────┐           │
-│   │ week_progress (current wk)  │    │ streak  (calculated each render) │           │
-│   └─────────────────────────────┘    └──────────────────────────────────┘           │
-│                                                                                     │
-└─────────────────────────────────────────────────────────────────────────────────────┘
+┌─ Derived layer (SQLite — canonical; Supabase copy is convenience mirror) ────────────┐
+│                                                                                      │
+│   reconstructFromSessions(sessions)  ← fallback only if Supabase unreachable         │
+│      ↓                                                                               │
+│   ┌─────────────────────────────┐    ┌──────────────────────────────────┐            │
+│   │ user_profile.*_level        │    │ gate_progress                    │            │
+│   │  (current per-cat level)    │    │  (status, consecutivePasses,     │            │
+│   │                             │    │   lastSessionDate per cat:level) │            │
+│   └─────────────────────────────┘    └──────────────────────────────────┘            │
+│                                                                                      │
+│   buildWeekHistory(sessions) + getWeekStart(today)                                   │
+│      ↓                                                                               │
+│   ┌─────────────────────────────┐    ┌──────────────────────────────────┐            │
+│   │ week_progress (current wk)  │    │ streak  (calculated each render) │            │
+│   └─────────────────────────────┘    └──────────────────────────────────┘            │
+│                                                                                      │
+└──────────────────────────────────────────────────────────────────────────────────────┘
 
-The arrow is one-way: sessions → derived. Never the reverse.
+Push is one-way (SQLite → Supabase). Pull is one-shot (Supabase → SQLite, fresh install).
+Streak is never stored remotely — computed at render time from buildWeekHistory.
 ```
 
 ---
@@ -156,18 +162,18 @@ The other breakpoint: when the inputs are unbounded (e.g., 10 years of daily ses
 ## Tradeoffs
 
 ```
-┌────────────────────┬──────────────────────────────────┬───────────────────────────────────┐
-│ Cost dimension     │ Derive-don't-sync (taken)        │ Sync everything (alternative)     │
-├────────────────────┼──────────────────────────────────┼───────────────────────────────────┤
-│ Sync surface       │ 1 entity (sessions)              │ 5 entities                        │
-│ Conflict surface   │ Sessions only                    │ Every derived entity too          │
-│ Reconciliation     │ Local recompute, deterministic   │ Per-entity LWW or CRDT            │
-│ Code complexity    │ Derivation functions             │ Sync code per entity              │
-│ Sync latency       │ Fast (sessions are small)        │ Slow (every entity adds time)    │
-│ Bug surface        │ "Derivation off by one"          │ "Local and remote disagree"       │
-│ Multi-device       │ Inputs sync, derivations match   │ Derivations can diverge silently  │
-│ Reinstall recovery │ Replay the input log             │ Hope the cloud copy is correct    │
-└────────────────────┴──────────────────────────────────┴───────────────────────────────────┘
+┌────────────────────┬──────────────────────────────────────┬───────────────────────────────────┐
+│ Cost dimension     │ Push derived + reconstruction fallback│ Derive-only (no remote copy)      │
+├────────────────────┼──────────────────────────────────────┼───────────────────────────────────┤
+│ Sync surface       │ 5 entities                           │ 2 entities (sessions + exercises) │
+│ Reinstall path     │ Pull all 5 tables (fast)             │ Pull sessions + replay (~30ms)    │
+│ Reinstall race     │ None (derived arrives pre-built)     │ Possible if fingerprint misfires  │
+│ Reconciliation     │ LWW per entity (watermark push)      │ Local recompute, deterministic    │
+│ Code complexity    │ Sync code per entity                 │ Derivation functions only         │
+│ Bug surface        │ "Remote derived stale vs sessions"   │ "Derivation off by one"           │
+│ Storage cost       │ More Supabase rows                   │ Less Supabase rows                │
+│ Fallback           │ reconstructFromSessions in code      │ reconstructFromSessions required   │
+└────────────────────┴──────────────────────────────────────┴───────────────────────────────────┘
 ```
 
 ### Sub-block 1 — what we gave up
@@ -178,11 +184,11 @@ The second cost is incremental update bookkeeping. `logSession` does the work to
 
 A third cost: the streak is recomputed on every `load()` from `buildWeekHistory(sessions)`. At 10 years of sessions that's still cheap (~3,500 rows), but the code structure assumes "load full session history" — at scale we'd need a windowed query.
 
-### Sub-block 2 — what sync-everything would have cost
+### Sub-block 2 — what the previous derive-only model would have kept
 
-If gates, levels, weeks, and streaks were all separate Notion entities with their own sync logic: every sync would be 5× slower (more network calls), there would be 5 conflict resolutions to write, and *every* one would have a potential disagreement bug. The bug surface would be quadratic: any pair of derived entities could disagree with each other or with the underlying session log. We'd be debugging "the user's level says 4 but the gate at level 3 doesn't say passed" support tickets forever.
+Before derived state synced to Supabase, the reinstall path was: pull sessions → detect fingerprint → run `reconstructFromSessions`. That path had a race: if the fingerprint check fired before the session pull completed, reconstruction would produce default state. The new path — pull all 5 tables atomically — eliminates that race because the derived rows arrive in the same `pullRestoreIfFresh()` call as sessions, in a well-ordered sequence.
 
-The alternative also wouldn't have given us multi-device determinism. Even with all five entities synced, a stale local cache could disagree with what a fresh local replay would produce. The only way to *guarantee* consistency is to make the local cache derivable from the synced log — which is what we already do.
+The cost of syncing derived state is more Supabase rows and slightly more push traffic per write (every gate update pushes a gate_progress row). The benefit is a reinstall path that doesn't require any recomputation. The `reconstructFromSessions` fallback remains in the code for the case where Supabase is unreachable on first launch — it is no longer the primary reinstall path, but it's still the safety net.
 
 ### Sub-block 3 — the breakpoint
 
@@ -210,15 +216,16 @@ Redux Persist was not a real alternative because the cache is a SQL table, not a
 
 ### Concept recap
 
-Only sessions (the input log) and exercises (reference data) sync to Notion. Everything else — current level per category, gate progress, week progress, streak — is computed from session history. `gate_progress` and `week_progress` live in SQLite as a performance cache, kept up-to-date incrementally by `logSession`; on a clean reinstall the cache is empty and `reconstructFromSessions` rebuilds it deterministically from the session log. The constraint forcing this was avoiding multi-source-of-truth disagreements — if it can be recomputed, it's a projection, not a fact. The cost is discipline: every code path that touches gates must keep the cache aligned with what a full replay would produce.
+All five entity tables (sessions, exercises, gate_progress, week_progress, user_profile) push to Supabase on every write and are pulled on fresh install. Derived state (gates, levels, weeks) IS pushed to Supabase as a convenience — it removes a restore-time race and is cheap storage. SQLite remains the source of truth; Supabase is the mirror. The `reconstructFromSessions` fallback is still in the code for the case where Supabase is unreachable on first launch. Streak is the only derived value that never touches the remote — it is computed at render time from `buildWeekHistory`. The cost is discipline: every code path that touches gates must keep the local cache aligned with what a full replay would produce, and the Supabase copy must not be treated as authoritative over the local session log.
 
 ### Key points
 
 - Lives in step 4 (State ownership) of the system-design checklist.
-- Five derived entities (levels, gates, weeks, streaks, drafts) never cross the network boundary.
-- Sessions are the only input that syncs; everything else is projected.
-- The local DB stores derivations as a *cache*, not as truth — reconstruction is the recovery path.
-- `logSession` keeps the cache up to date incrementally; reconstruction is the fallback for empty/stale state.
+- All five entity tables sync to Supabase; drafts, sync_state, and sync_deletions are local-only.
+- Derived state (gates, weeks, levels) is pushed to Supabase as a convenience mirror, not as truth.
+- SQLite is the source of truth; Supabase holds a mirror that enables fast reinstall without recomputation.
+- `reconstructFromSessions` is the fallback when Supabase is unreachable on first launch.
+- `logSession` keeps the local cache up-to-date incrementally; `pushChanges()` keeps the Supabase mirror in sync.
 
 ---
 
@@ -230,16 +237,16 @@ Behind "why don't you sync gates" is "do you understand that storing two sources
 
 ### Likely questions
 
-**Q: Why don't levels and gates sync to Notion?  [mid]**
-A: Because they're a pure function of session history. If they synced, the device and Notion would each maintain a copy that could drift. A user who edited a session in Notion (changing its `passed` flag) would have a Notion-side derivation that doesn't match the local recomputation. The cure is to derive everywhere from the same input — only sessions sync, and every device recomputes the rest the same way.
+**Q: Why DO levels and gates now sync to Supabase, given they're derivable?  [mid]**
+A: Pushing derived state to Supabase removes a class of restore-time race. The old path was: pull sessions → detect fingerprint → run `reconstructFromSessions`. If the fingerprint check fired before the session pull fully landed, reconstruction would produce default state. The new path pulls all five tables atomically in `pullRestoreIfFresh()` — derived rows arrive pre-built, no recomputation needed. Supabase storage is cheap enough that the cost of carrying extra rows is irrelevant. The fallback (`reconstructFromSessions`) is still in the code for when Supabase is unreachable on first launch.
 
 ```
-   Synced: sessions, exercises          Derived locally only: levels,
-   ────────────────────────────────     gates, weeks, streaks
-                                        ────────────────────────────────
-   exists on the network                exists in SQLite only
-   conflict-resolution required         no conflict possible
-   subject to LWW                       always matches sessions
+   Old reinstall path                   New reinstall path
+   ────────────────────────────────     ────────────────────────────────
+   pull sessions (1 table)              pull all 5 tables atomically
+   detect fingerprint                   set watermarks, done
+   reconstructFromSessions              reconstructFromSessions (fallback only)
+   race if fingerprint misfires         no race
 ```
 
 **Q: How do you guarantee the local `gate_progress` matches the result of replaying sessions?  [senior]**
@@ -271,39 +278,37 @@ A: Replay stays cheap because the per-session work is O(1) — read one row, eva
 
 ### The question candidates always dodge
 
-**Q: If a user manually edits `passed` on a session in Notion (so the gate would have passed but the user wants to un-pass), does that work?**
-A: Yes — because gates are derived from `passed`. Editing `passed` in Notion changes the session, syncs down, and the next `load()` recomputes gates. The user's edit propagates correctly through the derivation chain. This works precisely *because* gates aren't synced — if they were, the gate row in Notion would still say "passed" until the user also edited that, and now we have two sources of truth and three opportunities for inconsistency.
+**Q: If a user manually edits a row in the Supabase web console, what happens on next push?**
+A: Because RLS is disabled and there's no auth gate, a user (or developer) can edit any row in Supabase directly. The risk profile is bounded: `pushChanges()` uses a watermark (`updated_at > last_pushed_at`), so any local write that happened *after* the manual edit will overwrite the stale remote data on the next push. Editing remote rows directly is functionally OK because the local push is the authoritative direction — Supabase is the mirror, not the master. There is no pull path that would bring a stale Supabase row back to the device (pull only fires on fresh install).
 
 ```
-   Edit `passed` in Notion → derivation handles it
+   Direct Supabase edit → stale remote row
    ─────────────────────────────────────────────────────────────
-   session.passed (synced)
+   next local write → updated_at bumped
         │
         ▼
-   reconstructFromSessions  →  user_levels, gate_progress (derived)
-
-   Compare with: edit `passed` AND gate.status both in Notion
+   pushChanges() → upserts local row, overwrites stale Supabase row
    ─────────────────────────────────────────────────────────────
-   session.passed = false        gate.status = passed
-   → which is right? both? neither? user has to fix both? bug.
+   net effect: edit is overwritten on next local write
+   acceptable: Supabase is the mirror, not the source of truth
 ```
 
 ### One-line anchors
 
-- The session log is fact; everything else is opinion.
-- One source of truth, many projections.
-- The cache is a performance optimization, not a contract.
-- If two stores should agree, store only one and compute the other.
+- SQLite is the source of truth; Supabase is the mirror.
+- Derived state is pushed to Supabase for restore convenience, not correctness.
+- `reconstructFromSessions` is the fallback, not the primary reinstall path.
+- Streak is the only derived value that never touches remote storage.
 
 ---
 
 ## Validate your understanding
 
 ### Level 1 — Reconstruct the diagram
-Draw the seven tables. Mark which ones are inputs (sync), which are derived (don't sync), and which are transport/ephemeral. Compare.
+Draw the eight tables. Mark which five push to Supabase, which two are local-only (drafts, sync_state), which is the tombstone outbox (sync_deletions). Then note which of the five Supabase-synced tables are "derived" (reconstructable from sessions). Compare.
 
 ### Level 2 — Explain it out loud
-Explain to a teammate why the streak counter doesn't have a row in any table. Under 90 seconds.
+Explain to a teammate why derived state (gates, weeks) now syncs to Supabase even though it's recomputable. Under 90 seconds. Then explain why the streak counter still has no remote row.
 
 ### Level 3 — Apply it to a new scenario
 "A user asks: I want to manually set my level. How would the codebase handle that, and what would go wrong?"
@@ -311,7 +316,7 @@ Explain to a teammate why the streak counter doesn't have a row in any table. Un
 Trace through `reconstructFromSessions` and decide whether the manual override survives a reload. Reference `src/hooks/useGameState.ts` L119.
 
 ### Level 4 — Defend the decision you'd change
-"Would you sync gates if cloud-side gate metrics became a product feature (e.g., a shareable progress card)?" What changes and what stays the same?
+"Gates now sync to Supabase. If derived state becomes stale on Supabase (e.g., a partial push failed), what is the recovery path?" What changes and what stays the same if derived state in Supabase were treated as authoritative?
 
 ### Quick check — code reference test
 - What file holds the reinstall-detection fingerprint?
@@ -319,3 +324,7 @@ Trace through `reconstructFromSessions` and decide whether the manual override s
 - Which two columns of `gate_progress` does the fingerprint check?
 
 Then verify.
+
+---
+
+_Updated: 2026-05-17 — "Synced to Notion?" column renamed and all rows updated; derived state (gates, weeks, levels) now syncs to Supabase; diagram redrawn for 5-table push + one-shot pull; principle paragraph updated; interview Q flipped from "why don't gates sync" to "why DO gates sync"; Notion-edit Q replaced with Supabase-console-edit Q._
