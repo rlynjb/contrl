@@ -1,12 +1,82 @@
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { useCallback, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { colors, fonts } from '../../src/constants/theme';
+import { getSyncState } from '../../src/services/database';
+import { pushChanges, isSyncConfigured } from '../../src/services/sync';
+
+type SyncState = { lastPushedAt: string | null; lastPulledAt: string | null };
+
+function formatTimeSince(iso: string | null): string {
+  if (!iso) return 'Never';
+  const ms = Date.now() - new Date(iso).getTime();
+  if (ms < 0) return 'Just now';
+  const s = Math.floor(ms / 1000);
+  if (s < 5) return 'Just now';
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
+}
 
 export default function SettingsScreen() {
+  const [sync, setSync] = useState<SyncState>({ lastPushedAt: null, lastPulledAt: null });
+  const [pushing, setPushing] = useState(false);
+
+  const refresh = useCallback(() => {
+    getSyncState().then(setSync).catch(() => {});
+  }, []);
+
+  useFocusEffect(useCallback(() => {
+    refresh();
+    const id = setInterval(refresh, 15000);
+    return () => clearInterval(id);
+  }, [refresh]));
+
+  const onSyncNow = useCallback(async () => {
+    if (pushing) return;
+    setPushing(true);
+    try {
+      await pushChanges();
+    } finally {
+      setPushing(false);
+      refresh();
+    }
+  }, [pushing, refresh]);
+
+  const configured = isSyncConfigured();
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>Settings</Text>
 
-      <Text style={styles.sectionTitle}>ABOUT</Text>
+      <Text style={styles.sectionTitle}>SUPABASE SYNC</Text>
+      <View style={styles.row}>
+        <Text style={styles.rowLabel}>Status</Text>
+        <Text style={styles.rowSubtitle}>{configured ? 'Configured' : 'Not configured'}</Text>
+      </View>
+      <View style={styles.row}>
+        <Text style={styles.rowLabel}>Last push</Text>
+        <Text style={styles.rowSubtitle}>{formatTimeSince(sync.lastPushedAt)}</Text>
+      </View>
+      <View style={styles.row}>
+        <Text style={styles.rowLabel}>Last pull</Text>
+        <Text style={styles.rowSubtitle}>{formatTimeSince(sync.lastPulledAt)}</Text>
+      </View>
+      {configured && (
+        <Pressable
+          style={[styles.syncButton, pushing && styles.syncButtonDisabled]}
+          onPress={onSyncNow}
+          disabled={pushing}
+        >
+          <Text style={styles.syncButtonText}>{pushing ? 'Syncing…' : 'Sync now'}</Text>
+        </Pressable>
+      )}
+
+      <Text style={[styles.sectionTitle, { marginTop: 32 }]}>ABOUT</Text>
       <View style={styles.row}>
         <Text style={styles.rowLabel}>Version</Text>
         <Text style={styles.rowSubtitle}>1.0.0</Text>
@@ -54,5 +124,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.muted,
     marginTop: 2,
+  },
+  syncButton: {
+    backgroundColor: colors.primaryDim,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(0,229,255,0.2)',
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  syncButtonDisabled: {
+    opacity: 0.5,
+  },
+  syncButtonText: {
+    fontSize: 14,
+    fontFamily: fonts.bold,
+    color: colors.primary,
   },
 });
