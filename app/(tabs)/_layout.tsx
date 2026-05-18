@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
   },
   logoText: {
     fontSize: 18,
-    fontFamily: fonts.extraBold,
+    fontFamily: 'Nunito_400Regular',
     color: colors.primary,
     letterSpacing: 1.5,
   },

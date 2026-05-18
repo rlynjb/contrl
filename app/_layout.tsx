@@ -8,6 +8,7 @@ import { View, Text, ActivityIndicator, StyleSheet, LogBox } from 'react-native'
 // LogBox otherwise surfaces on every stack navigation.
 LogBox.ignoreLogs([/\[RNScreens\]: .* prop is not available on Android/]);
 import { useFonts, Inter_400Regular, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from '@expo-google-fonts/inter';
+import { Nunito_400Regular } from '@expo-google-fonts/nunito';
 import * as SplashScreen from 'expo-splash-screen';
 import { useDatabase } from '../src/hooks/useDatabase';
 import { pullRestoreIfFresh, pushChanges } from '../src/services/sync';
@@ -23,6 +24,7 @@ export default function RootLayout() {
     Inter_600SemiBold,
     Inter_700Bold,
     Inter_800ExtraBold,
+    Nunito_400Regular,
   });
   const gameState = useGameStateInternal(ready);
 
