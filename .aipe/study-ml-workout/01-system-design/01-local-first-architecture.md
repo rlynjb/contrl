@@ -27,7 +27,7 @@ The strategy is: **commit locally first, treat the cloud as eventual**.
 
 `src/services/database.ts` opens one connection, `contrl.db`, with `PRAGMA journal_mode = WAL`. WAL (write-ahead log) lets writes proceed without blocking concurrent reads — important on mobile because the UI thread reads the database constantly to keep the skill tree painted. If you're coming from frontend, this is like the difference between using `localStorage` (synchronous, blocks the main thread) and IndexedDB (async, can yield) — except this is async-everywhere and the locks are managed by SQLite, not the browser. The practical consequence: a 1ms write doesn't stall a 5ms read happening on the next frame.
 
-All seven tables live here: `user_profile`, `exercises`, `sessions`, `gate_progress`, `week_progress`, `drafts`, `sync_deletions`. Every domain concept the app understands has a row somewhere in this database. Nothing about the app's state lives only in React state — if you killed the JS engine mid-workout, on relaunch the draft is on disk.
+All eight tables (plus `sync_meta`) live here: `user_profile`, `exercises`, `sessions`, `gate_progress`, `week_progress`, `drafts`, `sync_deletions`, `sync_state`, and `sync_meta`. Every domain concept the app understands has a row somewhere in this database. Nothing about the app's state lives only in React state — if you killed the JS engine mid-workout, on relaunch the draft is on disk.
 
 ### The cloud as a mirror, not a master
 
@@ -190,7 +190,7 @@ A common "obvious alternative" people raise is Firestore/Supabase realtime. They
 
 ### @supabase/supabase-js + Supabase Postgres
 
-- **Codebase uses:** `@supabase/supabase-js` against managed Supabase Postgres as the cloud mirror. `pushChanges()` upserts dirty rows; `pullRestoreIfFresh()` does the one-shot restore. Client singleton at `src/services/sync/client.ts`.
+- **Codebase uses:** `@supabase/supabase-js` against managed Supabase Postgres as the cloud mirror — specifically the **reindb** shared project, where contrl tables live under the `contrl` schema alongside buffr's `buffr` schema. The `createClient` call passes `db: { schema: 'contrl' }` so all `.from('sessions')` etc. resolve under the `contrl` schema on reindb, not in public. `pushChanges()` upserts dirty rows; `pullRestoreIfFresh()` does the one-shot restore. Client singleton at `src/services/sync/client.ts`.
 - **Why it's here:** the write-mostly remote mirror that receives every local write so the user can restore on a fresh install. If it were missing, the app still works (local-first) but reinstalls lose history.
 - **Leading today:** Supabase — `adoption-leading` for managed Postgres + auth + RLS in 2026.
 - **Why it leads:** managed Postgres + RLS + Storage + auth in one console; SDK mirrors PostgREST so `.upsert(rows, { onConflict: '...' })` is one call. No backend code needed to ship a useful sync layer.
@@ -216,7 +216,7 @@ Local-first means SQLite is the source of truth and Supabase is the mirror. Ever
 
 - Lives in step 1 (Data model) and step 4 (State ownership) of the system-design checklist.
 - Every read goes to SQLite; the Supabase API is never on the read path.
-- All five entity tables sync to Supabase (sessions, exercises, gate_progress, week_progress, user_profile); `drafts` and `sync_state` are local-only.
+- All five entity tables sync to Supabase (sessions, exercises, gate_progress, week_progress, user_profile); `drafts`, `sync_state`, `sync_deletions`, and `sync_meta` are local-only.
 - A reinstall calls `pullRestoreIfFresh()` which pulls all 5 tables from Supabase; `reconstructFromSessions` is the fallback if Supabase is unreachable.
 - There is no multi-device conflict rule — the design assumption is one user on one device; `pushChanges()` watermark ensures only changed rows are pushed.
 - The cost paid is reinstall complexity; the alternative (cloud-first) would have paid that cost as constant network-fragility tax instead.
@@ -327,3 +327,6 @@ Then open and verify.
 ---
 
 _Updated: 2026-05-17 — Cloud mirror swapped Notion → Supabase; sync module now `src/services/sync/`; push/pull functions renamed; Phase A/B box, diagram, interview Q&As, and tech-reference section all updated._
+
+---
+Updated: 2026-05-19 — Note reindb shared project + contrl schema (db:{schema:'contrl'}); table count bumped to 8+sync_meta; local-only table list updated to include sync_meta.
