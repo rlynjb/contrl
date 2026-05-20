@@ -48,6 +48,9 @@
 │        sync_state                  │
 │          (last_pushed_at,          │
 │           last_pulled_at)          │
+│        sync_meta                   │
+│          (table_name PK,           │
+│           last_synced_at)          │
 │      Additive migrations on open   │
 │      (PRAGMA table_info + ALTER)   │
 │                                    │
@@ -83,6 +86,7 @@ On app ready (app/_layout.tsx useEffect on `ready`):
 - **`pullRestoreIfFresh()`** — `src/services/sync/supabase-sync.ts`. One-shot restore on fresh install (`last_pulled_at IS NULL AND sessions empty`); runs `clearLocalForRestore()` then full remote upsert.
 - **`supabase`** — `src/services/sync/client.ts`. Supabase JS client configured with anon key + URL from `EXPO_PUBLIC_*` env vars.
 - **`sync_state` table** — SQLite table with `id='default'`, `last_pushed_at`, `last_pulled_at`. Tracks watermarks for push/pull decisions.
+- **`sync_meta` table** — per-table last-synced-at ledger; `pushChanges()` writes here via `setSyncMetaTouched(tableName)` after each per-table upsert; Settings UI reads all 5 rows via `getAllSyncMeta()` to render the SYNC LEDGER section.
 - **`useGameStateInternal(dbReady)`** — `src/hooks/useGameState.ts` L68. Owns the load orchestration and the reinstall-reconstruction trigger.
 - **`load()`** — Reads from SQLite, detects reinstall (sessions present + default levels + untouched gates), runs `reconstructFromSessions` if so, persists, then sets state.
 - **`reconstructFromSessions(sessions)`** — `src/lib/game/reconstruct.ts` L13. Pure: sort chronologically, replay each session through gate evaluation. Idempotent.
@@ -98,3 +102,4 @@ On app ready (app/_layout.tsx useEffect on `ready`):
 
 ---
 Updated: 2026-05-17 — Notion replaced by Supabase throughout; NotionSyncProvider/useNotionSync/syncAll/rateLimit/notionFetch removed from legend; pushChanges/pullRestoreIfFresh/supabase client/sync_state added; sync_deletions description updated; week boundary Mon–Sun.
+Updated: 2026-05-19 — Added sync_meta as 9th SQLite table in diagram and legend.
