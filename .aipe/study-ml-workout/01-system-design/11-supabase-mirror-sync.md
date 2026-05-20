@@ -304,9 +304,70 @@ The tombstone is never recorded for `clearLocalForRestore()` wipes — those are
 
 ---
 
+#### The per-table sync ledger
+
+If you're coming from frontend, think of a per-row `updated_at` on a list — each row has its own timestamp telling you when it last changed. The sync ledger is that pattern flipped: one row per *table*, recording when that table was last successfully pushed to Supabase. The technical term for this table is `sync_meta`.
+
+`sync_meta` has two columns: `table_name TEXT PRIMARY KEY` and `last_synced_at TEXT`. Five rows are seeded by the migration with `last_synced_at = NULL`: `user_profile`, `exercises`, `sessions`, `gate_progress`, and `week_progress`. After each per-table upsert inside `pushChanges()`, a call to `setSyncMetaTouched(tableName)` (in `src/services/database.ts`) sets that row's `last_synced_at` to the current ISO timestamp. The Settings screen (`app/settings/index.tsx`) reads all five rows via `getAllSyncMeta()` and renders them in a SYNC LEDGER section showing each table's name and how long ago it was last synced.
+
+The mechanism in table form:
+
+```
+  sync_meta table (SQLite, local-only)
+  ┌────────────────────┬────────────────────────────┐
+  │  table_name (PK)   │  last_synced_at            │
+  ├────────────────────┼────────────────────────────┤
+  │  user_profile      │  2026-05-19T08:31:00Z      │
+  │  exercises         │  2026-05-19T08:31:00Z      │
+  │  sessions          │  2026-05-19T08:31:01Z      │
+  │  gate_progress     │  2026-05-19T08:31:01Z      │
+  │  week_progress     │  2026-05-19T08:31:01Z      │
+  └────────────────────┴────────────────────────────┘
+
+  On fresh install: all last_synced_at = NULL (seeded by migration)
+  After first pushChanges(): each row stamped with the push timestamp
+```
+
+The five rows are seeded with NULL on the first migration run. The value NULL means "this table has never been successfully pushed". Once `pushChanges()` upserts a batch for a given table and calls `setSyncMetaTouched`, the row shows the exact time that table's data made it to Supabase.
+
+The data flow from push to Settings UI:
+
+```
+  pushChanges() in src/services/sync/supabase-sync.ts
+       │
+       ├── upsert user_profile batch to Supabase
+       │        └── setSyncMetaTouched('user_profile')
+       │               └── UPDATE sync_meta SET last_synced_at = now
+       │                   WHERE table_name = 'user_profile'
+       │
+       ├── upsert exercises batch to Supabase
+       │        └── setSyncMetaTouched('exercises')
+       │
+       ├── upsert sessions batch to Supabase
+       │        └── setSyncMetaTouched('sessions')
+       │
+       ├── upsert gate_progress batch to Supabase
+       │        └── setSyncMetaTouched('gate_progress')
+       │
+       └── upsert week_progress batch to Supabase
+                └── setSyncMetaTouched('week_progress')
+
+  app/settings/index.tsx
+       │
+       ├── useFocusEffect → getAllSyncMeta() → 5 rows
+       ├── setInterval(15s) → getAllSyncMeta() → re-read
+       └── renders SYNC LEDGER section: table name + "X ago"
+```
+
+One boundary condition worth naming: `setSyncMetaTouched` is called after each successful per-table upsert — even if that table had zero rows to push (an empty dirty-row batch still upserts successfully). This means `last_synced_at` advances on every successful sync attempt, not only when data actually changed. The semantics are "last time we checked this table and it was in sync with Supabase" — not "last time we actually sent data for this table". This is deliberate: a table with no dirty rows still successfully synced on that push cycle.
+
+`sync_meta` is local-only — it never crosses the network boundary. It is not in the Supabase schema and is not pulled on restore. Its role is purely observability: it tells the user (via Settings) and the developer (via the database) that each entity type has a known-good push timestamp.
+
+---
+
 ### Move 2.5 — Current state vs future state
 
-**Phase A (current):** Single-tenant, anon key, RLS off. The `USER_ID` is a hardcoded constant. The Supabase client carries no custom auth header beyond the anon key. Any device with the same built app binary has access to the same Supabase rows.
+**Phase A (current):** Single-tenant, anon key, RLS off. The `USER_ID` is a hardcoded constant. The Supabase client carries no custom auth header beyond the anon key and targets the `contrl` schema on the reindb shared project (via `db: { schema: 'contrl' }` in `createClient`). Any device with the same built app binary has access to the same Supabase rows.
 
 **Phase B (future):** Real auth via Supabase Anonymous Auth or custom JWT. RLS policies on every table using `auth.uid() = user_id` or `(request.jwt.claims::json ->> 'user_id')::uuid = user_id`. Multi-device conflict resolution — the current last-writer-wins via `updated_at` is a starting point, but per-row vector clocks or CRDTs may be needed.
 
@@ -447,14 +508,14 @@ Every architectural layer from user action to Supabase Postgres, including the s
 ## In this codebase
 
 - **Sync engine:** `/Users/rein/Public/contrl/src/services/sync/supabase-sync.ts` — `pushChanges()` (lines 34–123) and `pullRestoreIfFresh()` (lines 125–191). The `restoreInProgress` flag lives at module scope (line 32).
-- **Client:** `/Users/rein/Public/contrl/src/services/sync/client.ts` — supabase singleton created with anon key, `persistSession: false`, `autoRefreshToken: false`.
+- **Client:** `src/services/sync/client.ts` — supabase singleton created with anon key, `persistSession: false`, `autoRefreshToken: false`. The `createClient` call passes `db: { schema: 'contrl' }` so all `.from('sessions')` etc. resolve under the `contrl` schema on reindb, not in public.
 - **Config:** `/Users/rein/Public/contrl/src/services/sync/config.ts` — reads `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, `EXPO_PUBLIC_USER_ID` from environment; falls back to hardcoded UUID.
 - **Mapper:** `/Users/rein/Public/contrl/src/services/sync/mapper.ts` — `sessionToRemote`/`sessionFromRemote`, `exerciseToRemote`/`exerciseFromRemote`, `gateToRemote`/`gateFromRemote`, `weekToRemote`/`weekFromRemote`, `userToRemote`/`userFromRemote`.
 - **Watermark storage:** `/Users/rein/Public/contrl/src/services/database.ts` — `sync_state` table (lines 103–107 in migration), `getSyncState()` (577), `setLastPushedAt()` (588), `setLastPulledAt()` (593).
 - **Tombstones:** `/Users/rein/Public/contrl/src/services/database.ts` — `recordTombstone()` (600), `getPendingTombstones()` (609), `clearTombstones()` (617). Called before local DELETE in `deleteSession()` (302–305), `deleteAllExercises()` (308–315), `deleteExercisesNotIn()` (318–329).
 - **Restore wipe:** `/Users/rein/Public/contrl/src/services/database.ts` — `clearLocalForRestore()` (628–636) deletes rows from exercises, sessions, gate_progress, week_progress. Does not record tombstones.
 - **Trigger:** `/Users/rein/Public/contrl/app/_layout.tsx` — `useEffect` at line 37: `pullRestoreIfFresh().then(() => pushChanges())` fires once when `ready === true`.
-- **Schema:** `/Users/rein/Public/contrl/supabase/schema.sql` — Postgres DDL for all five synced tables plus `sync_deletions`.
+- **Schema:** `supabase/migrations/0001_contrl_schema.sql` — Postgres DDL for the 5 synced tables under the `contrl` schema on reindb (the shared Supabase project that also hosts the buffr app under its own `buffr` schema).
 - **JWT mint script (unused after MVP):** `/Users/rein/Public/contrl/scripts/generate-jwt.mjs` — left in repo for when RLS is re-enabled with per-user policies.
 
 ---
@@ -693,3 +754,6 @@ You're in a system design interview. The interviewer says: "Your watermark appro
 5. If `EXPO_PUBLIC_SUPABASE_URL` is empty, what happens when `deleteSession()` is called?
 
 *(Answers: 1. `last_pulled_at IS NULL` AND `sessions.length === 0`. 2. So the watermark is set before the flag clears — any push that runs after `finally` sees `since = now` and skips the restore-written rows. 3. `clearTombstones()` only runs after all remote deletes succeed; a single failure causes an early `return` before `clearTombstones()` is reached. 4. `user_profile` — it is always a single row and the pull updates it in place via `updateUserLevel()`. 5. `isSyncConfigured()` returns `false`; `pushChanges()` returns immediately; the tombstone is recorded in `sync_deletions` but not drained until a future call with a configured environment.)*
+
+---
+Updated: 2026-05-19 — Schema bullet updated to reindb shared project + contrl schema migration; client bullet notes db:{schema:'contrl'}; Phase A description updated; new "The per-table sync ledger" sub-section added (sync_meta table, setSyncMetaTouched/getAllSyncMeta helpers, mechanism diagram, data-flow diagram).
