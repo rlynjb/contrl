@@ -46,6 +46,7 @@ export async function pushChanges(): Promise<void> {
       .upsert(userToRemote(user), { onConflict: 'user_id' });
     if (error) { logErr('push user_profile', error); return; }
   }
+  await db.setSyncMetaTouched('user_profile');
 
   // 2. exercises
   const exercises = await db.getExercises();
@@ -58,6 +59,7 @@ export async function pushChanges(): Promise<void> {
       .upsert(dirtyExercises.map(exerciseToRemote), { onConflict: 'user_id,id' });
     if (error) { logErr('push exercises', error); return; }
   }
+  await db.setSyncMetaTouched('exercises');
 
   // 3. sessions
   const sessions = await db.getSessions();
@@ -70,6 +72,7 @@ export async function pushChanges(): Promise<void> {
       .upsert(dirtySessions.map(sessionToRemote), { onConflict: 'user_id,id' });
     if (error) { logErr('push sessions', error); return; }
   }
+  await db.setSyncMetaTouched('sessions');
 
   // 4. gate_progress
   const gates = await db.getAllGateProgress();
@@ -83,6 +86,7 @@ export async function pushChanges(): Promise<void> {
       .upsert(dirtyGates.map(gateToRemote), { onConflict: 'user_id,id' });
     if (error) { logErr('push gate_progress', error); return; }
   }
+  await db.setSyncMetaTouched('gate_progress');
 
   // 5. week_progress
   const weeks = await db.getAllWeekProgress();
@@ -96,6 +100,7 @@ export async function pushChanges(): Promise<void> {
       .upsert(dirtyWeeks.map(weekToRemote), { onConflict: 'user_id,week_start' });
     if (error) { logErr('push week_progress', error); return; }
   }
+  await db.setSyncMetaTouched('week_progress');
 
   // 6. Tombstones
   const tombstones = await db.getPendingTombstones();
