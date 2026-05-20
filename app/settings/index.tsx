@@ -2,10 +2,11 @@ import { useCallback, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { colors, fonts } from '../../src/constants/theme';
-import { getSyncState } from '../../src/services/database';
+import { getSyncState, getAllSyncMeta } from '../../src/services/database';
 import { pushChanges, isSyncConfigured } from '../../src/services/sync';
 
 type SyncState = { lastPushedAt: string | null; lastPulledAt: string | null };
+type SyncMetaRow = { tableName: string; lastSyncedAt: string | null };
 
 function formatTimeSince(iso: string | null): string {
   if (!iso) return 'Never';
@@ -25,9 +26,11 @@ function formatTimeSince(iso: string | null): string {
 export default function SettingsScreen() {
   const [sync, setSync] = useState<SyncState>({ lastPushedAt: null, lastPulledAt: null });
   const [pushing, setPushing] = useState(false);
+  const [ledger, setLedger] = useState<SyncMetaRow[]>([]);
 
   const refresh = useCallback(() => {
     getSyncState().then(setSync).catch(() => {});
+    getAllSyncMeta().then(setLedger).catch(() => {});
   }, []);
 
   useFocusEffect(useCallback(() => {
@@ -75,6 +78,14 @@ export default function SettingsScreen() {
           <Text style={styles.syncButtonText}>{pushing ? 'Syncing…' : 'Sync now'}</Text>
         </Pressable>
       )}
+
+      <Text style={[styles.sectionTitle, { marginTop: 32 }]}>SYNC LEDGER</Text>
+      {ledger.map(row => (
+        <View key={row.tableName} style={styles.row}>
+          <Text style={styles.rowLabel}>{row.tableName}</Text>
+          <Text style={styles.rowSubtitle}>{formatTimeSince(row.lastSyncedAt)}</Text>
+        </View>
+      ))}
 
       <Text style={[styles.sectionTitle, { marginTop: 32 }]}>ABOUT</Text>
       <View style={styles.row}>
