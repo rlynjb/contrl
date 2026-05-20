@@ -37,6 +37,7 @@ Looking at all SQLite tables and their sync status:
 | `drafts` | session-in-progress | **no** (transient by design) |
 | `sync_state` | push/pull watermarks | **no** (local-only sync metadata) |
 | `sync_deletions` | tombstone outbox | **no** (local-only outbox) |
+| `sync_meta` | per-table push ledger | **no** (local-only; `setSyncMetaTouched` writes after each upsert; `getAllSyncMeta()` reads for Settings SYNC LEDGER) |
 
 All five entity tables cross the network boundary. Derived state (gates, weeks, levels) is pushed to Supabase as a convenience — removing a class of restore-time race — but is also recomputable from sessions via `reconstructFromSessions` if Supabase is unreachable.
 
@@ -221,7 +222,7 @@ All five entity tables (sessions, exercises, gate_progress, week_progress, user_
 ### Key points
 
 - Lives in step 4 (State ownership) of the system-design checklist.
-- All five entity tables sync to Supabase; drafts, sync_state, and sync_deletions are local-only.
+- All five entity tables sync to Supabase; drafts, sync_state, sync_deletions, and sync_meta are local-only.
 - Derived state (gates, weeks, levels) is pushed to Supabase as a convenience mirror, not as truth.
 - SQLite is the source of truth; Supabase holds a mirror that enables fast reinstall without recomputation.
 - `reconstructFromSessions` is the fallback when Supabase is unreachable on first launch.
@@ -305,7 +306,7 @@ A: Because RLS is disabled and there's no auth gate, a user (or developer) can e
 ## Validate your understanding
 
 ### Level 1 — Reconstruct the diagram
-Draw the eight tables. Mark which five push to Supabase, which two are local-only (drafts, sync_state), which is the tombstone outbox (sync_deletions). Then note which of the five Supabase-synced tables are "derived" (reconstructable from sessions). Compare.
+Draw the nine tables. Mark which five push to Supabase, which four are local-only (drafts, sync_state, sync_deletions, sync_meta), and note that sync_meta is the per-table push ledger written by pushChanges() after each upsert. Then note which of the five Supabase-synced tables are "derived" (reconstructable from sessions). Compare.
 
 ### Level 2 — Explain it out loud
 Explain to a teammate why derived state (gates, weeks) now syncs to Supabase even though it's recomputable. Under 90 seconds. Then explain why the streak counter still has no remote row.
@@ -328,3 +329,6 @@ Then verify.
 ---
 
 _Updated: 2026-05-17 — "Synced to Notion?" column renamed and all rows updated; derived state (gates, weeks, levels) now syncs to Supabase; diagram redrawn for 5-table push + one-shot pull; principle paragraph updated; interview Q flipped from "why don't gates sync" to "why DO gates sync"; Notion-edit Q replaced with Supabase-console-edit Q._
+
+---
+Updated: 2026-05-19 — Added sync_meta row to synced-tables table (local-only, per-table push ledger); Level 1 validate bumped to nine tables; Key points updated to list sync_meta as local-only.
