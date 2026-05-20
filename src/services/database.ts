@@ -106,6 +106,11 @@ async function migrate(database: SQLite.SQLiteDatabase): Promise<void> {
       last_pulled_at TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS sync_meta (
+      table_name      TEXT PRIMARY KEY,
+      last_synced_at  TEXT
+    );
+
     -- Migrations for existing databases (ALTER TABLE is idempotent with IF NOT EXISTS in newer SQLite)
   `);
 
@@ -194,6 +199,15 @@ async function migrate(database: SQLite.SQLiteDatabase): Promise<void> {
 
   await database.runAsync(
     `INSERT OR IGNORE INTO sync_state (id, last_pushed_at, last_pulled_at) VALUES ('default', NULL, NULL)`
+  );
+
+  await database.runAsync(
+    `INSERT OR IGNORE INTO sync_meta (table_name, last_synced_at) VALUES
+       ('user_profile',   NULL),
+       ('exercises',      NULL),
+       ('sessions',       NULL),
+       ('gate_progress',  NULL),
+       ('week_progress',  NULL)`
   );
 }
 
@@ -625,6 +639,35 @@ export async function clearTombstones(ids: number[]): Promise<void> {
 // pull-restore from cloud. Skips user_profile (always a single seeded row;
 // pull updates levels in place) and does NOT record tombstones (the caller
 // is replacing this data wholesale from cloud, not deleting it).
+// ── Sync ledger (per-table last-synced timestamps) ──────────
+
+export async function getAllSyncMeta(): Promise<{
+  tableName: string;
+  lastSyncedAt: string | null;
+}[]> {
+  const d = await getDatabase();
+  const rows = await d.getAllAsync<{ table_name: string; last_synced_at: string | null }>(
+    `SELECT table_name, last_synced_at FROM sync_meta
+     ORDER BY CASE table_name
+       WHEN 'user_profile'   THEN 1
+       WHEN 'exercises'      THEN 2
+       WHEN 'sessions'       THEN 3
+       WHEN 'gate_progress'  THEN 4
+       WHEN 'week_progress'  THEN 5
+       ELSE 6
+     END`
+  );
+  return rows.map(r => ({ tableName: r.table_name, lastSyncedAt: r.last_synced_at }));
+}
+
+export async function setSyncMetaTouched(tableName: string): Promise<void> {
+  const d = await getDatabase();
+  await d.runAsync(
+    `UPDATE sync_meta SET last_synced_at = ? WHERE table_name = ?`,
+    [new Date().toISOString(), tableName]
+  );
+}
+
 export async function clearLocalForRestore(): Promise<void> {
   const d = await getDatabase();
   await d.execAsync(`
