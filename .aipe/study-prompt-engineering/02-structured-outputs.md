@@ -93,7 +93,7 @@ The pipeline never trusts the model's promise to "respond in JSON." It removes t
 If you're coming from frontend, this is the equivalent of declaring a Zod schema next to a `fetch()` call to validate the response — except here, Zod also generates the JSON Schema that gets sent to the provider so the provider can enforce it during generation, not just after.
 
 ```ts
-// loopd/src/lib/llm/chains/intent-classify/schema.ts (planned)
+// Illustrative — a typical single-purpose chain's schema.ts
 import { z } from 'zod';
 
 export const IntentLabel = z.enum(['chat', 'search', 'command']);
@@ -117,7 +117,7 @@ The bug everyone makes once: putting "Output only in this format: `{label: 'chat
 The fix: use the provider's `tool_use` (Anthropic) or `tools` parameter (OpenAI). The schema is passed as a tool definition, and the model is constrained to call the tool with arguments matching the schema.
 
 ```ts
-// loopd/src/lib/llm/chains/intent-classify/chain.ts (planned)
+// Illustrative — the chain.ts that calls the provider with the schema
 const response = await anthropic.messages.create({
   model: 'claude-sonnet-4-6',
   system: systemPrompt,
@@ -296,26 +296,21 @@ The schema crosses three boundaries (code → API, API → model sampler, model 
 
 ## In this codebase
 
-**Case B — loopd intent classifier (planned).**
+**Case B planned — contrl's coaching agent will use `tool_use` for output.**
 
-The intent classifier is loopd's first structured-output chain per curriculum Phase 1 builds. Planned shape:
+contrl ships no LLM code today. The planned Phase 4 Path C coaching agent is the first structured-output surface. Planned shape:
 
-- **Schema:** `loopd/src/lib/llm/chains/intent-classify/schema.ts` — Zod `IntentResult` matching three labels + confidence. Single source of truth.
-- **Chain:** `loopd/src/lib/llm/chains/intent-classify/chain.ts` — calls Anthropic Messages API with `tools` + forced `tool_choice`, parses with Zod, retries once on schema fail.
-- **Observability:** schema-conformance rate logged to a metric named `intent_classify.schema_fail`. Target < 1%.
-- **Eval:** `loopd/tests/chains/intent-classify/regression.test.ts` — fixed input set with expected labels; runs on every prompt change.
+- **Schema:** `src/lib/agent/schemas.ts` — Zod schema for the coaching message output (likely fields: `message: string`, `priority_cue: enum`, `confidence: number`). Single source of truth.
+- **Runner:** `src/lib/agent/runner.ts` — calls Anthropic Messages API with `tools` + forced `tool_choice` on the coaching tool, parses with Zod, retries once on schema fail.
+- **Tools given to the agent (5 read-only):** `get_classifier_output`, `get_form_history`, `get_progression_state`, `get_recent_coaching`, `get_exercise_cues`. Each has its own JSON Schema declared via Zod and converted with `zod-to-json-schema`.
+- **Observability:** schema-fail rate logged per call (`agent.schema_fail`). Target < 1%.
+- **Eval:** the planned B3.x evals (form classifier eval B3.8, single-user A/B B3.9) are ML-side; coaching-output evals would be added under the same `tests/agent/` directory.
 
-Not yet implemented. Build target is curriculum item B1.7 (intent classifier with structured output).
+The coaching agent is structurally a single-purpose chain: one tool, forced tool_choice, Zod boundary validation. The fact that it ALSO has 5 read-only tools available to call (read-only data accessors) doesn't change the output-schema enforcement — the final response is still a constrained tool call.
 
-**Case A — aipe's spec-format contracts.**
+**ML side — not an LLM concern.**
 
-aipe's slash commands don't make runtime LLM API calls, but each spec declares the schema of the artifact the LLM is expected to produce — and the spec acts as the schema enforcement.
-
-- **`/Users/rein/Public/aipe/specs/refactor.md` lines 9–38** — the "Refactor spec format" code block IS the schema. Eight named sections, each with a one-line description of what goes in it. Claude Code, executing the spec, treats it as the structural contract for the output. Frontend analogue: it's the Zod schema, but expressed in markdown and enforced by the LLM agent's adherence rather than a sampler constraint.
-- **`/Users/rein/Public/aipe/specs/study.md`** — the study guide spec declares the per-concept file structure (Subtitle, Why care, How it works, etc.) as a literal markdown shape. Every generated file is structurally validated against this shape.
-- **Boundary validator:** absent. aipe relies on Claude Code following the spec; there's no runtime parser that rejects a non-conforming spec output. This is a real limitation — the equivalent of a strongly-typed function with no runtime guard.
-
-The aipe pattern is the lower-tech form of structured outputs — the schema is enforced by the LLM-agent's adherence to the markdown contract, not by a constrained sampler. It works because the LLM agent is doing the writing AND reading; for a runtime LLM API call where the consumer is downstream code, the constrained-sampler version is what you need.
+contrl's planned Phase 2C form classifier (LightGBM via ONNX) has a structured output too (`{ label: enum, confidence: 0..1 }`), but enforcement is at the model-output layer (sigmoid + argmax), not at the LLM-sampler layer. The discipline is the same — declare the schema in code, validate at the boundary — but the enforcement mechanism is different. See [05-eval-driven-iteration](./05-eval-driven-iteration.md) for how that pipeline is evaluated.
 
 ---
 
@@ -353,9 +348,9 @@ The aipe pattern is the lower-tech form of structured outputs — the schema is 
 
 ### Sub-block 1 — what we gave up
 
-Two real costs. First, **model selection narrows** — schema-constrained outputs only work well on frontier models. A small local LLM (Llama-3 8B, Mistral 7B) running through Ollama will pattern-match the schema imperfectly; you'll see 10–20% schema-fail rates even with forced tool calls. If your project needs to run offline or on tiny models, structured outputs degrade. Loopd's planned chains run against frontier APIs, so this doesn't bite there — but it bit me on a side project where I tried to use Mistral for an intent classifier and had to keep the prompt-text JSON request as the fallback.
+Two real costs. First, **model selection narrows** — schema-constrained outputs only work well on frontier models. A small local LLM (Llama-3 8B, Mistral 7B) running through Ollama will pattern-match the schema imperfectly; you'll see 10–20% schema-fail rates even with forced tool calls. If your project needs to run offline or on tiny models, structured outputs degrade. contrl's planned coaching agent calls Anthropic Sonnet 4, so this doesn't bite — but it bit me on a side project where I tried to use Mistral for an intent classifier and had to keep the prompt-text JSON request as the fallback.
 
-Second, **vendor lock-in at the API surface.** Anthropic's `tool_use` schema, OpenAI's `tools` + `tool_choice`, Google's Gemini function-calling — these have different field names and slightly different semantics. The Zod schema is portable; the wiring around it isn't. Switching providers means rewriting the call site. The mitigation is a thin provider abstraction (which loopd's Phase 1 builds include per curriculum), but the abstraction itself is real work.
+Second, **vendor lock-in at the API surface.** Anthropic's `tool_use` schema, OpenAI's `tools` + `tool_choice`, Google's Gemini function-calling — these have different field names and slightly different semantics. The Zod schema is portable; the wiring around it isn't. Switching providers means rewriting the call site. A thin provider-abstraction shim mitigates this, but the abstraction itself is real work; for contrl's solo-scale single agent, the right call is to defer the shim and just code against Anthropic directly until a second provider is needed.
 
 ### Sub-block 2 — what the prompt-text alternative would have cost
 
@@ -383,7 +378,7 @@ The provider-enforced schema approach is the right call until: (a) the chain's o
 
 ### Zod
 
-- **Codebase uses:** Not yet — planned for `loopd/src/lib/llm/chains/*/schema.ts`. Zod is the curriculum's chosen schema library for Phase 1.
+- **Codebase uses:** Not yet — planned for `src/lib/agent/schemas.ts` (coaching agent output + tool input schemas). Zod is contrl's TypeScript schema library of choice.
 - **Why it's here:** the single source of truth for the schema: TypeScript types, JSON Schema, runtime validator — one declaration.
 - **Leading today:** Zod — `adoption-leading` for TypeScript schema libraries, 2026.
 - **Why it leads:** type-inference-first design, ecosystem (`zod-to-json-schema`, `tRPC`, Next.js Server Actions), excellent error messages.
@@ -391,7 +386,7 @@ The provider-enforced schema approach is the right call until: (a) the chain's o
 
 ### Anthropic Messages API + `tool_use`
 
-- **Codebase uses:** Not yet — planned for loopd chain calls.
+- **Codebase uses:** Not yet — planned for contrl's coaching agent call site.
 - **Why it's here:** the API surface that enforces schema at the sampler level. Forced tool calls remove the free-text option.
 - **Leading today:** Anthropic `tool_use` API — `adoption-leading` for schema-constrained LLM output, 2026.
 - **Why it leads:** `tool_choice: { type: 'tool', name: '...' }` forces the model to invoke a specific tool; the constraint is sampler-level (the model literally cannot emit non-conforming tokens), not prompt-level (a polite request).
@@ -417,31 +412,33 @@ The provider-enforced schema approach is the right call until: (a) the chain's o
 
 ## Project exercises
 
-### [B1.7] Build the loopd intent classifier with structured output
+contrl doesn't ship LLM code today. These exercises become buildable when the Phase 4 coaching agent lands.
 
-- **Exercise ID:** `[B1.7]`
-- **What to build:** A single-purpose intent classifier chain (Case B — does not yet exist in loopd). Schema in Zod (`{label: enum, confidence: 0-1}`), API call with forced tool_use on Anthropic, Zod.safeParse at the boundary, schema-fail metric, retry-once-with-stricter-prompt on parse fail.
-- **Why it earns its place:** the canonical structured-output chain. Every later loopd chain inherits its shape from this one. Without it, the chains shape isn't established.
-- **Files to touch:** `loopd/src/lib/llm/chains/intent-classify/{schema.ts, chain.ts, system.md, examples.md}`, plus the provider abstraction (also Phase 1).
-- **Done when:** 50 hand-curated test inputs run through the chain with > 99% schema-conformance rate; failures are logged with raw response and trigger a single retry.
+### [B4C.schema] Declare the coaching agent's output schema
+
+- **Exercise ID:** `[B4C.schema]`
+- **What to build:** In `src/lib/agent/schemas.ts`, declare the Zod schema for the coaching agent's output (likely `{ message: string, priority_cue: enum, confidence: number }`) and Zod schemas for each of the 5 read-only tool inputs. In `src/lib/agent/runner.ts`, convert with `zod-to-json-schema`, pass as `tools` to Anthropic with `tool_choice: { type: 'tool', name: 'coach' }`. Boundary-validate with `IntentResult.safeParse()`; increment `agent.schema_fail` on failure; retry once with stricter system addendum.
+- **Why it earns its place:** the canonical structured-output shape for the coaching agent. Every later prompt change rides on it.
+- **Files to touch:** `src/lib/agent/{schemas.ts, runner.ts}`, plus a fixture file with 20–50 hand-curated workout scenarios.
+- **Done when:** the 20–50 fixtures all return valid coaching outputs (>99% schema-conformance); failures log raw response.
 - **Estimated effort:** `1–2 days`
 
-### [B1.8] Add a schema-fail dashboard
+### [B4C.schema-metric] Add schema-fail observability
 
-- **Exercise ID:** `[B1.8]`
-- **What to build:** A metric (`intent_classify.schema_fail` counter; rate of fail per total calls) and a small dashboard view that graphs schema-conformance rate over time. Manual review of the raw log for the first week of production traffic.
-- **Why it earns its place:** structured outputs without observability are 80% of the value. The dashboard is what catches the next model upgrade regression at hour zero instead of day three.
-- **Files to touch:** an observability hook in the chain (`metrics.increment` on fail), a simple page or query that surfaces the rate.
-- **Done when:** running the chain in the test loop shows the metric incrementing on synthetic schema-fail inputs; the rate is visible somewhere queryable.
-- **Estimated effort:** `1–4hr`
+- **Exercise ID:** `[B4C.schema-metric]`
+- **What to build:** Counter `agent.schema_fail` per call; computed rate logged daily. Manual log review for the first week of dogfooding.
+- **Why it earns its place:** the dashboard is what catches the next Sonnet upgrade regression at day zero instead of week three.
+- **Files to touch:** an observability hook in `runner.ts`; log aggregation to whatever surface contrl uses (or a simple `docs/agent-metrics.md` if no dashboard yet).
+- **Done when:** synthetic schema-fail inputs increment the counter; rate is queryable.
+- **Estimated effort:** `<1hr`
 
-### [B1.9] Verify provider-enforcement vs prompt-text on a baseline model
+### [B4C.compare-modes] Compare provider-enforced vs prompt-text JSON
 
-- **Exercise ID:** `[B1.9]`
-- **What to build:** Run the same 50 test inputs through two variants of the chain — variant A uses `tool_choice` + Zod schema; variant B uses a system-prompt instruction "respond only in JSON with this shape: ..." and parses with regex extraction. Compare schema-fail rate.
-- **Why it earns its place:** the data point that makes the structured-output argument concrete. You measure the difference instead of citing it from a blog post.
-- **Files to touch:** a comparison script under `loopd/scripts/eval/`.
-- **Done when:** a table of variant A vs B schema-fail rates is written to `docs/ml-results.md`. Expected: A < 1%, B somewhere 5–15% depending on model.
+- **Exercise ID:** `[B4C.compare-modes]`
+- **What to build:** Run the 20–50 fixtures through two variants: A uses `tool_choice` + Zod schema; B uses system-prompt "respond only in JSON with this shape" and regex extraction. Compare schema-fail rate.
+- **Why it earns its place:** turns the structured-output argument into a measured claim, not a citation. The data lives in your repo, not in a blog post.
+- **Files to touch:** a comparison script under `scripts/eval/agent-output-modes.ts`.
+- **Done when:** a comparison table written to `docs/coaching-agent-perf.md`. Expected: A < 1%, B 5–15%.
 - **Estimated effort:** `1–4hr`
 
 ---
@@ -584,10 +581,11 @@ There's no right answer. Defend yours with reference to: project lifetime, expec
 
 **Quick check — code reference test.**
 Without opening files, answer:
-- Where does the schema live in loopd's planned layout?
+- Where will contrl's coaching agent schema live?
 - What's the API parameter that forces the model to invoke a specific tool?
 - What's the target schema-fail rate?
 
-Then open the planned-paths section above and verify.
+Pass: you said `src/lib/agent/schemas.ts`, `tool_choice: { type: 'tool', name: '...' }`, and < 1%.
 
-Pass: you said `loopd/src/lib/llm/chains/*/schema.ts`, `tool_choice: { type: 'tool', name: '...' }`, and < 1%.
+---
+Updated: 2026-05-24 — Reframed per v1.38.0 per-repo scope. In this codebase: collapsed dual Case A (aipe) + Case B (loopd) into single Case B planned for contrl's coaching agent; added ML-side note. Tradeoffs Sub-block 1 reframed (loopd → contrl/Sonnet 4). Tech reference paths retargeted to `src/lib/agent/`. Project exercises B1.7/B1.8/B1.9 → B4C.* coaching-agent variants. Validate Quick check updated. Code snippet comments made illustrative.

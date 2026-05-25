@@ -108,7 +108,7 @@ Boundary condition: counting is provider-specific. Anthropic's tokenizer differs
 Each chain in your codebase gets an explicit token budget per section. Write it down. Loopd's planned shape:
 
 ```json
-// loopd/src/lib/llm/chains/search-rewrite/budget.json
+// Illustrative — budget.json for a hypothetical search-rewrite chain
 {
   "model": "claude-sonnet-4-6",
   "window": 200000,
@@ -138,7 +138,7 @@ Boundary condition: the budget is the *target*, not a hard cap on the assembled 
 The chain's assembly code measures each section's size before concatenating and applies compression or truncation when a section exceeds its budget. Most often this matters for the retrieved-context section (variable size) and the conversation-history section (also variable).
 
 ```ts
-// Sketch — loopd planned shape
+// Sketch — typical chain shape
 async function assemblePrompt(input: SearchInput, retrievedChunks: Chunk[]): Promise<Prompt> {
   // Cap context section: most relevant chunks first; stop at budget.
   let usedTokens = 0;
@@ -332,27 +332,37 @@ The budget is enforced at three points: at chain init (constants must fit), at a
 
 ## In this codebase
 
-**Case B — loopd token budgeting (planned).**
+**Case B planned — coaching agent budget.**
 
-Loopd's 5 chains will each ship with a `budget.json` per curriculum Phase 1 / Phase 2A. Sketches:
+contrl ships no LLM code today. The planned Phase 4 coaching agent will have one prompt and one budget to track. Estimated shape:
 
-- **intent-classify:** small budget. `{ system: 400, examples: 600, user: 200, total: 1200 }`. Doesn't need much; this chain just classifies. Should pass the cache threshold once the system + examples are tuned.
-- **tag-extract:** medium. `{ system: 400, examples: 500, user: 1500, total: 2400 }`. The user input is the journal entry, which can be longer.
-- **caption:** small. Generative; needs few-shot examples to set style; `{ system: 600, examples: 1200, user: 200, response: 200, total: 2200 }`.
-- **search-rewrite:** medium. Reformulates a search query with possible context. `{ system: 400, context: 1500, user: 200, total: 2100 }`.
-- **end-of-day summary:** large. `{ system: 600, examples: 800, history: 8000, user: 200, response: 1500, total: 11100 }`. The history section here is the journal entries from the day; it can be substantial.
+```
+src/lib/agent/budget.json (planned)
 
-None of these get close to 80% of Sonnet 4's 200K window — the budgets here are 0.5–6% utilization. The discipline matters more for the assembly cap (preventing edge-case overflow) than for absolute size.
+{
+  "model": "claude-sonnet-4-6",
+  "window": 200000,
+  "sections": {
+    "system": 1500,         // role + behavioral rules + 5 tool definitions
+    "examples": 800,        // 2-3 worked coaching exchanges (if used)
+    "context": 2000,        // tool-call return data injected per call
+    "user": 200,            // workout ID + exercise being coached
+    "response": 800         // expected coaching message length
+  },
+  "total_target": 5300,
+  "utilization": 0.027      // 2.7% of window
+}
+```
 
-**Case A — aipe specs (implicit budget).**
+contrl's coaching agent runs nowhere near 80% utilization at solo scale — the system + examples + per-call context together fit in a few thousand tokens. The discipline still earns its place: it caps edge cases (a workout with 50 logged sets producing a 30K-token context) and it gives a baseline to detect drift when prompts are tuned.
 
-aipe specs don't have a formal budget.json — they're consumed by Claude Code, whose context window depends on the user's setup. But the specs do have an *implicit* budget:
+**Plus the per-call tool-output budget.**
 
-- **`/Users/rein/Public/aipe/specs/refactor.md`** is ~150 lines / ~1500 tokens. Designed to fit comfortably in any reasonable context window.
-- **`/Users/rein/Public/aipe/specs/study.md`** is ~2000 lines / ~25K tokens. The largest spec by far. Claude Code's context window with this loaded plus a codebase plus conversation history can approach 60–100K tokens in practice — well within frontier limits but worth noticing.
-- **`/Users/rein/Public/aipe/specs/audit-refactor.md`** is moderate, ~600 lines / ~6K tokens.
+The 5 read-only tools (`get_classifier_output`, `get_form_history`, `get_progression_state`, `get_recent_coaching`, `get_exercise_cues`) each return data of bounded but variable size. `get_form_history` for a user with 500 sessions is the worst case. The budget needs to cap each tool's return size (or paginate) so a single tool call can't blow past the window.
 
-What aipe specs are NOT doing: measuring token counts explicitly, declaring budgets per spec, or alerting when a spec grows past a threshold. The discipline exists in the author's head ("this spec is getting long"), not in the codebase. For solo meta-tooling work, that's fine. For runtime production chains, that wouldn't be enough.
+**ML side — not a token budget concern.**
+
+contrl's Phase 2C form classifier (LightGBM via ONNX) takes a fixed-size feature vector. There's no "budget" question — the input shape is the input shape. Listed for completeness; the discipline doesn't apply.
 
 ---
 
@@ -389,7 +399,7 @@ What aipe specs are NOT doing: measuring token counts explicitly, declaring budg
 
 ### Sub-block 1 — what we gave up
 
-The 30-minute-per-chain overhead of writing a budget file, measuring constant sections at init, and adding assembly-layer truncation. That's real time, real code. For loopd's 5 chains, that's ~2.5 hours of work plus the shared token-counting helper.
+The 30-minute-per-chain overhead of writing a budget file, measuring constant sections at init, and adding assembly-layer truncation. That's real time, real code. For contrl's single coaching agent, that's ~30 minutes of work plus a token-counting helper.
 
 The other cost is the *quality of the truncation logic*. Truncating retrieved chunks by relevance assumes you have relevance scores — which assumes you've done the retrieval-ranking layer right (see RAG concepts in the broader study guide). Truncating history requires deciding what's "summarized" and what's "verbatim" — a real product/UX decision that has to be made per chain. The budget file enforces the discipline but doesn't tell you what the right answers are for these.
 
@@ -406,7 +416,7 @@ The 2.5 hours of budget files at Day 1 would have prevented all of this.
 
 ### Sub-block 3 — the breakpoint
 
-Explicit budgeting is the right call until: (a) all of your chains have <500-token prompts and constant-size inputs (the budget file is paperwork with no payoff); (b) you're in a prototype-only phase where every chain is going to be rewritten anyway (budget files become noise); (c) you're using a single small model with a fixed window and zero scaling concerns (still useful, but the cost case weakens). None of these apply to loopd or to most production chains.
+Explicit budgeting is the right call until: (a) all of your chains have <500-token prompts and constant-size inputs (the budget file is paperwork with no payoff); (b) you're in a prototype-only phase where every chain is going to be rewritten anyway (budget files become noise); (c) you're using a single small model with a fixed window and zero scaling concerns (still useful, but the cost case weakens). For contrl's planned coaching agent, the variable tool-output sizes (especially `get_form_history`) push past (a), so the budget earns its place.
 
 ### Sub-block 4 — what wasn't actually a tradeoff
 
@@ -418,7 +428,7 @@ Explicit budgeting is the right call until: (a) all of your chains have <500-tok
 
 ### Anthropic `countTokens` API
 
-- **Codebase uses:** Not yet — planned for loopd's token-counting helper.
+- **Codebase uses:** Not yet — planned for contrl's coaching-agent token-counting helper.
 - **Why it's here:** the provider-canonical way to count tokens for Claude calls. Counts the exact tokens the provider will charge for.
 - **Leading today:** `anthropic.messages.countTokens` — `adoption-leading` for Anthropic-target token counting, 2026.
 - **Why it leads:** matches the tokenizer used in production calls; the provider's own count is the ground truth; no risk of tokenizer drift between client and server.
@@ -434,7 +444,7 @@ Explicit budgeting is the right call until: (a) all of your chains have <500-tok
 
 ### Prompt cache thresholds (provider-specific)
 
-- **Codebase uses:** Anthropic's `cache_control: { type: "ephemeral" }` is the lever planned for loopd's chain calls.
+- **Codebase uses:** Anthropic's `cache_control: { type: "ephemeral" }` is the lever planned for contrl's coaching agent.
 - **Why it's here:** the operational fact that caching only engages above a minimum prefix size (Anthropic: 1024 tokens for Claude 3+). Drives the budget allocation rule: don't trim system+examples below the threshold.
 - **Leading today:** Anthropic explicit prompt cache — `adoption-leading` for predictable caching control, 2026.
 - **Why it leads:** the threshold and discount are documented and observable (response headers); engineering around the threshold is deterministic.
@@ -444,31 +454,33 @@ Explicit budgeting is the right call until: (a) all of your chains have <500-tok
 
 ## Project exercises
 
-### [B1.12] Write the first budget.json
+contrl ships no LLM code today. These exercises become buildable when the Phase 4 coaching agent lands.
 
-- **Exercise ID:** `[B1.12]`
-- **What to build:** Add `budget.json` to one loopd chain folder. Measure the constant sections (`system.md`, `examples.md`) with `countTokens`. Document `{model, window, sections, response_reserved, safety_headroom, total_target, utilization}`.
-- **Why it earns its place:** materializes the discipline. The first budget file is the template for all others.
-- **Files to touch:** `loopd/src/lib/llm/chains/intent-classify/budget.json`.
+### [B4C.budget] Write the coaching agent's budget.json
+
+- **Exercise ID:** `[B4C.budget]`
+- **What to build:** Add `src/lib/agent/budget.json`. Measure the constant sections (`system.md`, `examples.md`) with `countTokens`. Document `{model, window, sections, response_reserved, safety_headroom, total_target, utilization}`.
+- **Why it earns its place:** materializes the discipline. Without it, future prompt edits drift the budget silently.
+- **Files to touch:** `src/lib/agent/budget.json`.
 - **Done when:** the file exists, numbers match `countTokens` output for the current `system.md` + `examples.md`, utilization is below 0.8.
 - **Estimated effort:** `<1hr`
 
-### [B1.13] Add the chain-init budget check
+### [B4C.budget-check] Add the agent-init budget check
 
-- **Exercise ID:** `[B1.13]`
-- **What to build:** At chain load time, recount the constant sections and verify they're within the declared budget. Throw a clear error if not.
+- **Exercise ID:** `[B4C.budget-check]`
+- **What to build:** At agent load time, recount the constant sections and verify they're within the declared budget. Throw a clear error if not.
 - **Why it earns its place:** prevents budget-file drift. The runtime contract that keeps the file honest.
-- **Files to touch:** the chain runner module that loads each chain.
-- **Done when:** editing `system.md` to grow past `budget.sections.system` causes chain initialization to throw with a "system prompt exceeds budget: 600 declared, 720 actual" message.
+- **Files to touch:** `src/lib/agent/runner.ts` boot path.
+- **Done when:** editing `system.md` to grow past `budget.sections.system` causes runner initialization to throw with a "system prompt exceeds budget: 1500 declared, 1720 actual" message.
 - **Estimated effort:** `1–4hr`
 
-### [B1.14] Add per-section truncation for variable sections
+### [B4C.tool-cap] Cap variable tool returns
 
-- **Exercise ID:** `[B1.14]`
-- **What to build:** For the search-rewrite chain (which has variable context size), implement relevance-ranked chunk truncation at the assembly layer. Log what was dropped.
-- **Why it earns its place:** the practical "what happens when the budget is exceeded by variable input" mechanism. Without it, edge-case inputs still overflow.
-- **Files to touch:** the assembly code for the search-rewrite chain plus a `compressHistoryToFit` utility.
-- **Done when:** a synthetic test that feeds 20 chunks (each 800 tokens) returns a chain call with at most 6000 tokens of context, with a log entry listing the dropped chunks.
+- **Exercise ID:** `[B4C.tool-cap]`
+- **What to build:** For `get_form_history` and `get_recent_coaching` (the two tools with unbounded return size), implement a recency-ranked truncation that caps each tool's return at the declared budget slice. Log what was dropped.
+- **Why it earns its place:** prevents a user with 1000 logged sessions from blowing the window. Without it, edge-case inputs cause silent provider-side truncation or hard errors.
+- **Files to touch:** the two tool implementations + a shared `truncateByRecency` helper.
+- **Done when:** a synthetic test that feeds 500 sessions to `get_form_history` returns at most the declared `context_per_tool` token cap, with a log entry listing dropped sessions.
 - **Estimated effort:** `1–4hr`
 
 ---
@@ -613,3 +625,6 @@ Without opening files, answer:
 - Where does lost-in-the-middle hit hardest?
 
 Pass: 1024 tokens; ~1 token per 4 characters; the middle of a long prompt.
+
+---
+Updated: 2026-05-24 — Reframed per v1.38.0 per-repo scope. Removed dual Case A (aipe specs) + Case B (loopd 5 chains) framing; replaced with single Case B planned for contrl's coaching agent (single-prompt budget + per-tool caps). Tradeoffs Sub-block 1 updated (loopd's 5 chains → contrl's single agent). Sub-block 3 breakpoint updated. Tech reference codebase-uses lines retargeted. Project exercises B1.12/B1.13/B1.14 → B4C.* coaching-agent variants. Code snippet comments made illustrative.

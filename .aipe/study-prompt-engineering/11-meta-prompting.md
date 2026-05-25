@@ -3,7 +3,7 @@
 **Industry name(s):** Meta-prompting, prompt generation, LLM-authored prompts, prompt-of-prompts
 **Type:** Industry standard
 
-> Using an LLM to write or improve prompts for another LLM call. Saves time on initial drafting of complex prompts; backfires when used for small tweaks or under high iteration pressure. aipe IS meta-prompting: its slash-command specs are prompts that produce other prompts.
+> Using an LLM to write or improve prompts for another LLM call. Saves time on initial drafting of complex prompts; backfires when used for small tweaks or under high iteration pressure. The cleanest worked example is meta-tooling like aipe — slash-command specs that ARE prompts that produce other prompts. contrl is a *consumer* of meta-prompting (this study guide was generated via `/aipe:study-prompt-engineering`), not a producer; contrl ships no meta-prompting code of its own.
 
 **See also:** → [03-prompts-as-code](./03-prompts-as-code.md) · → [01-anatomy](./01-anatomy.md) · → [05-eval-driven-iteration](./05-eval-driven-iteration.md)
 
@@ -333,34 +333,23 @@ The boundary between human and LLM ownership is the discipline. Humans own struc
 
 ## In this codebase
 
-**Case A — aipe slash-command specs.**
+**Case B — contrl consumes meta-prompting; contrl does not produce it.**
 
-aipe is a working meta-prompting system at production scale (for a solo-user definition of production). Specs that generate other prompts.
+This study guide itself is a meta-prompting artifact: `/aipe:study-prompt-engineering` is a spec (a prompt) that produces the 14 files in `.aipe/study-prompt-engineering/` (which are content but written in a prompt-engineering-aware style — themselves prompt-shaped). The same is true of `.aipe/study-ai-engineering/`, `.aipe/study-system-design-dsa/`, and `.aipe/audit-refactor-ml-workout/`. All four were generated against aipe specs.
 
-- **`/Users/rein/Public/aipe/specs/study.md`** — generates per-concept study-guide files. The spec defines the template (Subtitle, Why care 5 moves, etc.) and Claude Code fills in each concept file matching the template. The spec IS the meta-prompt; the generated files ARE the output.
-- **`/Users/rein/Public/aipe/specs/study-prompt-engineering.md`** — generates the 14 prompt-engineering study files (the ones you're reading now). The spec defines the persona, the 13 concepts, the anchoring rules; Claude Code fills in each concept file.
-- **`/Users/rein/Public/aipe/specs/refactor.md`** — generates refactor specs (`.aipe/specs/refactors/[name].md`). The spec defines the refactor format; the user provides the intent; Claude Code fills in the spec.
+But these are **artifacts in the repo**, not **code that contrl ships**. The runtime code in `src/` (pose detection, rep counter, eventually the coaching agent) doesn't use meta-prompting at all. The distinction matters because the concept is often confused with "any LLM-assisted authoring":
 
-What aipe is doing well at the meta-prompting layer:
-- **Rigid output template.** Every spec defines an exact output shape (per-concept template, refactor spec format). Without rigid templates, the meta-prompt produces drift.
-- **Constraints over instructions.** Specs say "must" and "never" frequently. "Never use markdown tables for tech entries." "Never include explanations outside the JSON." Specific bans beat general guidance.
-- **Worked examples.** Many specs include literal worked examples of what good output looks like — the highest-fidelity meta-prompting signal.
+- **Meta-prompting (what aipe does):** a structured spec that, when executed by an LLM agent, produces specific prompt-shaped artifacts. Rigid template, named constraints, worked examples. Reproducible.
+- **LLM-assisted authoring (what every codebase does):** a developer using an LLM in their IDE to draft code/prose. Ad-hoc, conversational, not reproducible.
 
-What aipe is *not* doing:
-- **Automated iteration on existing prompts.** There's no `/aipe:tune <chain>` that takes a chain's prompt + eval set and proposes improvements. The author iterates by hand. For solo use this is fine; in a production team a tune-style meta-tool could earn its keep.
-- **Cross-validation.** aipe's outputs aren't validated by a second model before commit — the human is the validator. Works for solo low-volume use.
+contrl uses the second one daily (any TypeScript developer in 2026 does). contrl does not use the first one for shipping code — there's no `/contrl:tune` slash command, no spec that generates the coaching agent's system prompt programmatically.
 
-**Case B — loopd meta-prompting (planned).**
+**Where meta-prompting would earn its place in contrl (deferred):**
 
-Loopd's planned chain templates will get their first drafts via meta-prompting through aipe or a similar tool. The expected workflow:
+1. **First-draft of the coaching agent's system.md.** When Phase 4 begins, write a one-off drafting prompt naming the agent's role, the 5 tools, the output schema, the behavioral rules. Get a draft from Claude. Edit for contrl-specific exercise terminology. Commit. This is a one-time use of meta-prompting; not codified into a tool.
+2. **First-draft of agent eval-set rubric.** When writing `tests/agent/rubric.md`, ask Claude to draft the structure first. Same one-time pattern.
 
-1. Human writes a Phase 1 build description for a new chain (`B1.7: intent classifier`).
-2. Human uses Claude Code (with aipe loaded) to draft the `system.md`, `examples.md`, schema definition.
-3. Human reviews and edits.
-4. Human commits the chain folder.
-5. Eval-driven iteration ([05-eval-driven-iteration](./05-eval-driven-iteration.md)) takes over from there.
-
-The first-draft step uses meta-prompting; the subsequent iteration doesn't.
+Neither use case justifies building a meta-tool inside contrl. They're use-once activities; the savings don't compound.
 
 ---
 
@@ -403,7 +392,7 @@ Second, **structural laziness**. If you let the LLM own structure, you lose the 
 
 ### Sub-block 2 — what hand-writing every first draft would cost
 
-I have done this. For 5 chains of similar complexity to loopd's planned set, hand-drafting all first drafts is about a day's work. With meta-prompting it's about 2 hours of drafting + reviewing + editing across 5 chains, plus 30 minutes building the standardized template once. Net savings ~5 hours on the first batch. Subsequent chains: with templates established, hand-writing is about as fast. The savings concentrate on the initial batch.
+I have done this. For 5 chains of similar complexity to a typical app, hand-drafting all first drafts is about a day's work. With meta-prompting it's about 2 hours of drafting + reviewing + editing across 5 chains, plus 30 minutes building the standardized template once. Net savings ~5 hours on the first batch. Subsequent chains: with templates established, hand-writing is about as fast. The savings concentrate on the initial batch.
 
 ### Sub-block 3 — the breakpoint
 
@@ -445,29 +434,29 @@ Meta-prompting is the right call until: (a) you're editing existing prompts surg
 
 ## Project exercises
 
-### [B1.24] Use meta-prompting to draft loopd's first chain
+### [B4C.draft-agent] Use meta-prompting once to draft the coaching agent's system.md
 
-- **Exercise ID:** `[B1.24]`
-- **What to build:** Use Claude Code (or any LLM playground) to draft the system prompt for loopd's intent classifier. Provide a specific drafting prompt covering the 3 labels, schema, edge cases. Get a draft. Edit it. Compare time-to-first-draft with what hand-writing would have cost.
-- **Why it earns its place:** materializes the meta-prompting workflow on a real chain. The time-saving measurement is the data point that proves (or disproves) the discipline pays.
-- **Files to touch:** the drafting prompt itself plus the resulting `loopd/src/lib/llm/chains/intent-classify/system.md`.
-- **Done when:** the system.md exists, the time to first draft is documented, and the editing pass is committed.
+- **Exercise ID:** `[B4C.draft-agent]`
+- **What to build:** Write a one-off ~200-token drafting prompt naming: the agent's role (coaching messages after a set), the 5 read-only tools, the output schema (`{ message, priority_cue, confidence }`), the behavioral rules (one cue at a time, avoid recent rotation), the kind of tone (terse, direct, no emojis). Paste into Claude Code or a playground. Get a draft of `src/lib/agent/system.md`. Edit for contrl-specific exercise terminology. Commit.
+- **Why it earns its place:** materializes the once-per-feature meta-prompting workflow. Time-saving vs hand-drafting becomes the data point.
+- **Files to touch:** the drafting prompt itself (saved as `docs/agent-drafting-prompt.md` for reproducibility) plus the resulting `src/lib/agent/system.md`.
+- **Done when:** system.md exists, time-to-first-draft is documented, editing pass is committed.
 - **Estimated effort:** `1–4hr`
 
-### [B1.25] Build a /tune slash command (stretch)
+### [defer] Build a /contrl:tune slash command
 
-- **Exercise ID:** `[B1.25]`
-- **What to build:** Add a `/aipe:tune <chain-path>` spec under `aipe/specs/` that reads a chain folder + its eval results and proposes specific edits to the system prompt. Human approves each edit before commit.
-- **Why it earns its place:** pushes meta-prompting from "scaffold new" to "improve existing." Requires eval suite to verify the proposed edits don't regress.
-- **Files to touch:** `aipe/specs/tune.md` (new); a corresponding `commands/tune.md` + `skills/tune/` package.
-- **Done when:** running `/aipe:tune chains/intent-classify` produces a diff against the current system.md with rationale per change; human approves; diff is applied; eval re-runs and confirms no regressions.
+- **Exercise ID:** `[defer]` — not in current scope
+- **What to build:** If contrl scales past one LLM surface, an `aipe` spec or in-repo tooling that takes a system.md + eval results and proposes edits. Human approves each edit before commit. Requires the eval suite to verify no regressions.
+- **Why it earns its place:** pushes meta-prompting from "scaffold new" to "improve existing." Earns its place at 3+ surfaces under iteration.
+- **Files to touch:** TBD when scope justifies.
+- **Done when:** TBD.
 - **Estimated effort:** `1 week`
 
 ---
 
 ## Summary
 
-Meta-prompting is using an LLM to draft prompts for other LLM calls. Saves real time on initial drafts of complex prompts; backfires on small tweaks and high-iteration prompts. The discipline: human owns structure and review; LLM owns boilerplate drafting; commit only after human editing. aipe is the worked example — slash-command specs are meta-prompts that produce specific structured outputs. The pattern fails when used as a substitute for eval-driven iteration; it succeeds as the bootstrap step before eval iteration takes over.
+Meta-prompting is using an LLM to draft prompts for other LLM calls. Saves real time on initial drafts of complex prompts; backfires on small tweaks and high-iteration prompts. The discipline: human owns structure and review; LLM owns boilerplate drafting; commit only after human editing. The cleanest worked example is meta-tooling like aipe — slash-command specs that ARE meta-prompts producing structured outputs (this study guide was generated that way). For contrl, the pattern earns its place once-per-feature as a drafting accelerator (e.g., first draft of the coaching agent's system.md); it doesn't earn its place as in-repo tooling at solo scale.
 
 **Key points:**
 
@@ -475,7 +464,7 @@ Meta-prompting is using an LLM to draft prompts for other LLM calls. Saves real 
 - **Constrain the drafting prompt.** 100–300 tokens of clear constraints; less is vague, more is over-engineered.
 - **Human owns structure; LLM owns body prose.** Crossing this boundary is where it backfires.
 - **Always review and edit before commit.** Unedited drafts have recognizable "AI-written" texture.
-- **aipe specs are the worked example.** Slash commands that generate specific structured outputs via rigid templates.
+- **For contrl: a one-off accelerator, not in-repo tooling.** Use once when drafting `src/lib/agent/system.md`; don't build a /tune slash command at solo scale.
 
 ---
 
@@ -604,7 +593,7 @@ If you skipped any: you described meta-prompting, not the discipline.
 **Level 3 — Apply to a new scenario.**
 A teammate wants to add a new "tag-extract" chain. They ask you whether they should use meta-prompting to draft the system prompt. Walk through your recommendation.
 
-Expected: yes, with the constrained-drafting-prompt approach. Write a 200-token drafting prompt naming the input shape (journal entry), output shape (`{ tags: string[] }`), max tag count (5), forbidden tags (PII, profanity), and one worked example. Get a draft. Edit for loopd-specific terminology and any business-specific rules. Commit. Then iteration via eval suite (B1.17 + B1.8 etc.).
+Expected: yes, with the constrained-drafting-prompt approach. Write a 200-token drafting prompt naming the input shape (journal entry), output shape (`{ tags: string[] }`), max tag count (5), forbidden tags (PII, profanity), and one worked example. Get a draft. Edit for project-specific terminology and any business-specific rules. Commit. Then iteration via the eval suite.
 
 **Level 4 — Defend the decision you'd change.**
 The biggest tradeoff is "20 min meta-prompted draft + edit vs 2 hours hand-drafted." If you were starting a project with extremely bespoke domain terminology, would you still meta-prompt the first drafts?
@@ -617,4 +606,7 @@ Without opening files, answer:
 - What's the rule about the drafting-prompt length?
 - What's the human/LLM ownership split?
 
-Pass: aipe specs (`/Users/rein/Public/aipe/specs/`); 100–300 tokens; human owns structure + review, LLM owns body prose.
+Pass: meta-tooling like aipe specs (a slash-command framework where each spec is a meta-prompt that generates structured artifacts); 100–300 tokens; human owns structure + review, LLM owns body prose.
+
+---
+Updated: 2026-05-24 — Reframed per v1.38.0 per-repo scope. Subtitle reframed: aipe positioned as illustrative meta-tooling, not contrl's discipline; contrl is a consumer (this study guide is the artifact) not a producer. In this codebase: collapsed dual Case A (aipe) + Case B (loopd) into single Case B (contrl consumes meta-prompting, does not ship it); added Case B deferred triggers (drafting agent's system.md, drafting eval rubric). Sub-block 2 retargeted from loopd-5-chains to generic. Project exercises B1.24/B1.25 → B4C.draft-agent + deferred /tune exercise. Summary closing + Key points #5 + Validate Level 3 + Quick check all retargeted to contrl scope. How it works section (lines 201-260) kept as illustrative anchor per v1.38.0 spec allowance.

@@ -116,7 +116,7 @@ Boundary condition: don't add self-critique speculatively. The eval suite (see [
 If self-critique is going to work, the critic needs a specific rubric — not "is this good?" but "does this preserve the user's voice / contain no fabricated facts / match the schema exactly." Vague rubrics produce rubber-stamp critics; specific rubrics produce useful critics.
 
 ```ts
-// loopd planned shape for a journal-edit critic
+// Illustrative — a generator/critic/revision pipeline for high-stakes edits
 const EditCritique = z.object({
   voice_preserved: z.boolean().describe(
     "Does the edit preserve the user's distinctive voice? " +
@@ -225,7 +225,7 @@ Boundary condition: self-consistency is cheaper per "extra check" than self-crit
 Self-critique's outputs are training data for prompt improvement. Log the cases where the critic flagged issues; periodically review them.
 
 ```ts
-// loopd planned shape
+// Illustrative — self-consistency over N parallel samples
 const result = await runWithCritique(input);
 if (result.critic_flagged) {
   log.info({
@@ -332,34 +332,23 @@ The three-call pipeline (generator, critic, revision) catches the "confident wro
 
 ## In this codebase
 
-**Case B — loopd journal-edit chain (planned).**
+**Case B — not currently planned for contrl.**
 
-A future loopd chain that edits the user's own journal entries — proofread, fix grammar, smooth phrasing without rewriting meaning. Highest-stakes generative chain in the planned loopd surface: the chain modifies the user's words.
+contrl's planned coaching agent is the only LLM surface, and the cost-of-bad-output is medium (a wrong coaching message is annoying but not catastrophic — the user reads it, ignores it if wrong, the world goes on). Self-critique's 2-3× token cost doesn't pay back at contrl's scale and stakes:
 
-- **Schema (generator):** `EditedEntry = { text: string }`.
-- **Schema (critic):** `EditCritique = { voice_preserved, meaning_preserved, improvements_only, flags }`.
-- **Pipeline:** generator (Sonnet 4) → critic (Opus 4) → revision (Sonnet 4) if any flag is false.
-- **Audit:** critic-flagged events logged for weekly review.
+- **Solo scale.** ~1-2 calls per day. Doubling token cost is pennies, not dollars. The cost case is moot; the bigger question is operational complexity.
+- **Medium stakes.** No medical claims, no legal claims, no financial actions. Form coaching that lands wrong is recoverable.
+- **Existing safety rails.** The 5 tools are read-only; the agent can't take any action that requires reversal. Schema validation catches structural drift. The eval suite catches behavioral drift.
 
-Not yet on disk. The audit-loop discipline ties into [05-eval-driven-iteration](./05-eval-driven-iteration.md) — critic flags become eval regression cases.
+When self-critique WOULD earn its place in contrl: if the coaching agent expanded to call write tools (e.g., automatically modifying the user's next workout plan), the critic pass becomes non-negotiable for the same reason it's non-negotiable on any agent with write authority.
 
-**Case B — loopd caption with rotation-history critic.**
+**Lightweight alternative for contrl: prompt-level self-review.**
 
-A future second critique application: the caption chain's output gets critiqued against forbidden-pattern rules (see [13-forbidden-patterns](./13-forbidden-patterns.md)). If the caption starts with "In a fast-paced world..." or another forbidden opener, the critic flags and the chain regenerates with the forbidden phrase in the system-prompt's avoid-list.
+Instead of a full critic chain, the coaching agent's system prompt can include a final-section instruction: "Before finalizing the message, check: does it cite at most one cue? Does it avoid the rotation list? Is it under 80 words? If any answer is no, revise." This is single-call self-review — the model conditions on the constraints during generation, which catches some of the same failures as a separate critic pass at a fraction of the cost. It's a weaker version of the discipline but earns its place at contrl's scale.
 
-- **Pipeline:** caption generator → forbidden-pattern critic → revision if flagged.
-- **Token cost:** ~2× per call when flagged (which should be rare if the generator prompt is tuned).
+**ML side — not applicable.**
 
-Not yet on disk. Curriculum item under Phase 2A.
-
-**Case A — aipe agent self-correction (implicit).**
-
-aipe specs implicitly encode self-correction at the agent level. Many specs include "Self-Review" sections that ask the agent to look back at its output before declaring it done.
-
-- **`/Users/rein/Public/aipe/specs/study.md`** — references a self-review step in the per-concept-file template (the Validate block).
-- **Various specs** — include "before finalizing, check: did you address every constraint?" prompts.
-
-These aren't structured self-critique calls (no second model, no schema); they're prompt-level discipline that asks the agent to consider its own work. Useful but weaker than a structured critic pass. For meta-tooling at this scale (solo, low volume), it's adequate.
+The form classifier produces deterministic outputs. "Self-critique" doesn't have an analog for a discriminative model; the closest concept is model ensembling (running multiple models and voting), which is the self-consistency variant of this concept but in ML-classifier shape.
 
 ---
 
@@ -426,7 +415,7 @@ Self-critique is the right call until: (a) the cost-of-bad-output is genuinely l
 
 ### Cross-model LLM-as-judge
 
-- **Codebase uses:** Not yet — planned for loopd's journal-edit critic (Opus 4 critiquing Sonnet 4).
+- **Codebase uses:** Not currently planned for contrl. Reserved for if the coaching agent gains write authority over user data (workout plans, exercise schedules).
 - **Why it's here:** the discipline of using a different model as the critic to avoid shared blind spots.
 - **Leading today:** Claude Opus 4 — `adoption-leading` for critic-of-Sonnet, 2026.
 - **Why it leads:** larger model, stronger reasoning, lower length-bias than smaller models, mature tool-use for rubric scoring.
@@ -434,7 +423,7 @@ Self-critique is the right call until: (a) the cost-of-bad-output is genuinely l
 
 ### Structured rubric schemas (Zod)
 
-- **Codebase uses:** Not yet — planned for loopd's critic chains.
+- **Codebase uses:** Not currently planned for contrl. Reserved for the deferred write-authority case.
 - **Why it's here:** the schema that turns "is it good?" into specific named dimensions (voice_preserved, meaning_preserved, etc.).
 - **Leading today:** Zod with `.describe()` annotations — `adoption-leading` for production critique schemas, 2026.
 - **Why it leads:** typed at the boundary; descriptions become part of the prompt the critic sees; boolean fields more reliable than 1-5 scales.
@@ -452,23 +441,23 @@ Self-critique is the right call until: (a) the cost-of-bad-output is genuinely l
 
 ## Project exercises
 
-### [B2A.9] Add self-critique to the journal-edit chain (when built)
+### [B4C.self-review] Add prompt-level self-review to the coaching agent
 
-- **Exercise ID:** `[B2A.9]`
-- **What to build:** When the journal-edit chain is added (planned Phase 2A), wire it through a critic call. Generator on Sonnet 4; critic on Opus 4 with a `EditCritique` rubric (voice / meaning / improvements_only). Revision step calls the generator again with critic flags included.
-- **Why it earns its place:** materializes the writer-and-editor pattern on a real high-stakes chain. The cost is justified by the cost-of-bad on user content.
-- **Files to touch:** `loopd/src/lib/llm/chains/journal-edit/{generator-schema.ts, critic-schema.ts, chain.ts}` (planned).
-- **Done when:** the chain calls generator, then critic, then revision (if any flag false); critic-flagged events logged for audit.
-- **Estimated effort:** `1–2 days` (after chain skeleton exists)
+- **Exercise ID:** `[B4C.self-review]`
+- **What to build:** Append a "before finalizing, check" block to `src/lib/agent/system.md` that asks the agent to verify the message cites at most one cue, avoids the rotation list, stays under 80 words, and references the right exercise. The check happens inside the same call — no separate critic pass.
+- **Why it earns its place:** earns the discipline at contrl's scale without paying the 2× cost of a full critic pipeline.
+- **Files to touch:** `src/lib/agent/system.md`.
+- **Done when:** the eval suite measures any quality delta on edge cases (rotation list, word count); no token-cost doubling.
+- **Estimated effort:** `<1hr`
 
-### [B2A.10] Measure self-critique's eval impact
+### [defer] Full critic pipeline (if/when write authority arrives)
 
-- **Exercise ID:** `[B2A.10]`
-- **What to build:** Run the journal-edit chain's eval suite with and without the critic pass. Compare voice-preservation accuracy and the cost delta.
-- **Why it earns its place:** the data that proves the 2× cost is justified. If the eval shows no improvement, you've learned the critic isn't earning its tokens.
-- **Files to touch:** an eval comparison script.
-- **Done when:** comparison table in `docs/ml-results.md` shows voice-preservation accuracy before/after critic; cost delta; latency delta.
-- **Estimated effort:** `1–4hr`
+- **Exercise ID:** `[defer]` — not currently in scope
+- **What to build:** If/when the coaching agent gains write authority (e.g., automatically updates the user's workout plan), wire a separate critic chain: generator (Sonnet 4) → critic (Opus 4) with a rubric checking destructive-edit avoidance, scope adherence, and user-consent assumptions. Revision if any flag false.
+- **Why it earns its place:** mandatory the moment the agent has reversible-or-worse side effects.
+- **Files to touch:** `src/lib/agent/critic.ts`, `src/lib/agent/runner.ts`.
+- **Done when:** every write-authoritative call goes through critic; critic-flagged events logged.
+- **Estimated effort:** `1–2 days` if/when the write surface lands.
 
 ---
 
@@ -611,3 +600,6 @@ Without opening files, answer:
 - What's the cheaper alternative for classification tasks?
 
 Pass: different from generator (cross-tier or cross-family); specific boolean dimensions; self-consistency (parallel + vote).
+
+---
+Updated: 2026-05-24 — Reframed per v1.38.0 per-repo scope. In this codebase: replaced loopd journal-edit + caption critic + aipe implicit self-correction sections with "not currently planned for contrl" framing (cost-of-bad is medium, scale is solo; lightweight prompt-level self-review earns its place instead). Added deferred-trigger note for write-authority case. Code snippet comments made illustrative. Tech reference codebase-uses retargeted. Project exercises B2A.9/B2A.10 → B4C.self-review + deferred full-critic exercise.

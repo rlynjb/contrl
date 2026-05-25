@@ -79,7 +79,7 @@ The model has a list of bans, a list of alternatives, and (optionally) a list of
 The first layer is naming specific phrasings the chain produces too often. Find them by running the chain N times on diverse inputs and reading the outputs — the model's defaults will be obvious.
 
 ```ts
-// loopd planned caption chain — forbidden phrasings in system.md
+// Illustrative — forbidden phrasings declared in a generative chain's system.md
 
 FORBIDDEN OPENERS (the model defaults to these; avoid):
   - "In a moment of reflection..."
@@ -156,7 +156,7 @@ Boundary condition: formulas should be genuinely varied, not slight reformulatio
 For chains running repeatedly for the same user, pass in a list of "what we used recently" so the model can avoid immediate repetition.
 
 ```ts
-// loopd planned caption chain runtime
+// Illustrative — runtime that queries recent outputs and injects them into the per-call prompt
 const recentCaptions = await db.getRecentCaptionsForUser(userId, { limit: 5 });
 const recentFormulas = recentCaptions.map(c => c.formula_used);
 
@@ -269,9 +269,9 @@ The critic flags variety violations; the revision pass produces a varied output.
 
 ---
 
-### Move 2.5 — Current state vs future state (loopd caption chain)
+### Move 2.5 — Current state vs future state (contrl coaching agent)
 
-The caption chain is the planned loopd surface where this matters most. Per curriculum Phase 1 (B1.20):
+The coaching agent is the planned contrl surface where this matters most — the agent fires once or twice per workout, so the same user reads similar coaching outputs daily. Convergence is the failure mode the discipline prevents:
 
 ```
               Phase A (initial ship)               Phase B (mature)
@@ -371,22 +371,22 @@ The five layers operate at different cadences: per-call (recent-uses + schema), 
 
 ## In this codebase
 
-**Case B — loopd caption chain (planned).**
+**Case B planned — coaching agent rotation discipline.**
 
-The canonical example in the planned portfolio. Per curriculum Phase 1 build B1.20:
+contrl's coaching agent is the canonical Case B for this concept. The agent runs every workout for the same user (~1-2 calls/day, ~10/week, ~500/year). Without rotation discipline, every coaching message will start with "Great work on that set!" or open the same three openers indefinitely. Within two weeks the user notices; within a month they ignore the message entirely.
 
-- **`loopd/src/lib/llm/chains/caption/system.md`** declares the forbidden phrasings + rotating formulas with examples.
-- **`loopd/src/lib/llm/chains/caption/chain.ts`** queries recent captions for the user and injects "RECENTLY USED" into the per-call assembly.
-- **`loopd/src/lib/llm/chains/caption/schema.ts`** includes `formula_used: number` for the audit trail.
-- **Monthly maintenance:** review the `captions` table; tally formula_used; rotate forbidden + active formulas if any single formula exceeds 25% usage.
+Planned shape:
 
-Not yet on disk. The discipline is named in the curriculum's Phase 1 considerations for the caption chain specifically.
+- **`src/lib/agent/system.md`** declares forbidden openers (`"Great work"`, `"Nice job"`, `"You're crushing it"`, `"Solid effort"`, `"Way to push"`) and lists 8-12 rotating "coaching formulas" with worked examples (e.g., "Cite a specific cue and the rep number where you saw it", "Reference progress against the user's last session on this exercise", "Suggest a specific rep target for next set", etc.).
+- **`src/lib/agent/runner.ts`** queries the last 7 days of coaching messages for the user (via `get_recent_coaching` tool) and injects "RECENTLY USED FORMULAS: [3, 7, 2]" into the per-call assembly. The agent picks a formula NOT in the recent list.
+- **`src/lib/agent/schemas.ts`** output includes `formula_used: number` (the formula index) for the audit trail. Tracked over time; the formula_used distribution per user becomes a quality metric.
+- **Monthly maintenance:** review the per-user formula_used distribution. If any single formula exceeds 25% usage for any user, rotate it out of the active set in `system.md` and promote a replacement.
 
-**Case A — aipe specs (no rotating-formulas because no repetition).**
+The discipline is named explicitly in the planned curriculum considerations for the coaching agent (Phase 4 Path C).
 
-aipe specs don't have a rotating-formulas problem because they're not run repeatedly for the same input. `/aipe:study` runs once per study guide; `/aipe:refactor` runs once per intent. There's no "same user gets caption every day" pattern. The forbidden-patterns discipline doesn't apply.
+**ML side — not applicable.**
 
-What aipe DOES have, indirectly: rigid output templates that *prevent* convergence in a different way. The per-concept template structure (Subtitle, Why care 5 moves, How it works 3 moves) forces variety in the output structure — every concept file has the same shape but the content within each section is bespoke per concept. This is a different solution to a related problem: structural variety enforced by schema rather than phrasing variety enforced by forbidden lists.
+The form classifier produces an enum class; there's no "phrasing convergence" failure mode. The discipline applies only to generative LLM outputs.
 
 ---
 
@@ -445,7 +445,7 @@ Forbidden patterns + rotation is the right call until: (a) the chain runs rarely
 
 ### Anthropic system-prompt formatting for constraints
 
-- **Codebase uses:** Not yet — planned for loopd caption.md system prompt.
+- **Codebase uses:** Not yet — planned for contrl's coaching agent system prompt.
 - **Why it's here:** the system-prompt structure for listing forbidden + rotating items. Anthropic models respond well to explicit ALL-CAPS section headers ("FORBIDDEN:", "ROTATING FORMULAS:") inside the system prompt.
 - **Leading today:** Plain-text structured system prompts — `adoption-leading` for explicit-constraint prompts, 2026.
 - **Why it leads:** Anthropic and OpenAI both train against this format; ALL-CAPS section markers parse as boundaries; works across providers.
@@ -453,7 +453,7 @@ Forbidden patterns + rotation is the right call until: (a) the chain runs rarely
 
 ### Audit dashboards for formula distribution
 
-- **Codebase uses:** Not yet — planned for loopd's caption surface.
+- **Codebase uses:** Not yet — planned for contrl's coaching agent. At solo scale, a monthly read of the `coaching_logs` table suffices; the dashboard is study material until volume grows.
 - **Why it's here:** the dashboard that surfaces formula distribution over time. Sustained over-use triggers a rotation decision.
 - **Leading today:** Custom queries against production logs — `adoption-leading` for low-tooling teams; LangSmith / Humanloop offer hosted dashboards.
 - **Why it leads:** the data is already there in production logs (formula_used field); dashboards are just SELECT queries. Hosted tools add UI and aggregation.
@@ -461,7 +461,7 @@ Forbidden patterns + rotation is the right call until: (a) the chain runs rarely
 
 ### Periodic prompt-version bumps as the rotation mechanism
 
-- **Codebase uses:** Not yet — planned for loopd's caption chain monthly rotation.
+- **Codebase uses:** Not yet — planned for contrl's coaching agent monthly rotation.
 - **Why it's here:** the deployment story for rotation. Updating the forbidden + active formula list ships as a normal prompt PR through the prompts-as-code pipeline.
 - **Leading today:** prompts-as-code pipeline (see file 03) — `adoption-leading` for shipping prompt changes safely, 2026.
 - **Why it leads:** rotation IS a prompt change; goes through normal review + eval-suite checks; auditable in git history.
@@ -471,38 +471,38 @@ Forbidden patterns + rotation is the right call until: (a) the chain runs rarely
 
 ## Project exercises
 
-### [B1.29] Discover the loopd caption chain's defaults
+### [B4C.survey-defaults] Discover the coaching agent's default openers
 
-- **Exercise ID:** `[B1.29]`
-- **What to build:** Run the (planned) caption chain 50 times against diverse synthetic journal entries. Tally the opener phrasings. Identify the top 3–5 phrasings the model defaults to.
-- **Why it earns its place:** the discovery step. Without knowing the model's defaults, the forbidden list is hand-wavy. With them, the list is concrete and effective.
-- **Files to touch:** a script under `loopd/scripts/survey-caption-defaults.ts`.
-- **Done when:** 50 outputs are tallied; top phrasings are documented in `docs/caption-defaults-survey.md`; the data informs the system.md forbidden list.
+- **Exercise ID:** `[B4C.survey-defaults]`
+- **What to build:** Run the (planned) coaching agent 50 times against diverse synthetic workout scenarios. Tally the opener phrasings. Identify the top 3–5 phrasings the model defaults to (likely candidates: "Great work", "Nice job", "Solid set", "You're crushing it").
+- **Why it earns its place:** the discovery step. Without knowing the model's defaults, the forbidden list is hand-wavy. With them, it's concrete.
+- **Files to touch:** a script under `scripts/survey-coaching-defaults.ts`.
+- **Done when:** 50 outputs are tallied; top phrasings are documented in `docs/coaching-defaults-survey.md`; the data informs the system.md forbidden list.
 - **Estimated effort:** `1–4hr`
 
-### [B1.30] Write the system.md with forbidden + rotating formulas
+### [B4C.formulas] Write forbidden + rotating formulas into system.md
 
-- **Exercise ID:** `[B1.30]`
-- **What to build:** Add to caption chain's `system.md`: explicit forbidden phrasings (from B1.29), 8 rotating formulas with worked examples, and a placeholder for `RECENTLY USED` to be filled per-call.
-- **Why it earns its place:** the canonical forbidden-patterns discipline applied to a real loopd chain.
-- **Files to touch:** `loopd/src/lib/llm/chains/caption/system.md`; update the chain.ts to inject recent_formulas.
-- **Done when:** the chain produces outputs that don't begin with any forbidden opener; outputs visibly vary across calls.
+- **Exercise ID:** `[B4C.formulas]`
+- **What to build:** Add to `src/lib/agent/system.md`: explicit forbidden phrasings (from B4C.survey-defaults), 8-12 rotating coaching formulas with worked examples, and a placeholder for `RECENTLY USED FORMULAS: [...]` to be filled per-call by the runner.
+- **Why it earns its place:** the canonical forbidden-patterns discipline applied to the coaching agent.
+- **Files to touch:** `src/lib/agent/system.md`; update `runner.ts` to inject `recent_formulas` (queried via the `get_recent_coaching` tool).
+- **Done when:** outputs don't begin with any forbidden opener; outputs visibly vary across calls.
 - **Estimated effort:** `1–4hr`
 
-### [B1.31] Add the formula_used field + recent-tracking
+### [B4C.formula-track] Add formula_used tracking
 
-- **Exercise ID:** `[B1.31]`
-- **What to build:** Update the caption chain's output schema with `formula_used: number`. Persist it in the captions database table. Query the user's last 5 formula_used values; inject into the per-call assembly as `RECENTLY USED`.
-- **Why it earns its place:** the schema + tracking layer that makes per-user rotation possible.
-- **Files to touch:** `schema.ts`; the captions table migration; chain.ts.
-- **Done when:** outputs tracked; `RECENTLY USED` lists are accurate; outputs don't repeat a formula used in the user's last 3 captions.
+- **Exercise ID:** `[B4C.formula-track]`
+- **What to build:** Add `formula_used: number` to the coaching agent's output schema. Persist in the `coaching_logs` table. Query the user's last 5 `formula_used` values via `get_recent_coaching`; inject as `RECENTLY USED` in the per-call assembly.
+- **Why it earns its place:** the schema + tracking layer that makes rotation possible. Without it, "rotate" is guesswork.
+- **Files to touch:** `src/lib/agent/schemas.ts`; coaching_logs table migration; `runner.ts`; `get_recent_coaching` tool.
+- **Done when:** outputs tracked; `RECENTLY USED` lists are accurate; outputs don't repeat a formula used in the user's last 3 coaching messages.
 - **Estimated effort:** `1–4hr`
 
 ---
 
 ## Summary
 
-LLMs converge on phrasings. The defense is forbidden patterns + rotating formulas + recent-uses awareness + periodic human rotation. The discipline prevents the user-fatigue failure mode in generative chains run repeatedly for the same user. The cost is 300–800 prompt tokens + a `formula_used` schema field + monthly maintenance review. The benefit is sustained engagement on output that would otherwise feel canned within two weeks. Loopd's planned caption chain is the canonical instance in this portfolio.
+LLMs converge on phrasings. The defense is forbidden patterns + rotating formulas + recent-uses awareness + periodic human rotation. The discipline prevents the user-fatigue failure mode in generative chains run repeatedly for the same user. The cost is 300–800 prompt tokens + a `formula_used` schema field + monthly maintenance review. The benefit is sustained engagement on output that would otherwise feel canned within two weeks. contrl's planned coaching agent is the canonical instance — same user gets coaching every workout for years, and "Great work!" wears out fast.
 
 **Key points:**
 
@@ -644,3 +644,6 @@ Without opening files, answer:
 - What field name in the output schema enables per-user rotation tracking?
 
 Pass: top 3–5 (the model's actual defaults from a survey); 6–10 formulas with examples; `formula_used`.
+
+---
+Updated: 2026-05-24 — Reframed per v1.38.0 per-repo scope. In this codebase: collapsed dual Case B (loopd caption chain) + Case A (aipe structural variety) into single Case B planned for contrl's coaching agent (the highest-repetition surface — same user every workout, formula rotation prevents fatigue). Move 2.5 future-state diagram retargeted (loopd caption chain → contrl coaching agent). Code snippet comments made illustrative. Tech reference codebase-uses lines retargeted. Project exercises B1.29/B1.30/B1.31 → B4C.survey-defaults + B4C.formulas + B4C.formula-track. Summary closing updated.

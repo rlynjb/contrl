@@ -32,7 +32,7 @@
 │  10 self-critique            ──▶  2–5x token cost for one extra step of   │
 │                                reliability; diminishing returns are real  │
 │  11 meta-prompting           ──▶  LLMs drafting prompts for other LLM     │
-│                                calls; aipe is the worked example         │
+│                                calls; meta-tooling pattern                 │
 │  12 prompt-injection-defense ──▶  hierarchies + delimiters + structured   │
 │                                output; not solved, layered                │
 │  13 forbidden-patterns       ──▶  generative chains converge on phrasings; │
@@ -73,4 +73,18 @@ The one-line production failure each concept exists to prevent.
 - **Jailbreak research from the attacker side.** The defender side is in 12.
 - **History of the field.** This is a working reference, not a textbook.
 
+## How this guide is anchored to contrl
+
+contrl ships no LLM code today. The planned Phase 4 Path C coaching agent will be the first LLM consumer. Most concepts in this guide are **Case B for contrl** — concepts described, with planned applicability noted under "In this codebase" sections.
+
+The exceptions where contrl has Case A or substantial Case A planning:
+- **02 structured-outputs** — the coaching agent's tool_use schema (planned).
+- **05 eval-driven-iteration** — Case A for the planned Phase 2C/3 ML evals (B3.8, B3.9 explicitly).
+- **12 prompt-injection-defense** — the coaching agent's read-only tool allowlist is a Case A design decision (the tools are scoped read-only specifically to bound damage scope from any injection that gets through).
+
+Other concepts (single-purpose chains, output-mode-mismatch, self-critique, meta-prompting, forbidden patterns) are study material — they teach the discipline; contrl's current scope doesn't exercise them.
+
 → Index: [README.md](./README.md)
+
+---
+Updated: 2026-05-24 — Reframed overview per v1.38.0 per-repo scope. Added codebase-anchoring section; removed aipe-as-worked-example claim.

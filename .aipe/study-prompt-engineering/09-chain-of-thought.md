@@ -74,7 +74,7 @@ The model can't write the verdict without writing the reasoning first (the schem
 If you're coming from frontend, this is the equivalent of asking a React render function to compute intermediate values before returning the JSX — the intermediate computations shape what gets rendered. CoT places the model's "intermediate computations" in a `reasoning` field that's visible in the output.
 
 ```ts
-// loopd planned schema for an escalation classifier
+// Illustrative — schema for a multi-factor classifier with structured CoT
 const EscalationResult = z.object({
   reasoning: z.string().describe(
     "Walk through the factors: emotional tone, urgency markers, " +
@@ -299,27 +299,33 @@ The reasoning field is in the structured output for three reasons: (1) it forces
 
 ## In this codebase
 
-**Case B — loopd escalation classifier (planned).**
+**Case B planned — coaching agent reasoning field.**
 
-The clearest CoT candidate in loopd's planned chain set: a future escalation classifier that decides whether a journal entry warrants gentle follow-up or urgent intervention. Not in the curriculum's Phase 1 list (Phase 1 is intent / tags / caption / search / summary), but a likely Phase 2A or Phase 4 addition given the journaling context.
+The coaching agent is contrl's clearest CoT candidate. Coaching well requires weighing multiple factors at once: classifier confidence, recent form trend, progression state, exercise novelty, and what the user has heard recently (to avoid repetition). A single forward pass with no reasoning would pick one factor; structured CoT forces the agent to consider them in turn.
 
-Planned shape:
+Planned schema:
 
-- **Schema:** `loopd/src/lib/llm/chains/escalation/schema.ts` with `{ reasoning: string, verdict: enum }`.
-- **Model:** Sonnet 4 (the stakes warrant the frontier model; routing to Haiku here would be premature optimization).
-- **Few-shot:** 3 canonical examples plus 1 edge case, each with the reasoning field filled in showing the kind of weighing-of-factors the model should do.
-- **Production logging:** reasoning gets logged alongside verdict; the audit trail tells the operator what the model "thought" on every escalation decision.
+```ts
+// src/lib/agent/schemas.ts (planned)
+export const CoachingOutput = z.object({
+  reasoning: z.string().describe(
+    "1-3 sentences weighing: classifier signal, recent form trend, progression state, what to NOT repeat from recent coaching."
+  ),
+  message: z.string().describe("The coaching message shown to the user."),
+  priority_cue: z.enum(['form', 'progression', 'rest', 'defer-to-cues']),
+  confidence: z.number().min(0).max(1),
+});
+```
 
-Not yet on disk. The intent classifier (already planned) doesn't need CoT — 3-way categorical with strong examples on a frontier model is a pure-classification task where CoT adds tokens without accuracy.
+`reasoning` BEFORE `message` in the schema order is the lever — the model produces reasoning tokens first, conditioning the message that follows. Production logging captures the reasoning per call; on a coaching message that lands wrong, the operator can read the reasoning to localize the failure (was it a bad classifier signal? a wrong progression read? a misread of recent coaching?).
 
-**Case A — aipe spec instructions as implicit CoT.**
+**Frontier-model question.**
 
-aipe specs aren't runtime LLM chains, but they often instruct the agent to do CoT-shaped work — "first, do X, then Y, then Z" — through Step 1 / Step 2 / Step 3 structures. The slash command literally is a structured CoT prompt for Claude Code.
+If contrl ships with Anthropic Sonnet 4's extended thinking mode enabled (`thinking_budget_tokens: 5000`), the model does internal CoT before producing output. The explicit `reasoning` field then becomes redundant — the model has already reasoned internally. The empirical question: does the eval suite show measurable lift from the explicit field on TOP of internal thinking? If yes, keep both. If no, drop the explicit field and save the tokens. This is a deferred decision the eval suite resolves.
 
-- **`/Users/rein/Public/aipe/specs/study.md`** — Step 1 / Step 2 / Step 3 / etc. structure. Each step is one reasoning move that produces input for the next step. The agent reasons through the steps; the spec is the structured CoT scaffolding.
-- **`/Users/rein/Public/aipe/specs/audit-refactor.md`** — Same pattern: read context, load template, diff against codebase, output structured plan. Each step is a thinking move.
+**ML side — not a CoT concern.**
 
-aipe specs don't emit a `reasoning` field per se — the agent's actions ARE the reasoning, visible in the agent's response. The principle is the same: structured, ordered reasoning before the final output.
+contrl's form classifier and recommender produce deterministic outputs from fixed inputs. There's no "reasoning" to expose — the model's decision is a softmax over the class scores. The discipline doesn't apply to ML models in the same way; it's a property of generative LLMs only.
 
 ---
 
@@ -385,7 +391,7 @@ Structured CoT is the right call until: (a) the task is single-factor classifica
 
 ### Claude Sonnet 4.6 extended thinking
 
-- **Codebase uses:** Not yet — planned for high-stakes loopd chains where the internal reasoning quality matters.
+- **Codebase uses:** Not yet — planned for contrl's coaching agent; the empirical question (whether extended thinking replaces the need for an explicit `reasoning` field) gets resolved by the agent eval suite.
 - **Why it's here:** the API parameter that enables Claude's extended internal reasoning. Roughly: the model spends additional compute thinking before producing output, exposed as a separate `thinking` block in the response.
 - **Leading today:** Anthropic extended thinking — `innovation-leading` for production CoT on frontier models, 2026.
 - **Why it leads:** internal reasoning that genuinely improves on multi-step reasoning tasks; auditable via the `thinking` block in responses; controllable via `thinking_budget_tokens` parameter.
@@ -393,7 +399,7 @@ Structured CoT is the right call until: (a) the task is single-factor classifica
 
 ### Structured-output reasoning field
 
-- **Codebase uses:** Not yet — planned for any loopd chain that warrants CoT.
+- **Codebase uses:** Not yet — planned for contrl's coaching agent output schema.
 - **Why it's here:** the Zod-schema pattern that places `reasoning` before `answer` in the structured output.
 - **Leading today:** Schema-based CoT with reasoning fields — `adoption-leading` for production CoT, 2026.
 - **Why it leads:** combines CoT accuracy gains with structured-output guarantees; reasoning auditable; verdict typed.
@@ -411,22 +417,22 @@ Structured CoT is the right call until: (a) the task is single-factor classifica
 
 ## Project exercises
 
-### [B2A.7] Add structured CoT to the escalation classifier (when built)
+### [B4C.cot] Add structured CoT to the coaching agent
 
-- **Exercise ID:** `[B2A.7]`
-- **What to build:** When the escalation classifier chain is added to loopd, design its schema with `reasoning: string` BEFORE `verdict: enum`. Compare accuracy with and without the reasoning field on a 30-case eval set.
-- **Why it earns its place:** materializes structured CoT on a real multi-factor task. The accuracy delta is what teaches the discipline.
-- **Files to touch:** `loopd/src/lib/llm/chains/escalation/{schema.ts, examples.md, chain.ts}` (planned).
-- **Done when:** eval set runs both variants; accuracy delta documented in `docs/ml-results.md`; the reasoning field is auditable in production logs.
-- **Estimated effort:** `1–4hr` (after chain skeleton exists)
+- **Exercise ID:** `[B4C.cot]`
+- **What to build:** Add a `reasoning: string` field BEFORE `message: string` in the coaching agent's output schema. Each few-shot example fills in the reasoning showing the kind of weighing the model should do (classifier signal × form trend × progression state × recent-coaching dedupe).
+- **Why it earns its place:** the agent's task is multi-factor; CoT is what makes those factors visible and auditable.
+- **Files to touch:** `src/lib/agent/schemas.ts`, `src/lib/agent/examples.md`.
+- **Done when:** every coaching output emits a non-empty `reasoning` field; production logs capture it; eval suite measures any accuracy delta on multi-factor cases vs a no-CoT variant.
+- **Estimated effort:** `1–4hr`
 
-### [B2A.8] Measure Haiku + CoT vs Sonnet without CoT
+### [B4C.cot-vs-thinking] Compare explicit reasoning vs extended thinking
 
-- **Exercise ID:** `[B2A.8]`
-- **What to build:** Run the same 50-case eval set on (a) Haiku with structured CoT and (b) Sonnet without CoT. Compare accuracy, latency, and cost.
-- **Why it earns its place:** the data point that proves cheap+CoT often beats expensive+no-CoT. Empirical evidence drives the routing discipline in [06-single-purpose-chains](./06-single-purpose-chains.md).
-- **Files to touch:** an eval script under `loopd/scripts/eval/`.
-- **Done when:** a comparison table is written to `docs/ml-results.md` with the accuracy/latency/cost numbers for both variants.
+- **Exercise ID:** `[B4C.cot-vs-thinking]`
+- **What to build:** Run the 30-case agent eval set in three variants: (a) no reasoning field, no extended thinking; (b) reasoning field, no extended thinking; (c) reasoning field + extended thinking (`thinking_budget_tokens: 5000`). Compare quality, latency, cost.
+- **Why it earns its place:** the data point that resolves whether explicit CoT is still load-bearing on Sonnet 4 with extended thinking. Empirical, not guess-from-blog-post.
+- **Files to touch:** a one-off eval variant script.
+- **Done when:** a three-row comparison table is written to `docs/coaching-agent-perf.md`.
 - **Estimated effort:** `1–4hr`
 
 ---
@@ -564,3 +570,6 @@ Without opening files, answer:
 - Why does field order matter?
 
 Pass: `reasoning` first; ~5–15% on Haiku vs ~1–3% on Sonnet; autoregressive generation means reasoning tokens condition answer tokens.
+
+---
+Updated: 2026-05-24 — Reframed per v1.38.0 per-repo scope. In this codebase: collapsed dual Case B (loopd escalation classifier) + Case A (aipe step-structured specs) into single Case B planned for contrl's coaching agent (reasoning field weighing classifier × form-trend × progression × recent-coaching). Added empirical question about Sonnet 4 extended thinking. Code snippet comment made illustrative. Tech reference codebase-uses retargeted. Project exercises B2A.7/B2A.8 → B4C.cot + B4C.cot-vs-thinking.

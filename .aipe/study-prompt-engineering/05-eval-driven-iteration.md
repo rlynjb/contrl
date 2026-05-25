@@ -66,7 +66,7 @@ The discipline isn't exotic. It's snapshot testing with a fuzzy comparator.
 20–50 hand-curated input/expected-output pairs. The size sweet spot lives between "too small to catch real variation" (10 cases miss edge cases) and "too large to maintain" (200 cases means nobody updates them).
 
 ```json
-// loopd/tests/chains/intent-classify/golden.json (planned)
+// Illustrative — a golden.json for a chain or agent eval set
 {
   "cases": [
     {
@@ -115,7 +115,7 @@ Boundary condition: the golden set must cover the categories that matter for the
 Every production failure gets added back as a test case. Forever. The regression suite grows monotonically — entries are never removed unless the underlying behavior is intentionally deprecated.
 
 ```json
-// loopd/tests/chains/intent-classify/regressions.json
+// Illustrative — regressions.json captures specific bugs that must keep passing
 {
   "cases": [
     {
@@ -349,25 +349,38 @@ The hypothesis-then-measure shape is what makes this work. A "let me just try th
 
 ## In this codebase
 
-**Case B — loopd intent classifier eval suite (planned).**
+**Case A planned — ML evals are contrl's deepest application of this discipline.**
 
-Curriculum builds B1.8 (eval set), B1.9 (LLM-as-judge for caption quality), B3.8 (eval harness for the form classifier in the ML side) all flow through this discipline. Planned shape for loopd:
+contrl's curriculum has the eval discipline as load-bearing on the ML side, not the LLM side. Build targets:
 
-- **Per-chain eval directory:** `loopd/tests/chains/<name>/{golden.json, regressions.json, rubric.md, run.ts}`.
-- **`run.ts`** loads the chain, runs each case, scores against the rubric, writes a JSON results file, and emits a delta-vs-baseline report.
-- **CI integration:** every PR that touches `loopd/src/lib/llm/chains/<name>/` runs `run.ts` for that chain. PR can't merge if regressions present unless reviewer explicitly approves the documented tradeoff.
+- **B3.8 — Form classifier eval harness.** Per `aieng-curriculum.md`, the Phase 2C form classifier (LightGBM via ONNX) needs a held-out eval set of hand-labelled rep windows. The harness reports per-class precision/recall + confusion matrix + a delta-vs-baseline summary on every retrain.
+- **B3.9 — Single-user A/B for the recommender.** The Phase 2C rule-based recommender v1 and the planned LightGBM-based recommender v2 are compared against a held-out set of "what would the user actually do next" labels collected from real sessions. Single-user-scale A/B (small-n) plus session-level acceptance.
 
-Not yet on disk. The build target is B1.8 for the intent classifier as the first eval set; subsequent chains inherit the harness.
+Planned layout (none on disk yet):
 
-**Case B — aipe spec regression tests (planned).**
+```
+tests/ml/
+  form-classifier/
+    golden.json         # hand-labelled rep windows
+    regressions.json    # specific failures to keep passing
+    rubric.md           # what counts as "correct"
+    run.ts              # loads ONNX model + scores against golden
+  recommender/
+    golden.json         # session → next-exercise labels
+    run-ab.ts           # v1 (rule-based) vs v2 (LightGBM) head-to-head
+```
 
-aipe's specs are prompts, and prompts deserve regression tests. The discipline exists nowhere in aipe today — every spec change is a vibes-iteration PR. Planned shape:
+This is the canonical Case A for contrl. The discipline is the bottleneck on shipping Phase 2C — without it, "the new model is better" is a vibes claim.
 
-- **`aipe/tests/specs/refactor/` etc.** with a small set of fixed `(intent, expected-shape)` pairs.
-- A harness that invokes the slash command via Claude Code's API (or a mock LLM) and checks the output against the expected shape.
-- CI on every spec PR.
+**Case B planned — coaching-agent evals come later.**
 
-This is a real gap in aipe — the spec author iterates by eyeballing outputs. For solo low-volume use, that's acceptable; for shared meta-tooling that other engineers depend on, it isn't. The build target is B1.9 in the curriculum applied to aipe specifically.
+The Phase 4 Path C coaching agent has its own eval surface (does the coaching message reference the right cue? does it stay in scope? does it not hallucinate a tool?), but those evals trail the ML evals in the curriculum. Planned shape mirrors the ML side:
+
+- `tests/agent/{golden.json, rubric.md, run.ts}` with 20–50 hand-curated workout scenarios.
+- LLM-as-judge for the open-ended quality dimensions (tone, scope, helpfulness); deterministic checks for the structural ones (correct tool calls, schema-valid output).
+- CI on every change to `src/lib/agent/system.md` or `meta.json`.
+
+Not yet on disk. The ML evals land first because the ML model is on the critical path; the agent evals land with the agent.
 
 ---
 
@@ -441,7 +454,7 @@ Eval-driven iteration is the right call until: (a) you're truly in week-one prot
 
 ### Promptfoo (eval harness)
 
-- **Codebase uses:** Not yet — `run.ts` for loopd's planned harness will be hand-rolled to match the small scale. Promptfoo is the obvious turnkey option if/when the harness grows.
+- **Codebase uses:** Not yet — contrl's ML eval harness (B3.8) and agent eval harness will be hand-rolled at solo scale. Promptfoo is the turnkey option if the harness grows past hand-roll.
 - **Why it's here:** open-source eval harness with rubric support, LLM-as-judge built in, parallelizable case execution, GitHub Actions integration.
 - **Leading today:** Promptfoo — `innovation-leading` for open-source LLM eval harnesses in 2026.
 - **Why it leads:** YAML/JSON config matches the prompts-as-code shape; parallel execution; CI-friendly output formats; works across providers.
@@ -457,7 +470,7 @@ Eval-driven iteration is the right call until: (a) you're truly in week-one prot
 
 ### LLM-as-judge models (Claude Opus 4 or GPT-4o as judge)
 
-- **Codebase uses:** Not yet — planned for loopd's caption-quality eval.
+- **Codebase uses:** Not yet — planned for contrl's coaching-agent quality eval (open-ended dimensions like tone and helpfulness).
 - **Why it's here:** the judge model is bigger or differently-trained than the candidate model. Sonnet 4 evaluating Sonnet 4's own outputs is a smell; Opus 4 evaluating Sonnet 4's outputs is the standard practice.
 - **Leading today:** Claude Opus 4 — `adoption-leading` for LLM-as-judge in subjective quality evaluations, 2026.
 - **Why it leads:** larger model with stronger reasoning; reliable rubric adherence; lower length-bias than smaller judges.
@@ -467,31 +480,33 @@ Eval-driven iteration is the right call until: (a) you're truly in week-one prot
 
 ## Project exercises
 
-### [B1.8] Build the intent classifier golden set
+contrl's curriculum names these directly. Below are the LLM-side and ML-side variants.
 
-- **Exercise ID:** `[B1.8]`
-- **What to build:** Hand-curate 30 input/expected-output pairs across three categories — happy path (15), edge cases (10), security/adversarial (5) — for the intent classifier. Write them to `loopd/tests/chains/intent-classify/golden.json`.
-- **Why it earns its place:** the eval discipline doesn't start until the golden set exists. This is the artifact that makes the loop real.
-- **Files to touch:** `loopd/tests/chains/intent-classify/golden.json`.
-- **Done when:** 30 cases written, each with `id`, `input`, `expected`, `category`. A teammate (or future-you) could read this file and understand what "good" looks like.
-- **Estimated effort:** `1–4hr`
+### [B3.8] Build the form-classifier eval harness (Case A, ML side)
 
-### [B1.15] Build the eval harness
+- **Exercise ID:** `[B3.8]` (per `aieng-curriculum.md`)
+- **What to build:** Hand-label 100–300 rep windows with the correct form class. Build `tests/ml/form-classifier/{golden.json, run.ts}`. `run.ts` loads the ONNX model, scores against the golden set, reports per-class precision/recall + confusion matrix + a delta-vs-baseline summary. Re-run on every retrain.
+- **Why it earns its place:** the canonical contrl Case A. Without this, "the new classifier is better" is a vibes claim. The harness IS the validation gate for shipping any form-classifier change.
+- **Files to touch:** `tests/ml/form-classifier/{golden.json, run.ts}`, plus the labelling script that produced the golden set.
+- **Done when:** running the harness against the baseline classifier produces a deterministic per-class precision/recall report; a regression in any class fails the run.
+- **Estimated effort:** `1–2 days` for the harness (excluding labelling time)
 
-- **Exercise ID:** `[B1.15]`
-- **What to build:** A `run.ts` that loads `golden.json`, runs each case in parallel through the chain, scores against the rubric, writes results to `eval-results.json` with a timestamp, and emits a markdown diff-vs-baseline report.
-- **Why it earns its place:** the loop without the harness is hand-eyed scoring of 30 outputs per iteration. Unsustainable beyond 2–3 iterations. The harness is what makes the discipline practical.
-- **Files to touch:** `loopd/tests/run-evals.ts` plus per-chain `rubric.md`.
-- **Done when:** running the harness on the intent classifier produces a markdown report with per-case scores, an average, and a diff vs. the previous run.
+### [B3.9] Single-user A/B for the recommender
+
+- **Exercise ID:** `[B3.9]`
+- **What to build:** Comparison harness for the v1 (rule-based) and v2 (LightGBM) recommenders. Held-out set of "user's next exercise" labels collected from real sessions. `tests/ml/recommender/run-ab.ts` runs both variants head-to-head and reports session-level acceptance rate.
+- **Why it earns its place:** the only way to decide whether to ship v2 over v1.
+- **Files to touch:** `tests/ml/recommender/{golden.json, run-ab.ts}`.
+- **Done when:** the harness produces a markdown summary (v1 vs v2 acceptance per category, plus statistical significance note for the small-n regime).
 - **Estimated effort:** `1–2 days`
 
-### [B1.16] Add the CI gate
+### [B4C.golden] Build the coaching-agent golden set (Case B, LLM side)
 
-- **Exercise ID:** `[B1.16]`
-- **What to build:** A GitHub Actions workflow (or local pre-merge check) that runs the eval harness on every PR touching `loopd/src/lib/llm/chains/<name>/`. The PR fails if any regression case fails or if the average golden score drops more than 0.1.
-- **Why it earns its place:** the gate is the difference between "we have evals" and "evals are part of the merge process." Without the gate, the discipline depends on memory.
-- **Files to touch:** `.github/workflows/llm-evals.yml` (or equivalent) plus a `compare-eval-runs.ts` script.
-- **Done when:** opening a PR that intentionally regresses the prompt causes CI to fail with a clear message naming the regressed cases.
+- **Exercise ID:** `[B4C.golden]`
+- **What to build:** Hand-curate 30 (workout-scenario, expected-coaching-output) pairs covering happy path (15), edge cases (10), and adversarial inputs (5) — e.g., user notes containing "ignore previous instructions". Write to `tests/agent/golden.json`.
+- **Why it earns its place:** the agent eval can't start until the golden set exists. The set encodes what "good coaching" means for contrl.
+- **Files to touch:** `tests/agent/golden.json`.
+- **Done when:** 30 cases written with `id`, `input`, `expected`, `category`. A teammate could read this file and understand the agent's job.
 - **Estimated effort:** `1–4hr`
 
 ---
@@ -636,7 +651,10 @@ There's no right answer. Defend with reference to the breakpoint in Sub-block 3 
 **Quick check — code reference test.**
 Without opening files, answer:
 - What's the case-count sweet spot for a golden set?
-- Where will loopd's eval suite live?
+- Where will contrl's ML eval suite live? Coaching-agent suite?
 - What's the rule for the judge model relative to the candidate?
 
-Pass: 20–50 cases; `loopd/tests/chains/<name>/{golden.json, regressions.json, rubric.md, run.ts}`; judge is bigger or different family.
+Pass: 20–50 cases; `tests/ml/form-classifier/{golden.json, run.ts}` and `tests/agent/{golden.json, run.ts}`; judge is bigger or different family.
+
+---
+Updated: 2026-05-24 — Reframed per v1.38.0 per-repo scope. In this codebase: collapsed dual Case B (loopd) + Case B (aipe) into Case A planned (contrl ML evals B3.8/B3.9 from curriculum) + Case B planned (coaching-agent evals). Code snippet comments made illustrative. Tech reference codebase-uses lines retargeted to contrl. Project exercises B1.8/B1.15/B1.16 → B3.8 + B3.9 + B4C.golden (contrl-anchored). Validate Quick check updated.

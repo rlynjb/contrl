@@ -246,25 +246,19 @@ The contract IS the schema. The schema is in code. Boundary validation is the sa
 
 ## In this codebase
 
-**Case B — loopd chain interface contracts (planned).**
+**Case B planned — coaching agent output + tool output contracts.**
 
-Loopd's planned pipeline (intent-classify → tag-extract → caption / search-rewrite) requires typed contracts at every chain-to-chain hop. Per curriculum Phase 1 builds:
+contrl's single-LLM-surface shape (the coaching agent) doesn't have a chain-to-chain handoff. But it does have output-mode contracts in three places, each load-bearing:
 
-- **`loopd/src/lib/llm/chains/intent-classify/schema.ts`** declares `IntentResult` (the chain's output schema and the downstream consumer's input type).
-- **`loopd/src/lib/llm/chains/caption/schema.ts`** declares `CaptionInput = { entry: string; intent: IntentResult; tags: TagsResult }` — typed against the upstream chains' outputs.
-- **The pipeline orchestrator** (`loopd/src/lib/journal/process-entry.ts`) is typed end-to-end — TypeScript catches any attempt to pass an unmatched shape between chains.
-- **Per-chain boundary validation:** every chain's runner does `Zod.safeParse` on the LLM response before returning. Drift surfaces here.
+1. **Agent output → display layer.** The coaching agent emits a structured tool call (e.g., `{ message: string, priority_cue: enum, confidence: number }`). The UI consumes this — if the agent drifts and starts emitting `{ msg: ..., cue: ... }` instead, the display breaks. Mitigation: `src/lib/agent/schemas.ts` Zod-validates output before returning.
+2. **Tool input → tool implementation.** Each of the 5 read-only tools (`get_classifier_output`, etc.) declares an input schema (e.g., `{ exercise_id: string, set_index: number }`). The agent calls the tool with arguments matching the schema; if the agent passes `{ exerciseId, setIdx }` instead, the tool implementation breaks. Mitigation: tool input schemas declared in Zod, JSON-Schema converted, sent to the agent so the constrained sampler can't emit wrong field names.
+3. **Tool output → agent context.** Each tool returns data the agent reasons over. If `get_form_history` starts returning `{ records: [...] }` instead of `{ history: [...] }`, the agent's reasoning about the field name silently drifts. Mitigation: tool implementations return statically-typed structs (TypeScript ensures the shape).
 
-Not yet on disk. The pattern lives in the planned Phase 1 chain shape; the canonical example will be the `IntentResult → CaptionInput` handoff once it's built.
+The three contracts together are why "single agent + read-only tools" is a tractable shape — every boundary is typed, every drift is caught at one of the three Zod gates.
 
-**Case A — aipe spec output contracts.**
+**ML side — analog discipline.**
 
-aipe's slash-command specs declare their output shapes as markdown templates inside the spec itself. The "contract" between specs (e.g., when `/aipe:study` produces files that `/aipe:audit-refactor` later reads) lives in the markdown structure both specs depend on.
-
-- **`/Users/rein/Public/aipe/specs/study.md`** declares the per-concept file structure: Subtitle, Why care (5 moves), How it works (3 moves), primary diagram, In this codebase, Elaborate, Tradeoffs, Tech reference, Project exercises, Summary, Interview defense, Validate. This shape IS the contract.
-- **`/Users/rein/Public/aipe/specs/audit-refactor.md`** consumes that shape implicitly when it asks readers to cross-reference study files. If `study.md` drops the "Tech reference" block, `audit-refactor.md` would break — but the breakage is at agent execution time, not at compile time.
-
-What aipe is *missing*: a runtime contract check. The spec-to-spec interface is a markdown convention enforced by the agent's adherence, not by a validator. For solo use it works; for shared meta-tooling it's a latent risk.
+contrl's planned Phase 2C form classifier returns `{ label: enum, confidence: number }`. The consumer (the workout UI, and later the coaching agent's `get_classifier_output` tool) depends on this shape. If the classifier's preprocessing changes the label vocabulary, every consumer breaks. Mitigation: the label enum lives in code, imported by both the classifier output and every consumer.
 
 ---
 
@@ -300,7 +294,7 @@ What aipe is *missing*: a runtime contract check. The spec-to-spec interface is 
 
 ### Sub-block 1 — what we gave up
 
-The setup cost — one Zod schema file per chain. For loopd's 5 chains, that's 5 schema files plus the chain-to-chain handoff types. Maybe an afternoon of work for the first batch; ~30 min per subsequent chain.
+The setup cost — one Zod schema file per chain. For contrl's coaching agent (1 LLM surface + 5 tools = 6 contracts), that's 6 small schemas in `src/lib/agent/schemas.ts`. Maybe two hours of work; then ~10 min per future tool added.
 
 The other cost is the *strictness pressure*. Strict schemas catch real drift, but they also reject "almost right" outputs that a lenient parser would have accepted. Each schema-fail at the boundary requires investigation — is it a drift bug, or a too-tight schema? Wrong-direction tightness is real and gets debugged like any other false positive.
 
@@ -316,7 +310,7 @@ Strict contracts from Day 1: each of these is caught at the boundary in seconds.
 
 ### Sub-block 3 — the breakpoint
 
-Strict chain contracts are the right call until: (a) the pipeline has exactly one chain (no chain-to-chain boundary exists); (b) the chain's output is a free-form string consumed only by a display layer (no parsing happens; lenient or strict doesn't apply); (c) you're in a multi-day prototype phase where contracts are premature (you're still figuring out what the chains should look like). None of these apply to loopd or to most production chain pipelines.
+Strict chain contracts are the right call until: (a) the pipeline has exactly one chain (no chain-to-chain boundary exists); (b) the chain's output is a free-form string consumed only by a display layer (no parsing happens; lenient or strict doesn't apply); (c) you're in a multi-day prototype phase where contracts are premature (you're still figuring out what the chains should look like). contrl's coaching-agent shape hits (a) for chain-to-chain — but the agent's output-to-display contract and the agent's tool input/output contracts make strict typing earn its place anyway.
 
 ### Sub-block 4 — what wasn't actually a tradeoff
 
@@ -328,7 +322,7 @@ Strict chain contracts are the right call until: (a) the pipeline has exactly on
 
 ### Zod discriminated unions for multi-shape chains
 
-- **Codebase uses:** Not yet — planned for any loopd chain accepting genuinely heterogeneous inputs (rare).
+- **Codebase uses:** Not yet — not currently needed for contrl's coaching agent (one input shape per tool). Reserved for if future tool shapes diverge.
 - **Why it's here:** the type-system primitive that handles "this chain takes one of three input shapes" cleanly.
 - **Leading today:** Zod discriminated unions — `adoption-leading` for typed multi-shape inputs in TypeScript LLM code, 2026.
 - **Why it leads:** `z.discriminatedUnion('kind', [schemaA, schemaB])` produces an exhaustive type with exhaustive Zod parsing.
@@ -336,7 +330,7 @@ Strict chain contracts are the right call until: (a) the pipeline has exactly on
 
 ### TypeScript strict mode + `noUncheckedIndexedAccess`
 
-- **Codebase uses:** Both loopd (planned) and aipe (whatever its build config is) use TypeScript strict mode. `noUncheckedIndexedAccess` catches a class of "the field might not be there" bugs that lenient parsing would hide.
+- **Codebase uses:** contrl is TypeScript with strict mode enabled. `noUncheckedIndexedAccess` catches a class of "the field might not be there" bugs that lenient parsing would hide.
 - **Why it's here:** the editor-time catch for unchecked field access on chain outputs.
 - **Leading today:** TypeScript strict mode — `adoption-leading` for type-safe TypeScript code, 2026.
 - **Why it leads:** universal in modern TS codebases; catches output-mode-mismatch bugs at write-time via type errors.
@@ -344,7 +338,7 @@ Strict chain contracts are the right call until: (a) the pipeline has exactly on
 
 ### Schema-fail metric + alerting
 
-- **Codebase uses:** Not yet — planned per loopd's observability hooks.
+- **Codebase uses:** Not yet — planned for contrl's coaching agent (`agent.schema_fail` counter in `runner.ts`).
 - **Why it's here:** the production-side detection mechanism. Without metrics, schema fails are invisible until they cause a user-visible incident.
 - **Leading today:** custom counters via Sentry / Prometheus / Datadog — `adoption-leading` for prompt-side observability, 2026.
 - **Why it leads:** the cheap end of LLM observability; a counter per chain per failure mode, queried via the team's existing dashboard.
@@ -354,22 +348,22 @@ Strict chain contracts are the right call until: (a) the pipeline has exactly on
 
 ## Project exercises
 
-### [B1.20] Add Zod schemas to every chain's input and output
+### [B4C.contracts] Declare Zod schemas for the agent's 6 contracts
 
-- **Exercise ID:** `[B1.20]`
-- **What to build:** For each of loopd's 5 planned chains, declare `schema.ts` with input and output Zod schemas. Update chain.ts to validate the output via `Zod.safeParse` at the boundary. Update the pipeline orchestrator to type-check the chain-to-chain handoffs.
-- **Why it earns its place:** the contract that makes output-mode mismatch impossible in TypeScript. Once the schemas are in place, drift surfaces immediately instead of three layers downstream.
-- **Files to touch:** `loopd/src/lib/llm/chains/<name>/schema.ts` × 5; `chain.ts` runner; pipeline orchestrator.
-- **Done when:** changing one chain's output shape causes type errors in every consumer that depends on it; running a chain with synthetically-corrupted output fires the schema-fail metric.
+- **Exercise ID:** `[B4C.contracts]`
+- **What to build:** In `src/lib/agent/schemas.ts`, declare 6 Zod schemas: 1 for the coaching agent's output, 5 for the read-only tools' inputs. Plus typed tool-implementation return types (TypeScript, not Zod, since the tools are local). Update `runner.ts` to `safeParse` the agent's output at the boundary; the tool runner already type-checks inputs via the JSON Schema passed to the model.
+- **Why it earns its place:** the contracts that make output-mode mismatch impossible. Once typed, drift surfaces immediately.
+- **Files to touch:** `src/lib/agent/schemas.ts`, `src/lib/agent/runner.ts`, each tool file under `src/lib/agent/tools/`.
+- **Done when:** the coaching agent's output is `safeParse`d on every call; tools' inputs are validated by the JSON Schema the model sees; an intentionally-corrupted agent response fires `agent.schema_fail`.
 - **Estimated effort:** `1–2 days`
 
-### [B1.21] Add code-review checklist for chain contracts
+### [B4C.review-checklist] Add code-review checklist for chain contracts
 
-- **Exercise ID:** `[B1.21]`
-- **What to build:** A short markdown checklist in `loopd/docs/code-review.md` listing the three red flags (untyped destructuring, `||` field-name fallbacks, unneeded coercion). Add to PR templates as a self-check.
-- **Why it earns its place:** the human-side discipline that catches bugs the type system might not (e.g., when a teammate explicitly casts to `any`).
-- **Files to touch:** `loopd/docs/code-review.md`; PR template (`.github/pull_request_template.md`).
-- **Done when:** the checklist exists, is linked from the PR template, and explicitly catches the three red flags.
+- **Exercise ID:** `[B4C.review-checklist]`
+- **What to build:** A short markdown checklist in `docs/llm-code-review.md` listing the three red flags (untyped destructuring, `||` field-name fallbacks, unneeded coercion). Link from any PR template that touches `src/lib/agent/`.
+- **Why it earns its place:** the human-side discipline that catches bugs the type system might not (e.g., when a teammate explicitly casts to `any` to silence an error).
+- **Files to touch:** `docs/llm-code-review.md`; PR template (`.github/pull_request_template.md` if it exists).
+- **Done when:** the checklist exists; it explicitly names the three red flags with code examples.
 - **Estimated effort:** `<1hr`
 
 ---
@@ -515,6 +509,9 @@ There's no right answer. Defend with reference to: type-system benefits even wit
 Without opening files, answer:
 - What are the three code-review red flags?
 - What's the difference between non-determinism in shape vs content?
-- Where does loopd's `IntentResult` schema live (planned path)?
+- Where will contrl's coaching-agent output schema live?
 
-Pass: untyped destructuring + `||` fallbacks + unneeded coercion; shape should be deterministic, content shouldn't; `loopd/src/lib/llm/chains/intent-classify/schema.ts`.
+Pass: untyped destructuring + `||` fallbacks + unneeded coercion; shape should be deterministic, content shouldn't; `src/lib/agent/schemas.ts`.
+
+---
+Updated: 2026-05-24 — Reframed per v1.38.0 per-repo scope. In this codebase: collapsed dual Case B (loopd) + Case A (aipe) into single Case B planned for contrl's coaching agent + 5 tools (6 contracts total) + ML-side analog (label-enum shared between classifier and consumers). Tradeoffs Sub-block 1 + Sub-block 3 breakpoint reframed. Tech reference codebase-uses lines retargeted. Project exercises B1.20/B1.21 → B4C.contracts + B4C.review-checklist. Validate Quick check updated.

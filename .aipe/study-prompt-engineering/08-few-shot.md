@@ -276,25 +276,20 @@ The few-shot section is the highest-attention region of the prompt because it si
 
 ## In this codebase
 
-**Case B — loopd intent classifier few-shot (planned).**
+**Case B planned — coaching agent few-shot examples.**
 
-Per curriculum Phase 1 build B1.7, loopd's intent classifier ships with 4 few-shot examples in `examples.md` (or as messages in the API call shape).
+contrl's planned Phase 4 coaching agent will likely benefit from 2-4 few-shot examples — workout scenarios paired with ideal coaching outputs. Sketch:
 
-- **Example 1 (canonical search):** "What did I write last Tuesday?" → `{ label: "search", confidence: 0.95 }`.
-- **Example 2 (canonical chat):** "I'm feeling stuck about the design review." → `{ label: "chat", confidence: 0.88 }`.
-- **Example 3 (canonical command):** "Tag this entry as work and emotional." → `{ label: "command", confidence: 0.92 }`.
-- **Example 4 (low-info edge case):** "Stuff" → `{ label: "chat", confidence: 0.55 }` — the failure mode discovered by an earlier vibes-iteration run.
+- **Example 1 (good rep, encourage continuation):** input shows a clean 3x10 squat at 80% 1RM, classifier confidence high, no form issues → coaching message congratulates, suggests progression for next session.
+- **Example 2 (form drift, single cue):** input shows knee valgus on rep 8 detected by classifier → coaching message cites the single highest-priority cue, no other commentary.
+- **Example 3 (deload signal, restraint):** input shows reduced bar speed across multiple sets → coaching message suggests resting rather than coaching technique.
+- **Example 4 (edge case — first session of new exercise):** sparse history, classifier low confidence → coaching message defers to exercise cues from `get_exercise_cues` rather than progression suggestions.
 
-Not yet on disk. The shape follows the per-chain layout in [03-prompts-as-code](./03-prompts-as-code.md). The discipline: each example's confidence value is hand-set to reflect plausible model confidence, not perfect 0.99 across the board (which would teach the model to always emit 0.99).
+The confidence dimension here isn't a numeric output (the coaching message is free text); the discipline is that the examples cover the *behavioral surface* — when to coach form, when to suggest progression, when to back off, when to defer to exercise cues. Edge cases get explicit examples so the model doesn't overgeneralize from the happy path.
 
-**Case A — aipe's "vocabulary" sections as few-shot.**
+**Not currently planned: tool-use few-shot.**
 
-aipe specs use a different shape but the same principle. The "vocabulary" section in many specs IS the few-shot — a catalog of input → output pairs (or terms → definitions) that the agent uses as canonical examples when producing its output.
-
-- **`/Users/rein/Public/aipe/specs/refactor.md` lines 60–148** — "Refactor vocabulary" lists ~20 refactor techniques, each with a one-line description. Functions as a few-shot for the agent: when asked to name a refactor, the agent picks from this catalog using the descriptions as the format guide.
-- **`/Users/rein/Public/aipe/specs/study.md`** — declares the per-concept file structure with worked examples inline (e.g., the "Why care worked example" passes a full scenario through all five moves). Those worked examples ARE few-shot.
-
-What aipe is *missing*: explicit count discipline. The vocabulary in refactor.md has 20+ entries — well above the 3–5 sweet spot for a strict classification task. It works for aipe because the spec is asking the agent to *pick from a catalog*, not to *classify a single input*; the size of the catalog is the working set, not the few-shot count. The principle holds; the count rule doesn't apply uniformly.
+Anthropic's API supports few-shot examples as `messages: [{ role: 'user', ... }, { role: 'assistant', content: [{ type: 'tool_use', ... }] }, ...]`. For the coaching agent's single-tool output, text-block examples are simpler. If the coaching task evolved to call multiple tools in sequence, tool-use few-shot would become the cleaner pattern.
 
 ---
 
@@ -359,7 +354,7 @@ Few-shot is the right call until: (a) the task is genuinely open-ended generatio
 
 ### Anthropic Messages API few-shot pattern
 
-- **Codebase uses:** Not yet — planned for loopd chains.
+- **Codebase uses:** Not yet — planned for contrl's coaching agent (text-block examples sufficient for the single-tool shape; conversation-turn examples reserved for multi-tool flows).
 - **Why it's here:** the API surface that lets few-shot examples appear as conversation history with `user`/`assistant` turns. Higher fidelity than text-block examples.
 - **Leading today:** Anthropic Messages — `adoption-leading` for high-fidelity few-shot, 2026.
 - **Why it leads:** the `messages` array natively supports user+assistant alternation; few-shot examples literally are conversation turns; tool-use few-shot is supported.
@@ -367,7 +362,7 @@ Few-shot is the right call until: (a) the task is genuinely open-ended generatio
 
 ### Tool-use few-shot (structured-output examples)
 
-- **Codebase uses:** Not yet — planned for the intent classifier in loopd.
+- **Codebase uses:** Not yet — not currently needed for contrl's single-tool coaching agent; would apply if the agent grew multi-step tool sequences.
 - **Why it's here:** the highest-fidelity few-shot pattern; the example IS a structured tool call, byte-identical to the production output format.
 - **Leading today:** Anthropic + OpenAI tool-use in conversation history — `adoption-leading` for typed few-shot, 2026.
 - **Why it leads:** removes any ambiguity about output format; the model literally sees previous assistant tool calls and copies the pattern.
@@ -387,20 +382,22 @@ Few-shot is the right call until: (a) the task is genuinely open-ended generatio
 
 ### [B1.22] Add 4 few-shot examples to the intent classifier
 
-- **Exercise ID:** `[B1.22]`
-- **What to build:** Hand-curate 4 examples covering canonical search / canonical chat / canonical command / one edge case. Write them as Anthropic message turns in the intent classifier's chain.ts (or in a separate `examples.ts` imported by chain.ts). Re-run the eval suite to compare accuracy with and without examples.
-- **Why it earns its place:** materializes the 3–5 sweet spot for a real chain. The accuracy delta is what teaches you that examples beat instructions.
-- **Files to touch:** `loopd/src/lib/llm/chains/intent-classify/{chain.ts, examples.ts (new)}`.
-- **Done when:** the eval suite reports a measurable accuracy improvement from adding examples (~5–10% on a well-curated set is typical).
+### [B4C.few-shot] Add 4 few-shot examples to the coaching agent
+
+- **Exercise ID:** `[B4C.few-shot]`
+- **What to build:** Hand-curate 4 coaching examples covering: clean-execution + progression suggestion, form drift + single cue, deload signal + restraint, sparse-history + defer-to-exercise-cues. Write them as text-block examples in `src/lib/agent/examples.md` (or as Anthropic message turns inside `runner.ts`). Re-run the agent eval suite to compare quality with and without examples.
+- **Why it earns its place:** materializes the 3–5 sweet spot for the coaching agent. The behavior surface (when to coach what) is what the examples encode.
+- **Files to touch:** `src/lib/agent/examples.md` (new); `src/lib/agent/runner.ts` (assemble examples into the request).
+- **Done when:** the agent eval suite reports measurable improvement on edge cases (restraint cases benefit most); cached cost stays the same.
 - **Estimated effort:** `1–4hr`
 
-### [B1.23] Convert few-shot from text to tool-use format
+### [B4C.tool-use-fs] Convert examples to assistant tool-use turns (if scope grows)
 
-- **Exercise ID:** `[B1.23]`
-- **What to build:** Convert the 4 examples from text-block format (showing the JSON in a code fence) to assistant-role tool-use messages. Verify the chain still works; verify schema-fail rate stays low.
-- **Why it earns its place:** the highest-fidelity few-shot pattern. Worth doing once you have structured outputs (B1.7) in place.
-- **Files to touch:** the chain's message-assembly code; possibly the examples format.
-- **Done when:** the few-shot examples appear in the API call as assistant tool_use messages; eval suite shows no quality regression.
+- **Exercise ID:** `[B4C.tool-use-fs]` (defer)
+- **What to build:** If/when the coaching agent calls multiple tools in sequence, convert the text-block examples to assistant-role tool-use messages showing the exact tool sequence. Verify schema-fail stays low.
+- **Why it earns its place:** highest-fidelity few-shot for multi-step tool flows. Not worth the conversion cost while the agent emits one tool call per turn.
+- **Files to touch:** the message-assembly code in `runner.ts`.
+- **Done when:** examples appear as assistant tool_use messages in the API call; eval suite shows no regression.
 - **Estimated effort:** `1–4hr`
 
 ---
@@ -549,3 +546,6 @@ Without opening files, answer:
 - What's the highest-fidelity few-shot format?
 
 Pass: 3–5; after system, before user message (in cached prefix); assistant-role tool-use messages.
+
+---
+Updated: 2026-05-24 — Reframed per v1.38.0 per-repo scope. In this codebase: collapsed dual Case B (loopd intent classifier) + Case A (aipe vocabulary sections) into single Case B planned for contrl's coaching agent (4 examples covering coaching behavioral surface: clean execution, form drift, deload signal, sparse history). Tech reference codebase-uses retargeted. Project exercises B1.22/B1.23 → B4C.few-shot + B4C.tool-use-fs (deferred).

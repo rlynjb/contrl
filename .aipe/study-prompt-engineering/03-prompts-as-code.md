@@ -3,7 +3,7 @@
 **Industry name(s):** Prompts as code, prompt versioning, prompt observability, LLM ops
 **Type:** Industry standard · Language-agnostic
 
-> Prompts are source code. They live in version control, get diff'd, get reviewed, get tagged to a model version, and emit a record of which version produced which output in production. aipe is the worked example.
+> Prompts are source code. They live in version control, get diff'd, get reviewed, get tagged to a model version, and emit a record of which version produced which output in production. Markdown-as-prompt meta-tooling (slash-command frameworks like aipe) is the cleanest worked example; for contrl the discipline applies the moment `src/lib/agent/system.md` lands.
 
 **See also:** → [01-anatomy](./01-anatomy.md) · → [05-eval-driven-iteration](./05-eval-driven-iteration.md) · → [11-meta-prompting](./11-meta-prompting.md)
 
@@ -111,7 +111,7 @@ Boundary condition: this only works if the eval suite is real (see [05-eval-driv
 For every production LLM call, log the prompt version (commit hash + chain name), the model, the input, the output, and any boundary-validation failures. This is the runtime artifact that turns "the chain produced a weird output" into a debuggable event.
 
 ```ts
-// loopd planned shape
+// Illustrative — production log shape for a chain or agent call
 const response = await callChain('intent-classify', { input: userInput });
 
 log.info({
@@ -170,30 +170,31 @@ Boundary condition: meta-tooling like aipe genuinely is meant to let non-enginee
 
 ### Move 2.5 — Current state vs future state
 
-aipe is fully prompts-as-code today; loopd is the planned consumer of the same discipline. The shape works in both phases.
+For contrl today: no LLM code, no prompts, no discipline to apply yet. The current state is "nothing to version, nothing to observe." The future state begins with the first commit to `src/lib/agent/system.md`.
 
 ```
-              Phase A (now)                       Phase B (planned)
-              aipe specs                           loopd chain templates
+              Phase A (now)                       Phase B (Phase 4 coaching agent)
+              No LLM code in contrl              src/lib/agent/ on disk
   ─────────────────────────────────         ─────────────────────────────────
   ┌────────────────────────────┐            ┌──────────────────────────────┐
-  │ specs/refactor.md          │            │ chains/intent-classify/      │
-  │   ↑ source-controlled      │            │   system.md                  │
-  │   ↑ diff'd, reviewed       │            │   examples.md                │
-  │   ↑ regression-tested      │            │   chain.ts                   │
-  │     manually via slash     │            │   meta.json   (new!)          │
-  │     command invocation     │            │   tests/regression.test.ts   │
+  │ (nothing here)              │            │ src/lib/agent/               │
+  │                            │            │   system.md                  │
+  │ Pose detection +           │            │   examples.md                │
+  │ rep counter FSM are        │            │   runner.ts                  │
+  │ deterministic code,        │            │   meta.json   (model + eval)  │
+  │ not LLM-shaped             │            │   tools/*.ts                 │
+  │                            │            │   tests/regression.test.ts   │
   │                            │            │                              │
-  │ no runtime LLM API call    │            │ runtime API call to Anthropic │
-  │ (Claude Code consumes      │            │ logged with chain_version    │
-  │  the spec directly)        │            │ + model + schema_pass        │
+  │ Nothing to log per-call    │            │ runtime API call to Anthropic │
+  │ (no LLM provider)          │            │ logged with chain_version    │
+  │                            │            │ + model + schema_pass        │
   └────────────────────────────┘            └──────────────────────────────┘
 
-  The file-as-source discipline is identical across phases.
-  The runtime-observability layer is what Phase B adds.
+  The discipline applies the moment the first prompt file lands.
+  Adopting it after the fact is materially harder.
 ```
 
-The lesson: the structural discipline (file-per-prompt, version-controlled, reviewed) is the same whether the consumer is Claude Code reading a spec or a TypeScript chain making an API call. The observability layer attaches only in the runtime case.
+The lesson: the structural discipline (file-per-prompt, version-controlled, reviewed, model-pinned, observable) should be there at commit one of the coaching agent — not added later as a refactor.
 
 ---
 
@@ -272,35 +273,20 @@ The diagram crosses five layers. The cost of skipping any of them is a class of 
 
 ## In this codebase
 
-**Case A — aipe is the canonical instance.**
+**Case B planned — discipline lands with the Phase 4 coaching agent.**
 
-The entire `/Users/rein/Public/aipe/specs/` directory IS prompts-as-code. Every slash-command spec is a version-controlled markdown file that gets loaded into Claude Code's context when the user types `/aipe:<name>`.
+contrl ships zero LLM code today. There are no prompts to version, no model pairings to track, no LLM calls to observe. The pose detection (MediaPipe) and rep counter (FSM) are deterministic code, not LLM-shaped — they live under normal source control without prompts-as-code being load-bearing.
 
-- **`/Users/rein/Public/aipe/specs/refactor.md`** — the refactor spec. Versioned in git, diff'd in PRs, reviewed. ~150 lines including format definition and refactor vocabulary.
-- **`/Users/rein/Public/aipe/specs/study.md`** — the study spec. ~2000 lines. Versioned same way.
-- **`/Users/rein/Public/aipe/specs/audit-refactor.md`** — the audit-refactor spec. Versioned.
-- **All others under `specs/`** — same discipline.
+When the Phase 4 Path C coaching agent lands, the planned shape carries the discipline from commit one:
 
-The git history of `aipe/specs/study.md` is the practical demonstration. Successive versions through v1.30.0, v1.31.0, v1.32.0 (the ones referenced in the existing `study-ml-workout/` guide) are each individual PR-shaped commits. A reader can `git log specs/study.md` and see the exact evolution: when the five-move Why care landed, when the physical-world-analogy ban landed, when the per-Move diagram requirement landed.
+- **File-per-prompt:** `src/lib/agent/system.md` (role + rules + tool definitions), `src/lib/agent/examples.md` (if used). Markdown so a PR diff highlights the section that changed.
+- **`src/lib/agent/meta.json`** carries the model + tested-against eval set. The runner refuses to start if the configured model doesn't match `meta.model`.
+- **Regression tests:** `tests/agent/regression.test.ts` runs the agent against 20–50 hand-curated workout scenarios. Required to pass before merge for any change to `system.md` or `meta.json`.
+- **Production logging:** `runner.ts` logs `{ chain_version: GIT_SHA, model, input, output, schema_pass, latency_ms, tokens }` per call. `chain_version` is baked at build time from `git rev-parse HEAD`.
 
-What aipe is *missing* from full prompts-as-code discipline:
+**ML side — analogous but distinct discipline.**
 
-- **No `meta.json` per spec.** Each spec doesn't carry a "tested-on-this-Claude-version" stamp. The model version is implicit (whatever Claude Code is running on the user's machine that day).
-- **No regression test suite.** There are no automated tests that run the slash commands against fixed inputs and check outputs. Quality is hand-eyed by the author.
-- **No production observability.** When a user invokes `/aipe:study` and gets a bad output, there's no log that captures it. The user has to manually report.
-
-These three gaps are real. They're acceptable today because aipe is solo-use, low-volume, and the user is the author (so debugging is local). They become real problems if aipe grows past solo use.
-
-**Case B — loopd chains (planned).**
-
-Loopd will inherit the full discipline per curriculum Phase 1 builds:
-
-- File-per-prompt: `loopd/src/lib/llm/chains/<name>/{system.md, examples.md, chain.ts}`.
-- `meta.json` per chain with model version + eval score.
-- Regression test suite under `tests/chains/<name>/regression.test.ts`.
-- Production logging of `chain_version` (commit SHA) with each LLM call.
-
-None of this is on disk yet. The five chains (intent-classify, tag-extract, caption, search-rewrite, summary) are Phase 1 / Phase 2A targets per `aieng-curriculum.md`.
+contrl's planned Phase 2C form classifier (LightGBM via ONNX) needs the same model-pinning discipline (which checkpoint, which preprocessing, which eval score) but expressed differently: the model itself is the versioned artifact, not a prompt file. The shared lesson: "what produced this output" must be reconstructable from a commit SHA, whether the producer is a markdown prompt or a `.onnx` model file. See [05-eval-driven-iteration](./05-eval-driven-iteration.md) for the ML-side variant.
 
 ---
 
@@ -353,7 +339,7 @@ The template-literal alternative costs 8 hours of refactor + 8 hours of incident
 
 ### Sub-block 3 — the breakpoint
 
-Prompts-as-code is the right call until: (a) the project is genuinely a prototype where you're not sure if the LLM can do the task at all (iterate in a notebook; formalize later); (b) the project has exactly one prompt that runs once and is never touched again (formalization is overhead with no payoff); (c) you're working solo on a private project with no review, no team, and no production users (some of the discipline still helps — version control, model-version stamping — but the full pipeline is over-engineered). None of these apply to loopd or aipe.
+Prompts-as-code is the right call until: (a) the project is genuinely a prototype where you're not sure if the LLM can do the task at all (iterate in a notebook; formalize later); (b) the project has exactly one prompt that runs once and is never touched again (formalization is overhead with no payoff); (c) you're working solo on a private project with no review, no team, and no production users (some of the discipline still helps — version control, model-version stamping — but the full pipeline is over-engineered). contrl's coaching agent will fit (c) at first (solo dev), but the model-pinning and per-call logging halves of the discipline still earn their place; the regression-CI half can wait until contrl has a second user.
 
 ### Sub-block 4 — what wasn't actually a tradeoff
 
@@ -365,7 +351,7 @@ Prompts-as-code is the right call until: (a) the project is genuinely a prototyp
 
 ### Git + GitHub PR review
 
-- **Codebase uses:** Standard. aipe's `specs/` directory ships through normal git workflow.
+- **Codebase uses:** Standard. contrl already ships through normal git/PR workflow; the coaching agent's prompts will inherit it by default.
 - **Why it's here:** the canonical way to version-control, review, and audit any text-based artifact. Prompts are text; this is the natural home.
 - **Leading today:** Git + GitHub PRs — `adoption-leading` for version control of text artifacts, 2026.
 - **Why it leads:** universal tool literacy on engineering teams; PR-level diff display works on markdown; review tooling integrates with CI.
@@ -373,7 +359,7 @@ Prompts-as-code is the right call until: (a) the project is genuinely a prototyp
 
 ### Markdown for prompt content
 
-- **Codebase uses:** aipe specs are markdown. Loopd's planned chains store `system.md` and `examples.md` as markdown.
+- **Codebase uses:** Planned — `src/lib/agent/system.md` and `src/lib/agent/examples.md` as markdown when the coaching agent lands.
 - **Why it's here:** human-readable, renders in PR diffs, no compile step, LSP-friendly.
 - **Leading today:** Markdown — `adoption-leading` for prompt content storage in 2026.
 - **Why it leads:** the format is universal; the file IS the artifact; no template-to-prompt compile step required.
@@ -381,7 +367,7 @@ Prompts-as-code is the right call until: (a) the project is genuinely a prototyp
 
 ### Humanloop / LangSmith / PromptLayer (prompt observability platforms)
 
-- **Codebase uses:** Not yet — loopd's planned observability uses native logging to the app's existing log pipeline (probably Sentry + console for solo dev). Hosted platforms aren't in the curriculum.
+- **Codebase uses:** Not yet — contrl's planned observability uses native logging to the app's existing log pipeline (console for solo dev). Hosted platforms are study material; at solo scale the cost isn't justified.
 - **Why it's here:** the LLMOps category — hosted services that record LLM calls with prompt version, input, output, latency, cost. Make the observability layer turnkey.
 - **Leading today:** LangSmith — `innovation-leading` for prompt observability and tracing in 2026.
 - **Why it leads:** integrates with LangChain (the LLM-orchestration leader), provides traces for multi-step chains, supports A/B testing primitives.
@@ -399,38 +385,40 @@ Prompts-as-code is the right call until: (a) the project is genuinely a prototyp
 
 ## Project exercises
 
-### [B1.6] Set up the first chain folder
+contrl ships no LLM code today. These become buildable when the Phase 4 coaching agent lands.
 
-- **Exercise ID:** `[B1.6]`
-- **What to build:** Create `loopd/src/lib/llm/chains/intent-classify/` with `system.md`, `examples.md`, `chain.ts`, `meta.json`, `tests/regression.test.ts`. The first chain is the prototype for all subsequent ones; the folder shape matters more than the implementation depth.
-- **Why it earns its place:** the structure-defining build. Every later chain inherits this shape; setting it up well saves repeated work.
-- **Files to touch:** the directory listed above; plus a shared `loopd/src/lib/llm/runner.ts` that handles assembly + API call + boundary validation.
-- **Done when:** the folder exists, `chain.ts` loads the three files at boot, makes an API call against a sample input, and logs `{chain_version, model}` in the response. Regression test runs against a 10-case fixture and prints pass/fail counts.
+### [B4C.scaffold] Set up the coaching agent folder
+
+- **Exercise ID:** `[B4C.scaffold]`
+- **What to build:** Create `src/lib/agent/` with `system.md`, `examples.md` (if used), `runner.ts`, `meta.json`, `tools/*.ts` (5 read-only tools), `tests/agent/regression.test.ts`. The folder shape is the structural artifact — every later prompt edit edits one file in this folder.
+- **Why it earns its place:** the structure-defining build. The discipline locks in from commit one.
+- **Files to touch:** the directory listed above.
+- **Done when:** runner.ts loads `system.md` at boot, makes an API call against a sample workout, and logs `{chain_version, model, schema_pass}`. Regression test runs against a 20-case fixture and prints pass/fail counts.
 - **Estimated effort:** `1–2 days`
 
-### [B1.10] Add chain_version logging
+### [B4C.version-log] Bake the chain_version into logs
 
-- **Exercise ID:** `[B1.10]`
-- **What to build:** A build-time step that reads the latest git short SHA for each chain folder and bakes it into a `PROMPT_VERSIONS` constant the chain.ts can import. The chain logs this version with every call.
-- **Why it earns its place:** the observability primitive that turns production debugging from "research project" to "git checkout." Without this, the rest of the production-observability story doesn't work.
-- **Files to touch:** a build script (`scripts/bake-prompt-versions.ts`); a generated `loopd/src/lib/llm/prompt-versions.ts`; chain.ts consumes it.
-- **Done when:** changing any file in a chain folder, rebuilding, and running the chain logs a different `chain_version` than before; logs are tagged correctly.
-- **Estimated effort:** `1–4hr`
+- **Exercise ID:** `[B4C.version-log]`
+- **What to build:** A build-time step that reads `git rev-parse HEAD` and bakes it into `PROMPT_VERSION` the runner imports. Every log entry includes this version.
+- **Why it earns its place:** the observability primitive that turns production debugging from "research project" to "git checkout." Without this, reproducing a bad output isn't deterministic.
+- **Files to touch:** `scripts/bake-prompt-version.ts`, generated `src/lib/agent/prompt-version.ts`, consumed in `runner.ts`.
+- **Done when:** changing any file in `src/lib/agent/`, rebuilding, and running the agent logs a different `chain_version` than before.
+- **Estimated effort:** `<1hr`
 
-### [B1.11] Pair the chain to a model version
+### [B4C.meta-model] Pair the agent to a model version
 
-- **Exercise ID:** `[B1.11]`
-- **What to build:** Add `meta.json` with `{ model, tested_at, eval_score, regression_run }`. The chain loader reads `meta.model` and throws if it doesn't match the runtime model from config.
-- **Why it earns its place:** the safety rail that prevents "tested on Sonnet 3, accidentally deployed against Sonnet 4." When you change `meta.model`, you must re-run evals in the same PR.
-- **Files to touch:** `chains/intent-classify/meta.json`; the runner that checks meta vs runtime.
-- **Done when:** changing `meta.model` to a value other than the configured runtime model causes the chain to throw at load time with a clear error message.
+- **Exercise ID:** `[B4C.meta-model]`
+- **What to build:** Add `src/lib/agent/meta.json` with `{ model: "claude-sonnet-4-6", tested_at, eval_score, regression_run }`. The runner reads `meta.model` at boot and throws if the configured runtime model doesn't match.
+- **Why it earns its place:** the safety rail against "tested on Sonnet 4-6, accidentally deployed against the next model release." Every model change is a PR with re-run evals in the same diff.
+- **Files to touch:** `src/lib/agent/meta.json`, the model-check at the top of `runner.ts`.
+- **Done when:** setting `model` in `meta.json` to a value other than the configured runtime model causes a clear boot-time error.
 - **Estimated effort:** `<1hr`
 
 ---
 
 ## Summary
 
-Prompts are source code: one file per prompt, version-controlled, diff'd in PRs, paired to a model version, observable in production. The pattern shifts prompts from "content" (a string in a template literal, mutable, untracked) to "code" (a versioned artifact with a commit hash that traces back from every production call). The cost is one day of scaffolding for the first chain and one hour per subsequent chain; the value is the ability to debug, A/B test, and survive model upgrades. aipe's `specs/` directory is the worked example.
+Prompts are source code: one file per prompt, version-controlled, diff'd in PRs, paired to a model version, observable in production. The pattern shifts prompts from "content" (a string in a template literal, mutable, untracked) to "code" (a versioned artifact with a commit hash that traces back from every production call). The cost is one day of scaffolding for the first chain and one hour per subsequent chain; the value is the ability to debug, A/B test, and survive model upgrades. Meta-tooling codebases (slash-command frameworks like aipe) demonstrate the discipline in its cleanest form — every spec is a versioned markdown file under PR review.
 
 **Key points:**
 
@@ -438,7 +426,7 @@ Prompts are source code: one file per prompt, version-controlled, diff'd in PRs,
 - **`meta.json` pairs each prompt to a model version + eval score.** Changing the model is a PR that re-runs evals.
 - **Production logs carry `chain_version` (a commit SHA).** Every production output traces back to the exact files that produced it.
 - **The pattern crosses five layers: authoring → review → deployment → runtime → observability.** Skip any of them and a class of bug becomes undebuggable.
-- **aipe's `specs/` directory is the cleanest portfolio example.** Every slash-command spec is a versioned markdown file under PR review.
+- **For contrl, the discipline lands with commit one of the coaching agent.** Adopting it later — once 50 chain edits exist — is materially harder than carrying it from the start.
 
 ---
 
@@ -547,7 +535,7 @@ Nothing's wrong with it as a starting point — that's literally the floor of pr
 - "meta.json pairs the prompt to a model version + eval score; the loader enforces the pairing."
 - "Production logs carry chain_version — a commit SHA — for every LLM call."
 - "Prompt changes are PRs that re-run the regression suite. No exceptions for 'small tweaks.'"
-- "aipe's specs/ directory is the worked example — every spec is a versioned markdown file under PR review."
+- "For contrl, the discipline applies the moment the coaching agent ships. Adopting it later is materially harder."
 
 ---
 
@@ -578,10 +566,11 @@ There's no right answer. Defend with reference to the crossover point in Sub-blo
 
 **Quick check — code reference test.**
 Without opening files, answer:
-- Where do aipe's slash-command prompts live?
-- What field in `meta.json` causes the chain loader to throw on mismatch?
+- Where will contrl's coaching-agent system prompt live?
+- What field in `meta.json` causes the agent loader to throw on mismatch?
 - What's the SHA-based identifier production logs carry?
 
-Then open and verify.
+Pass: you said `src/lib/agent/system.md`, `meta.model`, `chain_version`.
 
-Pass: you said `/Users/rein/Public/aipe/specs/*.md`, `meta.model`, `chain_version`.
+---
+Updated: 2026-05-24 — Reframed per v1.38.0 per-repo scope. Subtitle blockquote: "aipe is the worked example" → meta-tooling as cleanest worked example, contrl applies when `src/lib/agent/` lands. In this codebase: Case A (aipe canonical) collapsed into Case B planned for contrl coaching agent + ML-side analog. Move 2.5 future-state diagram retargeted (contrl Phase A=nothing → Phase B=agent). Sub-block 3 breakpoint updated. Tech reference codebase-uses lines retargeted. Project exercises B1.6/B1.10/B1.11 → B4C.* coaching-agent variants. Summary closing + Key points #5 + one-line anchor #5 + Validate quick-check all reframed.

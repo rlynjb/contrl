@@ -91,13 +91,13 @@ The discipline:
 - **One output type.** A chain returns one shape. If you find yourself returning `{ result, alsoReturnedThing }` where `alsoReturnedThing` is unrelated, that's two chains.
 
 ```ts
-// loopd/src/lib/llm/chains/intent-classify/chain.ts (planned)
+// Illustrative — a single-purpose intent-classify chain
 export async function classifyIntent(input: string): Promise<IntentResult> {
   // does ONE thing: classify the input
   // returns ONE shape: { label, confidence }
 }
 
-// loopd/src/lib/llm/chains/tag-extract/chain.ts (planned)
+// Illustrative — a tag-extract chain (separate from intent-classify)
 export async function extractTags(input: string): Promise<TagsResult> {
   // does ONE thing: extract tags
   // returns ONE shape: { tags: string[] }
@@ -113,7 +113,7 @@ Boundary condition: "one job" isn't "one sentence of instructions." The intent c
 Pipelines are application code, not prompts. A pipeline calls chain A, takes its output, calls chain B with it, takes that output, calls chain C, and so on. The composition lives in TypeScript, not in any single chain's prompt.
 
 ```ts
-// loopd/src/lib/journal/process-entry.ts (planned)
+// Illustrative — a pipeline composing two chains
 export async function processEntry(rawEntry: string): Promise<ProcessedEntry> {
   const intent = await classifyIntent(rawEntry);
   const tags = await extractTags(rawEntry);
@@ -161,12 +161,12 @@ Boundary condition: chains 1 and 2 in the above flow can run in parallel — the
 Each chain declares its target model. The cheap-classifier-expensive-generator pattern emerges from this.
 
 ```json
-// loopd/src/lib/llm/chains/intent-classify/meta.json (planned)
+// Illustrative — meta.json for intent-classify (Haiku, low-cost)
 { "model": "claude-haiku-4-5-20251001", "tested_at": "2026-05-15", "eval_score": 0.96 }
 ```
 
 ```json
-// loopd/src/lib/llm/chains/caption/meta.json (planned)
+// Illustrative — meta.json for caption (Sonnet, generative)
 { "model": "claude-sonnet-4-6", "tested_at": "2026-05-15", "eval_score": 0.89 }
 ```
 
@@ -214,32 +214,31 @@ Boundary condition: failure localization only works if each chain emits its own 
 
 ---
 
-### Move 2.5 — Current state vs future state (planned loopd)
+### Move 2.5 — Current state vs future state (contrl)
 
-Loopd's planned 5-chain split is the canonical example. The shape across phases:
+contrl ships zero chains today. The future state has one LLM surface (the coaching agent); the discipline applies the moment a second surface is proposed:
 
 ```
-                Phase A (planned, B1.x)              Phase B (planned, B2.x)
-                Five basic chains                    Five chains + a coaching agent
+                Phase A (now)                        Phase B (after Phase 4 coaching)
+                Zero LLM chains                      One agent + read-only tools
   ────────────────────────────────────────       ─────────────────────────────────────
   ┌──────────────────────────┐                  ┌─────────────────────────────────────┐
-  │ intent-classify (Haiku)  │                  │ intent-classify (Haiku)             │
-  │ tag-extract     (Haiku)  │                  │ tag-extract     (Haiku)             │
-  │ caption         (Sonnet) │                  │ caption         (Sonnet 4)           │
-  │ search-rewrite  (Haiku)  │                  │ search-rewrite  (Haiku)             │
-  │ end-of-day-summary (Sonnet) │              │ end-of-day-summary (Sonnet)         │
-  │                          │                  │ coaching-agent  (Sonnet, with tools) │
+  │ (nothing)                │                  │ coaching-agent (Sonnet 4)            │
+  │                          │                  │   ↓ calls (read-only)               │
+  │ Pose detection (CV)      │                  │   get_classifier_output             │
+  │ Rep counter (FSM)         │                  │   get_form_history                  │
+  │ deterministic; no LLM    │                  │   get_progression_state             │
+  │                          │                  │   get_recent_coaching               │
+  │                          │                  │   get_exercise_cues                 │
   └──────────────────────────┘                  └─────────────────────────────────────┘
 
-  Each chain in its own folder.                 The coaching agent calls into the
-  Pipelines compose them.                       existing chains via tool calling.
-                                                The five basic chains stay unchanged.
-
-  The single-purpose discipline is what
-  makes the Phase B addition non-disruptive.
+                                                 If a second LLM surface is added
+                                                 (e.g., workout-plan generation):
+                                                 → its own folder, its own evals,
+                                                 → not folded into coaching-agent.
 ```
 
-The lesson: when the discipline holds, adding new capabilities is additive (new chain, new tools, new pipeline). When the discipline breaks (one chain doing everything), adding a capability means rewriting the existing chain.
+The lesson: the discipline becomes load-bearing the moment surface count goes from 1 to 2. The temptation to fold a new job into the existing agent's system prompt is exactly the multi-purpose-chain trap.
 
 ---
 
@@ -306,27 +305,17 @@ The pipeline is application code; the chains are prompts. The separation matters
 
 ## In this codebase
 
-**Case B — loopd's 5 chains (planned).**
+**Case B — contrl ships one LLM surface, planned: the Phase 4 coaching agent.**
 
-The canonical instance of single-purpose chains in the portfolio. Per `aieng-curriculum.md` Phase 1 / Phase 2A builds:
+contrl is NOT a multi-chain LLM application. It is a single-agent-with-tools shape: one coaching agent that calls 5 read-only tools to assemble context, then emits one coaching message. There are no second or third chains planned in the current curriculum.
 
-- **intent-classify** (planned `loopd/src/lib/llm/chains/intent-classify/`) — 3-way categorical (chat/search/command). Haiku-grade. Curriculum item B1.7.
-- **tag-extract** (planned `loopd/src/lib/llm/chains/tag-extract/`) — extract 0-5 tags from entry. Haiku-grade. Curriculum item B1.17.
-- **caption** (planned `loopd/src/lib/llm/chains/caption/`) — generative short caption. Sonnet-grade. Curriculum item B1.20.
-- **search-rewrite** (planned `loopd/src/lib/llm/chains/search-rewrite/`) — reformulate search query with context. Haiku-grade. Curriculum item B2A.5.
-- **end-of-day-summary** (planned `loopd/src/lib/llm/chains/end-of-day-summary/`) — synthesize the day's entries. Sonnet-grade. Curriculum item B1.25.
+This means the single-purpose-chains discipline applies differently to contrl than to a chained LLM app:
 
-Not yet on disk. Each chain will have its own folder following the prompts-as-code discipline (see [03-prompts-as-code](./03-prompts-as-code.md)).
+- **Within the agent itself:** the agent does one job — produce a coaching message. It does NOT also "decide what to coach about" (that's the deterministic FSM and form classifier feeding it) or "log the coaching" (that's downstream code). Scope discipline is enforced by the agent's prompt + tool allowlist, not by chain composition.
+- **The 5 read-only tools are NOT chains.** They're deterministic data accessors (`get_classifier_output`, `get_form_history`, etc.) that return facts the agent reasons over. They don't make LLM calls themselves.
+- **If a second LLM job emerges** (say, a "post-workout summary" feature), THAT becomes the canonical Case A for this concept — a separate single-purpose chain, separate folder, separate evals, never folded into the coaching agent.
 
-**Case B — aipe slash commands as quasi-chains.**
-
-aipe's slash commands aren't runtime LLM calls, but the single-purpose discipline still applies — each spec does one thing. `/aipe:refactor` refactors. `/aipe:study` generates study guides. `/aipe:audit-refactor` produces audit notebooks. They don't mix: there's no `/aipe:refactor-and-study` because that would be two jobs.
-
-- **`/Users/rein/Public/aipe/specs/refactor.md`** — one job: take a refactor intent and produce a refactor spec file.
-- **`/Users/rein/Public/aipe/specs/study.md`** — one job: generate a study guide for the current codebase.
-- **`/Users/rein/Public/aipe/specs/audit-refactor.md`** — one job: produce a 6-chapter opinion book.
-
-When `/aipe:study` needs to "also" look at the curriculum, it does so by reading the curriculum file itself, not by calling another spec. The composition is the agent's file-reading mid-execution, not slash-command-calls-slash-command.
+The deferred Case A: if contrl ships a second LLM surface (workout-plan generation, end-of-week summary, exercise substitution explanations), each must be its own chain. The temptation to "just add it to the coaching agent's prompt" is exactly what this concept warns against.
 
 ---
 
@@ -363,9 +352,9 @@ When `/aipe:study` needs to "also" look at the curriculum, it does so by reading
 
 ### Sub-block 1 — what we gave up
 
-Two costs. First, **sequential latency.** Five sequential chains take 5x the round-trips of one chain. The mitigation is parallelization where chains are independent (intent-classify and tag-extract can run in parallel), but sequential dependencies remain (caption needs the tags). For loopd's planned flow, the pipeline parallelizes the first two chains, then sequentially runs caption. End-to-end latency ~700ms vs ~500ms for one giant chain.
+Two costs. First, **sequential latency.** Multiple sequential chains take more round-trips than one combined chain. The mitigation is parallelization where chains are independent (e.g., a classifier and an extractor running on the same input can run in parallel). For contrl's single coaching agent, this cost is moot — there's only one chain.
 
-Second, **orchestration overhead.** The pipeline file itself is real code — branching logic, parallelization, error handling. For loopd's 5-chain pipeline, the orchestrator is probably 100–200 lines of TypeScript. Not exotic, but real.
+Second, **orchestration overhead.** A pipeline of N chains needs orchestration code — branching, parallelization, error handling. For contrl's single agent, the "orchestrator" is just `runner.ts`; no inter-chain composition exists. The overhead lives in the agent's tool-loop instead.
 
 ### Sub-block 2 — what the multi-purpose alternative would have cost
 
@@ -392,7 +381,7 @@ Single-purpose chains are the right call until: (a) the pipeline has only one jo
 
 ### Vercel AI SDK (chain orchestration)
 
-- **Codebase uses:** Not yet — planned for loopd's pipeline orchestrator.
+- **Codebase uses:** Not yet — `runner.ts` for contrl's coaching agent doesn't need cross-chain orchestration (single agent), but parallel tool execution within the agent is the same primitive.
 - **Why it's here:** the TypeScript-native library for assembling LLM chains and streams in production frontend/full-stack code. Handles streaming, tool calling, and chain composition.
 - **Leading today:** Vercel AI SDK — `innovation-leading` for TypeScript LLM orchestration, 2026.
 - **Why it leads:** typed end-to-end (chain inputs/outputs are TypeScript types), streaming-native (handles partial outputs naturally), framework-agnostic.
@@ -426,38 +415,29 @@ Single-purpose chains are the right call until: (a) the pipeline has only one jo
 
 ## Project exercises
 
-### [B1.17] Decompose the entry-processing flow into 5 chains
+### [B4C.scope-discipline] Define the coaching agent's job in one sentence
 
-- **Exercise ID:** `[B1.17]`
-- **What to build:** 5 chain folders (intent-classify, tag-extract, caption, search-rewrite, end-of-day-summary). Each follows the prompts-as-code shape — system.md, examples.md, chain.ts, meta.json. Plus a `processEntry` pipeline function that orchestrates them.
-- **Why it earns its place:** the architectural decision that shapes every later loopd LLM build. Single-purpose chains have to be the starting state, not an aspirational refactor.
-- **Files to touch:** `loopd/src/lib/llm/chains/<name>/` × 5 plus `loopd/src/lib/journal/process-entry.ts`.
-- **Done when:** the pipeline runs end-to-end on a sample input; each chain has its own meta.json; per-chain regression tests exist (even if minimal).
-- **Estimated effort:** `1 week`
-
-### [B1.18] Parallelize independent chains
-
-- **Exercise ID:** `[B1.18]`
-- **What to build:** Modify the pipeline orchestrator so intent-classify and tag-extract run in parallel (they're independent of each other). Measure latency before/after.
-- **Why it earns its place:** the cheap-and-obvious latency optimization that single-purpose chains enable. One change, ~30% latency reduction.
-- **Files to touch:** `loopd/src/lib/journal/process-entry.ts`.
-- **Done when:** `Promise.all([classifyIntent(input), extractTags(input)])` replaces sequential calls; measured latency improvement documented.
+- **Exercise ID:** `[B4C.scope-discipline]`
+- **What to build:** Write the coaching agent's job at the top of `src/lib/agent/system.md` as one sentence — e.g., "Produce a single coaching message for the user's just-finished set, citing at most one form cue and one progression suggestion." Pin this scope. Any future ask to "also produce a workout plan" or "also log the session summary" is a new chain, not a system-prompt addition.
+- **Why it earns its place:** the discipline that prevents the agent's prompt from drifting into a multi-purpose chain. The one-sentence job description is the test.
+- **Files to touch:** `src/lib/agent/system.md` (top of file).
+- **Done when:** the file opens with the one-sentence job; PR review uses it as the test for scope-creep PRs.
 - **Estimated effort:** `<1hr`
 
-### [B1.19] Route chains to per-task models
+### [defer] Second-LLM-surface decomposition
 
-- **Exercise ID:** `[B1.19]`
-- **What to build:** Set each chain's `meta.json.model` to its appropriate target. Verify per-chain evals pass. Measure cost per pipeline call against the all-Sonnet baseline.
-- **Why it earns its place:** the cost optimization that proves the architecture pays back. The discipline goes from "nice to have" to "saves measurable money."
-- **Files to touch:** `meta.json` per chain; the runner that reads `meta.model` and selects the API model.
-- **Done when:** classify/tag/search are on Haiku; caption/summary are on Sonnet; cost-per-entry measurement is documented in `docs/ml-results.md`.
-- **Estimated effort:** `1–4hr`
+- **Exercise ID:** `[defer]` — not in current curriculum
+- **What to build:** When/if a second LLM surface is proposed for contrl (workout plan, weekly summary, exercise substitution), give it its own folder under `src/lib/llm/<name>/` with the prompts-as-code shape (system.md, examples.md, runner.ts, meta.json, tests). Do NOT fold it into the coaching agent.
+- **Why it earns its place:** the architectural decision that keeps the LLM surface debuggable as it grows.
+- **Files to touch:** a new folder when the surface is approved.
+- **Done when:** N/A — exercise is "do not violate the discipline when the second surface lands."
+- **Estimated effort:** matches the new surface's scope.
 
 ---
 
 ## Summary
 
-Single-purpose chains apply single-responsibility to LLM calls — one chain, one job, one input shape, one output shape, composed by application code into pipelines. The benefits are debuggability (failures localize), iteration safety (tune one chain in isolation), and cost (route cheap models to cheap tasks). The cost is more chain files, modest orchestration overhead, and slightly higher latency unless parallelized. The discipline is non-negotiable for production multi-step LLM systems; loopd's planned 5-chain split is the canonical instance.
+Single-purpose chains apply single-responsibility to LLM calls — one chain, one job, one input shape, one output shape, composed by application code into pipelines. The benefits are debuggability (failures localize), iteration safety (tune one chain in isolation), and cost (route cheap models to cheap tasks). The cost is more chain files, modest orchestration overhead, and slightly higher latency unless parallelized. For contrl, the discipline matters less today (one planned LLM surface) and more the moment a second surface is proposed — the temptation to "just add it to the coaching agent" is exactly the trap this concept warns against.
 
 **Key points:**
 
@@ -603,8 +583,11 @@ There's no right answer. Defend with reference to Sub-block 3 — at what scale 
 
 **Quick check — code reference test.**
 Without opening files, answer:
-- How many chains does loopd plan to ship in Phase 1?
-- Which loopd chains can run in parallel?
+- How many LLM surfaces does contrl plan today?
+- What's the one-sentence test for the coaching agent's scope?
 - What's the rule for routing a chain to Haiku vs Sonnet?
 
-Pass: 5 chains; intent-classify and tag-extract; Haiku for classifier/extractor/rewriter tasks where eval suite confirms it passes, Sonnet for generative or subjective-quality tasks.
+Pass: one (the coaching agent); the agent does one job — produce a single coaching message; Haiku for classifier/extractor/rewriter tasks where eval suite confirms it passes, Sonnet for generative or subjective-quality tasks like coaching.
+
+---
+Updated: 2026-05-24 — Reframed per v1.38.0 per-repo scope. In this codebase: removed dual Case B (loopd 5 chains) + Case B (aipe slash commands); replaced with single Case B reflecting contrl's actual scope (one coaching agent, not a chain pipeline; discipline applies when surface count grows past 1). Move 2.5 future-state diagram retargeted (contrl Phase A=nothing → Phase B=agent with tools). Sub-block 1 tradeoff reframed (moot for single-agent shape). Code snippet comments made illustrative. Tech reference codebase-uses retargeted. Project exercises B1.17/B1.18/B1.19 → B4C.scope-discipline + deferred second-surface exercise. Summary closing + Validate Quick check updated.

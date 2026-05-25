@@ -229,39 +229,24 @@ The cache boundary is the most operationally important line in the diagram. Ever
 
 ## In this codebase
 
-**Case A — aipe's specs as production prompts.**
+**Case B — contrl ships no LLM prompts today.**
 
-aipe's slash-command specs are unusually pure examples of the four-section anatomy, even though they're written in markdown rather than as runtime LLM API calls. Each spec is the prompt body that gets injected into Claude Code's context when the user types `/aipe:<name>`.
+The planned Phase 4 Path C coaching agent will be contrl's first LLM consumer. It needs the four-section anatomy from day one — the agent's prompt has a stable system section (role + behavioral rules + tool definitions + output schema), no few-shot examples in the traditional sense (the tool definitions encode the "shape" the agent should produce), per-call context (the workout ID + exercise category passed in), and the user/initial message (which for a non-conversational agent is just the kickoff).
 
-- **System role + rules:** the top of each spec. Example: `/Users/rein/Public/aipe/specs/refactor.md` lines 1–46 — defines what the agent is (a code-restructuring specialist), what it must produce (a `.aipe/specs/refactors/[name].md` file), and the key principle ("Refactors are the highest-risk prompts to give AI. Without tight constraints, Claude will optimise aggressively..."). This is system-section content: stable across every invocation of `/aipe:refactor`.
-- **Output schema:** the "Refactor spec format" code block inside each spec (`refactor.md` lines 9–38). This is the structured output the spec is asking Claude to produce. Frontend analogue: a Zod schema sitting next to its consumers.
-- **Few-shot examples:** the "vocabulary" section in `refactor.md` lines 60–148 — the catalog of refactor techniques with one-line definitions each. Functions as canonical worked examples of what a "named refactor" looks like in this codebase's vocabulary.
-- **Per-call user input:** the slash-command argument the user types after `/aipe:refactor <intent>`. The intent is the per-call variable; everything else is constant.
-
-aipe specs don't go through a runtime LLM API, so prompt caching is moot — but the structural discipline is identical to what a runtime prompt needs. Same four sections, same separation, same "constants up front."
-
-**Case B — loopd's 5 chains (planned).**
-
-Per curriculum, loopd ships 5 single-purpose LLM chains (intent classification, tag extraction, caption, search query rewrite, end-of-day summary). Each chain needs the four-section anatomy enforced in its template. Loopd is not yet on disk; the chain implementations and their templates are Phase 1 / Phase 2A builds from `aieng-curriculum.md`. The expected layout when they land:
+Expected layout when the agent lands (planned per curriculum Phase 4 builds):
 
 ```
-loopd/src/lib/llm/
-  chains/
-    intent-classify/
-      system.md       ← system + schema
-      examples.md     ← few-shot
-      chain.ts        ← assembles { system, examples, context, user } and calls provider
-    tag-extract/
-      ...
-    caption/
-      ...
-    search-rewrite/
-      ...
-    summary/
-      ...
+src/lib/agent/
+  system.md         ← role, behavioral rules, tool definitions, output schema
+  examples.md       ← optional: 2-3 worked coaching examples (if used)
+  runner.ts         ← assembles { system, tools, context, message } and calls Anthropic
+  tools/            ← the 5 read-only tools (get_classifier_output, etc.)
+  schemas.ts        ← Zod schemas for output validation
 ```
 
-The intent here is one chain = one folder = four files; the four files map 1:1 to the four sections of the anatomy. The chain.ts file is where the assembly happens; the templates stay separate so each can be diff'd and reviewed independently.
+The system section is constant across calls (same role, same rules, same tools); per-call variables (workout ID, exercise being coached) live only in the user message or as tool-call arguments. Prompt caching engages on the system + tools prefix.
+
+What contrl doesn't have today: any LLM prompts at all. The current "AI" surface is pre-trained MediaPipe pose detection (a CV model, not a prompted LLM) and the deterministic rep counter FSM (no ML). The four-section anatomy becomes load-bearing the moment the coaching agent ships.
 
 ---
 
@@ -296,7 +281,7 @@ The intent here is one chain = one folder = four files; the four files map 1:1 t
 
 ### Sub-block 1 — what we gave up
 
-Two things, both real. First, **file proliferation** — a chain that used to be one 400-line template literal becomes a directory with four template files and an assembly script. On loopd's planned 5 chains, that's 5 directories × 5 files = 25 files where there used to be 5. Counterargument: those 25 files are each focused and reviewable, where the original 5 were each unreviewable; the file count goes up but the cognitive surface goes down. Second, **assembly overhead** — chain.ts has to read four files and concatenate them in the right order. That's ~15 lines per chain of mechanical assembly code. Tiny, but real.
+Two things, both real. First, **file proliferation** — a chain that used to be one 400-line template literal becomes a directory with four template files and an assembly script. On a 5-chain codebase, that's 5 directories × 5 files = 25 files where there used to be 5. Counterargument: those 25 files are each focused and reviewable, where the original 5 were each unreviewable; the file count goes up but the cognitive surface goes down. Second, **assembly overhead** — chain.ts has to read four files and concatenate them in the right order. That's ~15 lines per chain of mechanical assembly code. Tiny, but real.
 
 ### Sub-block 2 — what the one-template-literal alternative would have cost
 
@@ -310,7 +295,7 @@ The 25-file structure prevents all three.
 
 ### Sub-block 3 — the breakpoint
 
-The four-section anatomy is the right call until one of: (a) the chain has truly zero variation — a single hardcoded prompt used once, never iterated, never cached, no schema (toy chains do exist), or (b) the chain's prompt is shorter than ~200 tokens total (the structural overhead exceeds the value), or (c) the team is genuinely one person who reads the entire prompt every time they touch it (no review pressure, no contributor onboarding cost). At any of those, a single template literal is honest. None of those apply to loopd or aipe.
+The four-section anatomy is the right call until one of: (a) the chain has truly zero variation — a single hardcoded prompt used once, never iterated, never cached, no schema (toy chains do exist), or (b) the chain's prompt is shorter than ~200 tokens total (the structural overhead exceeds the value), or (c) the team is genuinely one person who reads the entire prompt every time they touch it (no review pressure, no contributor onboarding cost). At any of those, a single template literal is honest. For contrl's planned coaching agent, (c) might hold at first (solo project), but the anatomy pays off the moment the system prompt starts iterating against an eval set.
 
 ### Sub-block 4 — what wasn't actually a tradeoff
 
@@ -322,7 +307,7 @@ Reading-order. "It's harder to read the prompt as one continuous blob if it's sp
 
 ### Anthropic prompt caching
 
-- **Codebase uses:** Not yet — aipe doesn't make runtime API calls, and loopd hasn't shipped. Both projects' planned chains will use the Anthropic JS SDK with the `cache_control` system-prompt parameter for prefix caching.
+- **Codebase uses:** Not yet — contrl ships no LLM code. The planned Phase 4 coaching agent will use the Anthropic SDK with `cache_control` on the system prompt + tool definitions to cache the largest constant prefix.
 - **Why it's here:** the technical capability that makes the four-section anatomy load-bearing. Caching makes "constants up front" a cost argument, not just a clarity argument.
 - **Leading today:** Anthropic prompt caching — `adoption-leading` for explicit, configurable prompt caching, 2026.
 - **Why it leads:** explicit API surface (`cache_control: { type: "ephemeral" }`), documented prefix-length thresholds, observable hit/miss in response headers (`X-Anthropic-Prompt-Cache-Hit`), priced predictably (~10% of normal rate for cached prefix).
@@ -330,23 +315,23 @@ Reading-order. "It's harder to read the prompt as one continuous blob if it's sp
 
 ### XML-style tag delimiters
 
-- **Codebase uses:** Not yet — planned for loopd's chain templates per curriculum (Phase 2A onward). aipe specs use markdown code fences as the equivalent.
+- **Codebase uses:** Not yet — planned for contrl's coaching agent system prompt, where user-controlled content (e.g., exercise notes) must be delimited from instructions.
 - **Why it's here:** the standard way to delimit user input from instructions inside a prompt. Without delimiters, prompt injection is trivially easier (see [12-prompt-injection-defense](./12-prompt-injection-defense.md)).
 - **Leading today:** XML-style tags (`<user_input>...</user_input>`) — `adoption-leading` across provider-agnostic prompt design, 2026.
 - **Why it leads:** Anthropic models respond especially well due to training distribution; OpenAI and Google models also handle them cleanly; markdown alternatives (triple backticks) work but conflict with code-block content.
 - **Runner-up:** triple-backtick delimiters — work fine for most content but break when user input itself contains code blocks.
 
-### Markdown-as-prompt (aipe's encoding)
+### Markdown-as-prompt (illustrative)
 
-- **Codebase uses:** Every file under `/Users/rein/Public/aipe/specs/*.md` — markdown files that ARE the prompts injected into Claude Code's context by `/aipe:<command>` invocations.
-- **Why it's here:** aipe's specific instantiation of "prompts as code." Markdown gives version-control + diff + review for free, while staying human-readable.
+- **Codebase uses:** Not in contrl. Contrast: meta-tooling codebases (like `/aipe` slash-command frameworks) store prompts as markdown files that ARE the prompts injected into the agent's context.
+- **Why it's here:** the cleanest version of "prompts as code." Markdown gives version-control + diff + review for free, while staying human-readable. Contrl's planned coaching agent system prompt could ship as `src/lib/agent/system.md` for the same reason.
 - **Leading today:** This pattern (markdown as the canonical prompt source) is `innovation-leading` for agentic-tool prompt design in 2026; less common in classic LLM-as-API codebases where TypeScript template literals still dominate.
 - **Why it leads:** markdown renders in GitHub; diff'able; LSP-friendly; the file *is* the artifact (no template-to-prompt compile step).
 - **Runner-up:** TypeScript template literals — still the default in most production codebases because they interpolate per-call variables naturally.
 
 ### Anthropic Messages API + system parameter
 
-- **Codebase uses:** Not yet — planned for loopd's chain implementations.
+- **Codebase uses:** Not yet — planned for contrl's coaching agent.
 - **Why it's here:** the API surface that gives `system` its own parameter instead of mixing it into the messages array. Forces the anatomy at the API boundary.
 - **Leading today:** Anthropic Messages API — `adoption-leading` for first-class system-prompt separation, 2026.
 - **Why it leads:** `messages.create({ system: "...", messages: [{ role: "user", content: "..." }] })` — the API itself separates the constant from the per-call content.
@@ -356,32 +341,34 @@ Reading-order. "It's harder to read the prompt as one continuous blob if it's sp
 
 ## Project exercises
 
-### [B1.3] Anatomize one production prompt
+contrl doesn't ship an LLM today. These exercises become buildable when the Phase 4 coaching agent lands; until then they're study-mode.
 
-- **Exercise ID:** `[B1.3]`
-- **What to build:** Pick any LLM-touching file in a codebase you've shipped (a chain, a one-off prompt, a hidden template literal). Refactor it into the four-section anatomy: `system.md`, `examples.md`, the `context` interpolation point, and the `user_message` payload. Write a `chain.ts` (or equivalent) that reads the four pieces, concatenates them in order, and calls the LLM. Verify the response is identical (within sampling noise) before and after.
-- **Why it earns its place:** the discipline lands when you have to make the decision — for the prompt YOU shipped — about which clauses are system and which are user. You discover the dozen clauses that were ambiguous. You discover the two clauses that should have been retrieved context but were hardcoded in the system prompt. You discover what the prompt actually does.
-- **Files to touch:** one chain folder under `loopd/src/lib/llm/chains/<name>/` (per planned curriculum layout), or any LLM-calling file in another codebase.
-- **Done when:** the four files exist; chain.ts produces a byte-identical assembled prompt to what was sent before the refactor; output sampling matches within noise.
+### [B4C.anatomy] Lay out the coaching agent in four sections
+
+- **Exercise ID:** `[B4C.anatomy]` (anchors to Phase 4 Path C — coaching agent)
+- **What to build:** When the coaching agent ships, create `src/lib/agent/system.md` (role + behavioral rules + tool definitions), `src/lib/agent/examples.md` (2-3 worked coaching exchanges if used), and `src/lib/agent/runner.ts` that reads the constants once at boot and assembles `{ system, context, message }` per call. Pass `cache_control` on the system + tools to engage prefix caching.
+- **Why it earns its place:** the discipline lands at the agent's first commit, not after. If the system prompt starts mixing per-call workout IDs in, the cache will be dead on arrival.
+- **Files to touch:** `src/lib/agent/system.md`, `src/lib/agent/runner.ts`, `src/lib/agent/tools/*` (the 5 read-only tools).
+- **Done when:** runner.ts assembles a prompt with zero `${}` interpolation in the system or tools sections; first call writes the cache; subsequent calls read it (verify via response headers).
 - **Estimated effort:** `1–4hr`
 
-### [B1.4] Measure prompt cache hit rate before and after
+### [B4C.cache-measure] Verify cache hits on the coaching agent
 
-- **Exercise ID:** `[B1.4]`
-- **What to build:** For a chain that runs at least 100 times in a test loop (or production), measure prompt-cache hit rate before the anatomy refactor (B1.3) and after. For Anthropic, read `X-Anthropic-Prompt-Cache-Hit` from response headers; for OpenAI, infer from the difference in latency or token cost between cached and uncached calls.
-- **Why it earns its place:** turns the four-section anatomy from a "nice structure" claim into a measurable claim. Either the cache hit rate goes up (and you have the diff to prove the anatomy worked) or it doesn't (and you learn which section is still varying).
-- **Files to touch:** a measurement script that runs the chain N times against a fixed set of inputs and logs cache-hit headers.
-- **Done when:** a before/after table of cache hit rate exists, committed to `docs/ml-results.md` or equivalent, with a one-paragraph note on what changed.
-- **Estimated effort:** `1–4hr`
+- **Exercise ID:** `[B4C.cache-measure]`
+- **What to build:** Run the coaching agent 10× against the same workout. Log `cache_creation_input_tokens` (first call) and `cache_read_input_tokens` (calls 2-10) from `response.usage`. Compute cache-hit rate. Target: >80% of input tokens cached on warm calls.
+- **Why it earns its place:** turns the anatomy from "nice structure" to a measurable claim. Even at contrl's solo scale, this is the foundation for catching cache regressions later.
+- **Files to touch:** `src/lib/agent/runner.ts` (log usage), plus a one-off test script.
+- **Done when:** measured cache-hit rate logged in `docs/coaching-agent-perf.md` with a one-paragraph note.
+- **Estimated effort:** `<1hr`
 
-### [B1.5] Audit one chain for "constant-in-system" violations
+### [B4C.system-audit] Audit the coaching agent system prompt for interpolations
 
-- **Exercise ID:** `[B1.5]`
-- **What to build:** Walk one chain's system prompt looking for any string-interpolated values (`${...}` or equivalent). Each one is a cache-invalidation source. Move each interpolation to the `context` or `user_message` section. Re-run B1.4 measurement.
-- **Why it earns its place:** the most common bug in chain implementations is a single interpolation hiding inside the system prompt. Hunting it explicitly is how you catch it.
-- **Files to touch:** the system.md or system-section file of one chain.
-- **Done when:** the system prompt contains zero template interpolations; cache-hit-rate measurement re-run shows the improvement (or null result if the system was already clean).
-- **Estimated effort:** `<1hr` per chain
+- **Exercise ID:** `[B4C.system-audit]`
+- **What to build:** Walk `src/lib/agent/system.md` (and tool definitions) for any string-interpolated values. Each is a cache-invalidation source. Move every per-call value to the `messages[]` array (user message) or to tool-call arguments.
+- **Why it earns its place:** the most common bug in agent system prompts is a single interpolation hiding in the rules block (e.g., interpolating today's date into instructions). Hunting it explicitly is how you catch it.
+- **Files to touch:** `src/lib/agent/system.md`, tool definition files.
+- **Done when:** the system + tools section contains zero template interpolations; cache-hit measurement re-run shows the improvement.
+- **Estimated effort:** `<1hr`
 
 ---
 
@@ -395,7 +382,7 @@ A production prompt is four sections — `system`, `few_shot`, `context`, `user_
 - **One job per section, named explicitly.** System holds role + rules + schema; few-shot holds canonical examples; context holds retrieved data; user holds raw input.
 - **String-interpolating into the system section is the #1 cache-invalidation bug.** If you see a `${}` in the system, it's a bug, not a feature.
 - **The cost is ~25 files per 5 chains; the benefit is roughly 70% cache hit rate when calls share a prefix.** Worth it for any chain that runs more than ~50 times.
-- **aipe's specs are the cleanest worked example in the portfolio.** The slash-command specs separate role-and-rules (system) from worked-vocabulary-examples (few-shot) from per-invocation-intent (user) by construction.
+- **The four-section anatomy applies the moment contrl's coaching agent ships.** Today: zero LLM code; nothing to anatomize. Day one of the coaching agent: cache-friendly system + tools, per-call workout context, no `${}` in the system. The cost of getting this wrong is paid in dollars and debugging time, not abstract cleanliness.
 
 ---
 
@@ -483,7 +470,7 @@ That advice is from blog posts written by people who haven't measured. I have me
 - "Four sections, one job each — system / few-shot / context / user."
 - "Constants up front for the cache; variables at the back because they never cache."
 - "A `${variable}` inside the system prompt is a cache-invalidation bug, not a feature."
-- "aipe's `specs/` directory is the cleanest portfolio example of the four-section discipline."
+- "The four-section anatomy applies the moment contrl's coaching agent ships — not later. No `${}` in the system; cache prefix on system + tools."
 - "Examples beat instructions; the few-shot section is where the model learns the output shape."
 
 ---
@@ -515,10 +502,11 @@ There is no right answer. The point is specificity. "I'd split because I'm plann
 
 **Quick check — code reference test.**
 Without opening any files, answer:
-- Where in aipe does the system-prompt content live?
-- What's the layout the curriculum plans for loopd's chain directories?
+- Does contrl ship any LLM code today? (No.)
+- What's the planned layout for contrl's coaching agent in `src/lib/agent/`?
 - What's the threshold below which the anatomy isn't worth the structural overhead?
 
-Then open and verify.
+Pass: you said "no LLM code today", `src/lib/agent/{system.md, runner.ts, tools/, examples.md}` (or close to it), and "~200 tokens total prompt size" or "fewer than ~50 calls/day."
 
-Pass: you said `/Users/rein/Public/aipe/specs/*.md`, `loopd/src/lib/llm/chains/<name>/{system.md, examples.md, chain.ts}` (or close to it), and "~200 tokens total prompt size" or "fewer than ~50 calls/day."
+---
+Updated: 2026-05-24 — Reframed per v1.38.0 per-repo scope. In this codebase: dual Case A (aipe) + Case B (loopd) collapsed to single Case B for contrl's planned coaching agent. Project exercises: retargeted B1.3/B1.4/B1.5 (loopd) to B4C.* (contrl coaching agent). Scattered loopd/aipe planning references reframed as contrl-anchored or illustrative. Summary key point #5 rewritten for contrl scope. Validate Quick check updated.
