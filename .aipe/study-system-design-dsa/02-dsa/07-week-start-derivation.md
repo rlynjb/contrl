@@ -155,11 +155,11 @@ This *is* the brute force. There's nothing simpler unless you're willing to depe
 **Line range:** L7–L15
 
 Callers:
-- `useGameState.ts` L85 — `currentWeekStart` for the active week check
-- `useGameState.ts` L96 — filtering sessions by current week
-- `useGameState.ts` L333 — grouping sessions in `buildWeekHistory`
+- `useGameState.ts` L83 — `currentWeekStart` for the active week check
+- `useGameState.ts` L93 — filtering sessions by current week
+- `useGameState.ts` L315 — grouping sessions in `buildWeekHistory`
 - `week-progress.ts` L22 — initializing a `WeekProgress`
-- `week-progress.ts` L56 — `needsWeekReset` comparison
+- `week-progress.ts` L54 — `needsWeekReset` comparison
 
 ---
 
@@ -216,6 +216,26 @@ Fine until we ship a "weekstart preference" feature (user chooses Sunday or Mond
 ### Sub-block 4 — what wasn't actually a tradeoff
 
 Using `toISOString` was not picked because of the UTC vs local-time issue. It would have been one line shorter but produced wrong week keys for users near midnight in non-UTC timezones.
+
+---
+
+## Tech reference (industry pairing)
+
+### Native `Date` (getDay/setDate, local-time getters)
+
+- **Codebase uses:** `getWeekStart` (`week-progress.ts` L7–15) — `(d.getDay() + 6) % 7` for the Monday offset, `setDate` for the rollback (auto-handles month/year underflow), `getFullYear`/`getMonth`/`getDate` for a local-time `YYYY-MM-DD`.
+- **Why it's here:** the standard library already does calendar arithmetic correctly; a 9-line function avoids a date-library dependency for one operation used in five places.
+- **Leading today:** native `Date` for simple period truncation — `adoption-leading`, 2026.
+- **Why it leads:** zero bundle cost, no version drift; `setDate` underflow handling removes the hard part.
+- **Runner-up:** date-fns `startOfWeek(date, { weekStartsOn: 1 })` + `format` — terser and library-tested for DST/locale edge cases; earns its weight once a user-configurable week-start ships.
+
+### String period keys (vs Date objects)
+
+- **Codebase uses:** `getWeekStart` returns `'YYYY-MM-DD'` strings used as Map keys, the `week_progress.week_start` SQL primary key, and JSON values.
+- **Why it's here:** strings compare by value (ISO 8601 sorts lexicographically = chronologically); Dates compare by reference and carry timezone footguns.
+- **Leading today:** ISO date-strings as period keys — `adoption-leading` (language-agnostic), 2026.
+- **Why it leads:** stable equality, clean serialization across SQL/JSON/query-strings, trivially loggable.
+- **Runner-up:** epoch-ms numbers — also value-comparable, but lose human readability and the natural `date_trunc`-style grouping a date-string gives.
 
 ---
 
@@ -311,3 +331,4 @@ Then verify.
 
 ---
 Updated: 2026-05-17 — Algorithm switched from Sunday-start to Monday-start; modular-arithmetic offset `(getDay()+6)%7`; one-shot SQLite migration re-keys legacy Sunday rows.
+Updated: 2026-05-29 — Added Tech reference section (native Date / string period keys) per v1.42.0. Refreshed caller line refs: useGameState L85→L83, L96→L93, L333→L315; week-progress needsWeekReset L56→L54. (getWeekStart L7–15, createWeekProgress L22 accurate.)

@@ -35,7 +35,7 @@ export function calculateStreak(history: WeekProgress[]): number {
 }
 ```
 
-`src/lib/game/streaks.ts` L18–L27.
+`src/lib/game/streaks.ts` L18–L28.
 
 ### The shape
 
@@ -156,7 +156,7 @@ There is no brute force worth comparing to. This is already the minimum-viable a
 **Function / class:** `calculateStreak(history)`, `updateStreakOnWeekEnd(currentStreak, endedWeek)`
 **Line range:** L8–L28
 
-Called by `useGameState.ts` L150 — `const computedStreak = calculateStreak(prevWeeks);`.
+Called by `useGameState.ts` L145 — `const computedStreak = calculateStreak(prevWeeks);`.
 
 `prevWeeks` comes from `buildWeekHistory(sessions)` which already excludes the current week and sorts ascending.
 
@@ -215,6 +215,26 @@ Fine until session count exceeds ~50 years of history (~2500 weeks). At that poi
 ### Sub-block 4 — what wasn't actually a tradeoff
 
 A SQL `WITH RECURSIVE` query to compute the streak in the database was not picked because (a) the data is already in JS for the same load(), and (b) recursive CTEs are awkward to reason about. Stay in JS.
+
+---
+
+## Tech reference (industry pairing)
+
+### Fold (`for`-loop accumulator / `Array.prototype.reduce`)
+
+- **Codebase uses:** `calculateStreak` (`streaks.ts` L18–28) — a `for` loop over sorted week history, `streak += 1` on `isWeekComplete`, `streak = 0` otherwise. The single-week variant `updateStreakOnWeekEnd` (L8–13) is the same rule as a ternary.
+- **Why it's here:** the canonical "collapse a list to a running value" shape; the `for` form reads slightly clearer than `reduce` for branch-and-accumulate.
+- **Leading today:** fold / reduce — `adoption-leading` (language-agnostic), 2026.
+- **Why it leads:** O(n) one pass, O(1) accumulator, no dependency; the reset-on-failure variant is the textbook consecutive-counter.
+- **Runner-up:** `Array.prototype.reduce` one-liner (`history.reduce((s, w) => isWeekComplete(w) ? s + 1 : 0, 0)`) — terser, identical semantics; the for-loop is kept for readability of the branch.
+
+### Derive-not-store (cross-cutting choice)
+
+- **Codebase uses:** the streak is recomputed from week history on every `load()`, never persisted — see [01-system-design/05-derived-state](../01-system-design/05-derived-state.md).
+- **Why it's here:** a stored counter is a second source of truth that can silently drift from the session log; recomputation is correct by construction.
+- **Leading today:** derive-from-log for cheap projections — `adoption-leading`, 2026.
+- **Why it leads:** eliminates the update-on-every-mutation obligation; O(weeks) is free at this scale.
+- **Runner-up:** stored streak with checkpointing — the right move only past ~2500 weeks, where folding the full history per load stops being free.
 
 ---
 
@@ -308,3 +328,4 @@ Then verify.
 
 ---
 Updated: 2026-05-17 — "Notion-side edits" replaced with "remote-side edits" for provider neutrality.
+Updated: 2026-05-29 — Added Tech reference section (fold/reduce / derive-not-store) per v1.42.0. Refreshed calculateStreak span L18–27→L18–28 and call site useGameState L150→L145. (isWeekComplete L46–48, line range L8–28 accurate.)

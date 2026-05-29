@@ -49,7 +49,7 @@ function buildWeekHistory(sessions: WorkoutSession[]): WeekProgress[] {
 }
 ```
 
-`src/hooks/useGameState.ts` L329–L351.
+`src/hooks/useGameState.ts` L311–L333.
 
 **Pass 1 — group.** For each session, compute `weekStart` via `getWeekStart` (`'YYYY-MM-DD'` of the Monday of that week — see [07-week-start-derivation](./07-week-start-derivation.md)). If the Map doesn't have that key yet, initialize an empty Set. Add `s.category` to the Set for that week.
 
@@ -144,9 +144,9 @@ sessions (unordered)                                  byWeek (after pass 1)
 
 **File:** `src/hooks/useGameState.ts`
 **Function / class:** `buildWeekHistory(sessions)`
-**Line range:** L329–L351
+**Line range:** L311–L333
 
-Called by `load()` at L149 to compute `prevWeeks` for the streak calculation.
+Called by `load()` at L144 to compute `prevWeeks` for the streak calculation.
 
 ---
 
@@ -204,6 +204,26 @@ Fine until session count exceeds ~100k or `load()` is called more than once per 
 ### Sub-block 4 — what wasn't actually a tradeoff
 
 A nested object (`{ [weekStart]: { push: bool, pull: bool, squat: bool } }`) was not picked because: (a) `Object` keys are strings and so are weekStarts — fine on shape, but (b) iterating `Object.entries` doesn't preserve insertion order across all JS engines reliably. `Map` does.
+
+---
+
+## Tech reference (industry pairing)
+
+### JavaScript `Map` + `Set` (in-memory group-by)
+
+- **Codebase uses:** `Map<string, Set<Category>>` in `buildWeekHistory` (`useGameState.ts` L311–333) — Map buckets by week-start, Set dedupes categories within a week.
+- **Why it's here:** the language-native group-by accumulator. Map preserves insertion order (Object doesn't reliably); Set makes "did category X happen this week?" an O(1) idempotent add.
+- **Leading today:** `Map` + `Set` group-by — `adoption-leading` for in-memory bucketing, 2026.
+- **Why it leads:** native, ordered, value-equality on string keys; no library.
+- **Runner-up:** `Map.groupBy` (TC39 / ES2024) and Lodash `groupBy` — terser, but Lodash adds a dependency and `Map.groupBy` returns arrays (needs a manual dedupe step the Set gives free).
+
+### SQL `GROUP BY` (the database-side alternative)
+
+- **Codebase uses:** Not used — grouping happens in JS over the already-loaded session array.
+- **Why it's here:** the move once session count or call frequency outgrows the JS two-pass loop.
+- **Leading today:** SQL `GROUP BY` on an indexed column — `adoption-leading` for set aggregation, 2026.
+- **Why it leads:** the query engine aggregates with an index in ~1ms; no full-table load into JS.
+- **Runner-up:** materialized `week_progress` rows (already maintained incrementally by `logSession`) — the codebase's actual fast path for the *current* week; `buildWeekHistory` is the historical replay.
 
 ---
 
@@ -279,7 +299,7 @@ Why Set instead of array? Under 60 seconds.
 ### Level 3 — Apply it to a new scenario
 "Add 'longest streak per category'. What bucket structure do you need?"
 
-Reference `useGameState.ts` L329.
+Reference `useGameState.ts` L311.
 
 ### Level 4 — Defend the decision you'd change
 "Push the grouping to SQL — when is it worth it?"
@@ -293,3 +313,4 @@ Then verify.
 
 ---
 Updated: 2026-05-17 — Week boundary now Monday-start, matching getWeekStart() change in week-progress.ts.
+Updated: 2026-05-29 — Added Tech reference section (JS Map+Set group-by / SQL GROUP BY) per v1.42.0. Refreshed buildWeekHistory line ref L329–351→L311–333 (How it works + In this codebase + Validate L3); call site L149→L144.

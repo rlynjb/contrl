@@ -39,7 +39,7 @@ if (allSessions.length > 0 && isDefaultLevels && gatesAreUntouched) {
 }
 ```
 
-`useGameState.ts` L112–L133. The fingerprint says "we have inputs but no interpretation":
+`useGameState.ts` L107–L133. The fingerprint says "we have inputs but no interpretation":
 1. **Sessions exist** — the sync pulled them down, otherwise there's nothing to replay.
 2. **All levels are default** (every category = 1) — no incremental updates have applied yet.
 3. **All current-level gates are untouched** (`consecutivePasses === 0` and no `lastSessionDate`) — no `logSession` has run.
@@ -192,12 +192,12 @@ The full picture is below.
 
 Trigger logic:
 - **File:** `src/hooks/useGameState.ts`
-- **Function:** `load()` (the reinstall-fingerprint check is at L112–L133)
+- **Function:** `load()` (the reinstall-fingerprint check is at L107–L133)
 
 Supporting:
 - `createGateProgress(category, level, userLevel)` — `src/lib/game/gate-check.ts` L23
 - The restore trigger: `app/_layout.tsx` L37–L42 — `useEffect` on `ready` fires `pullRestoreIfFresh().then(() => pushChanges())`
-- Restore engine: `src/services/sync/supabase-sync.ts` — `pullRestoreIfFresh()` L125–L190
+- Restore engine: `src/services/sync/supabase-sync.ts` — `pullRestoreIfFresh()` L130–L196
 - Restore flag: `restoreInProgress` (module-level in `supabase-sync.ts`) blocks fire-and-forget pushes during restore
 
 ---
@@ -384,3 +384,6 @@ Then verify.
 ---
 
 _Updated: 2026-05-17 — Trigger diagram rewritten for pullRestoreIfFresh() 5-table Supabase pull; why-care narrative updated; Sub-block 4 reframed (derived state IS now in Supabase); interview Q updated from Notion/pullSessions to Supabase/pullRestoreIfFresh; reconstructFromSessions repositioned as fallback not primary path._
+
+---
+Updated: 2026-05-29 — Refreshed drifted line refs: reinstall fingerprint L112–133→L107–133 (two spots), pullRestoreIfFresh L125–190→L130–196. (reconstruct.ts L13–72, gate-check createGateProgress L23, skip line L36–37, _layout L37–42 still accurate.)

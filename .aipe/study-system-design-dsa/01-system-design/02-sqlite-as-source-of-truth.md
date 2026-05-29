@@ -25,13 +25,13 @@ The strategy: **one connection, one file, application-managed migrations**.
 
 ### One connection, opened once
 
-`getDatabase()` in `src/services/database.ts` L16 is a module-level singleton. The first call opens `contrl.db` with `SQLite.openDatabaseAsync('contrl.db')` and runs `migrate()`; every subsequent call returns the same instance. If you're coming from frontend, this is like creating a single React Query client at the root of the app and using it everywhere — except this client is the database itself, not a layer over a remote one.
+`getDatabase()` in `src/services/database.ts` L17 is a module-level singleton. The first call opens `contrl.db` with `SQLite.openDatabaseAsync('contrl.db')` and runs `migrate()`; every subsequent call returns the same instance. If you're coming from frontend, this is like creating a single React Query client at the root of the app and using it everywhere — except this client is the database itself, not a layer over a remote one.
 
 The practical consequence: there is no connection pool because there's no server. Every query in the codebase calls `await getDatabase()`, gets the same handle back, and runs the SQL directly. A misbehaving query can't starve a connection because there's only one and it's owned by the JS thread.
 
 ### WAL mode for non-blocking reads
 
-`PRAGMA journal_mode = WAL` (L26) switches SQLite from rollback-journal mode to write-ahead-log mode. In rollback mode, a writer blocks readers; in WAL mode, readers see the last committed snapshot while a writer appends to the log. On the UI thread, this means a `getSessions()` call on render can proceed even if a `logSession()` write is in flight. Without WAL the skill tree would stutter every time you logged a set.
+`PRAGMA journal_mode = WAL` (L27) switches SQLite from rollback-journal mode to write-ahead-log mode. In rollback mode, a writer blocks readers; in WAL mode, readers see the last committed snapshot while a writer appends to the log. On the UI thread, this means a `getSessions()` call on render can proceed even if a `logSession()` write is in flight. Without WAL the skill tree would stutter every time you logged a set.
 
 ### Additive migrations on open
 
@@ -55,7 +55,7 @@ The practical consequence: shipping a new column is a two-line change in `migrat
 
 ### No ORM — direct SQL with hand-rolled row mappers
 
-Every table has a `rowToX(row)` function (e.g., `rowToExercise` at L213, `rowToSession` at L375). The row shape is the SQL schema; the domain shape is the TypeScript type. Mappers translate between them, including `snake_case → camelCase`, `INTEGER 0/1 → boolean`, `TEXT JSON → ExerciseEntry[]`.
+Every table has a `rowToX(row)` function (e.g., `rowToExercise` at L281, `rowToSession` at L413). The row shape is the SQL schema; the domain shape is the TypeScript type. Mappers translate between them, including `snake_case → camelCase`, `INTEGER 0/1 → boolean`, `TEXT JSON → ExerciseEntry[]`.
 
 This is the bridge to backend that frontend engineers most often miss: an ORM does this translation for you and adds a query DSL on top. With raw SQL, *you write the SQL string*, you write the mapper, and you carry the type-safety yourself with TypeScript generics like `db.getAllAsync<ExerciseRow>(…)`.
 
@@ -63,7 +63,7 @@ The practical consequence: queries are inspectable. There's no "what SQL did Pri
 
 ### Exercises as `JSON` inside a row
 
-`sessions.exercises_json` is a TEXT column holding `JSON.stringify(session.exercises)` (L299). This is a deliberate denormalization — we could have a separate `exercise_entries` table, but the entries are *always* read with the session and never updated independently. Stuffing them into one column trades query expressiveness for write/read simplicity: one insert, one parse on read.
+`sessions.exercises_json` is a TEXT column holding `JSON.stringify(session.exercises)`, written in `insertSession` (L371). This is a deliberate denormalization — we could have a separate `exercise_entries` table, but the entries are *always* read with the session and never updated independently. Stuffing them into one column trades query expressiveness for write/read simplicity: one insert, one parse on read.
 
 This is the same pattern as Postgres `jsonb` columns or MongoDB document fields — sometimes you want a fully-shaped record on disk, not a five-way join.
 
@@ -128,20 +128,20 @@ The full picture is below.
 ## In this codebase
 
 **File:** `src/services/database.ts`
-**Function / class:** `getDatabase()` (L16), `migrate()` (L24), `seedExercisesIfEmpty()` (L147)
-**Line range:** L14–L167
+**Function / class:** `getDatabase()` (L17), `migrate()` (L25), `seedExercisesIfEmpty()` (L214)
+**Line range:** L17–L236
 
 Public domain operations (all in `src/services/database.ts`):
-- User: `getUser` L171, `updateUserLevel` L194
-- Exercises: `getExercises` L230, `upsertExercise` L264, `deleteExercisesNotIn` L257
-- Sessions: `insertSession` L288, `getSessions` L307
-- Gate progress: `getAllGateProgress` L417, `updateGateProgress` L440
-- Week progress: `getAllWeekProgress` L474, `updateWeekProgress` L497
-- Drafts: `saveDraft` L516, `getDraft` L526, `deleteDraft` L544
-- Sync watermark: `getSyncState` L577, `setLastPushedAt` L588, `setLastPulledAt` L593
-- Tombstone outbox: `recordTombstone` L600, `getPendingTombstones` L609, `clearTombstones` L617
-- Restore utility: `clearLocalForRestore` L628
-- Sync ledger: `getAllSyncMeta()`, `setSyncMetaTouched(tableName)` — reads/writes the `sync_meta` table; called by `pushChanges()` after each per-table upsert and by the Settings UI SYNC LEDGER section
+- User: `getUser` L238, `updateUserLevel` L261
+- Exercises: `getExercises` L298, `upsertExercise` L346, `deleteExercisesNotIn` L332
+- Sessions: `insertSession` L371, `getSessions` L391
+- Gate progress: `getAllGateProgress` L455, `updateGateProgress` L478
+- Week progress: `getAllWeekProgress` L513, `updateWeekProgress` L536
+- Drafts: `saveDraft` L556, `getDraft` L566, `deleteDraft` L584
+- Sync watermark: `getSyncState` L591, `setLastPushedAt` L602, `setLastPulledAt` L607
+- Tombstone outbox: `recordTombstone` L614, `getPendingTombstones` L623, `clearTombstones` L631
+- Restore utility: `clearLocalForRestore` L671
+- Sync ledger: `getAllSyncMeta()` L644, `setSyncMetaTouched(tableName)` L663 — reads/writes the `sync_meta` table; called by `pushChanges()` after each per-table upsert and by the Settings UI SYNC LEDGER section
 
 ---
 
@@ -188,7 +188,7 @@ Multi-process access (a widget process and the app process both reading the same
 
 The hardest cost is migration discipline. Without a version table, the team must commit to additive-only migrations forever. A rename is a 4-step dance (add new column, copy values, deploy, drop old) and a `DROP` migration risks breaking older binaries still installed on a user's phone. The codebase enforces this via convention — every column added uses `PRAGMA table_info` + `ALTER TABLE ADD COLUMN IF NOT EXISTS` — but the convention is paper-thin.
 
-The second cost is multi-user: there is no concept of "another user's data". `user_profile` has a hard-coded `id = 'default'` (L29). If we ever needed multi-user-per-device, every query would need a `WHERE user_id = ?` rewrite — call it a week of mechanical work plus a migration.
+The second cost is multi-user: there is no concept of "another user's data". `user_profile` has a hard-coded `id = 'default'` (L30). If we ever needed multi-user-per-device, every query would need a `WHERE user_id = ?` rewrite — call it a week of mechanical work plus a migration.
 
 A third cost: no triggers, no stored procedures, no constraints beyond primary key. All invariants are enforced in TypeScript — for example, "a session's exercises_json must parse to an `ExerciseEntry[]`" is only true because every writer goes through `insertSession`. There's no DB-level guard.
 
@@ -214,7 +214,7 @@ Realm and WatermelonDB are the usual alternatives floated for "I want better DX 
 
 ### expo-sqlite (WAL)
 
-- **Codebase uses:** `expo-sqlite` opened via `SQLite.openDatabaseAsync('contrl.db')`. WAL mode set in `migrate()` L26.
+- **Codebase uses:** `expo-sqlite` opened via `SQLite.openDatabaseAsync('contrl.db')`. WAL mode set in `migrate()` L27.
 - **Why it's here:** the embedded engine. If swapped out for AsyncStorage or MMKV, ACID transactions and queries disappear.
 - **Leading today:** `expo-sqlite` — `adoption-leading`, 2026.
 - **Why it leads:** ships with Expo SDK; minimal native config; async API matches the JS thread's non-blocking model.
@@ -337,7 +337,7 @@ Checkpoints:
 ### Level 3 — Apply it to a new scenario
 "You're asked to add a `tags` field to exercises that's an arbitrary list of strings. How would you migrate the schema?"
 
-Write your answer (3–5 sentences). Then open `src/services/database.ts` L102–L119 and check whether your answer matches the additive pattern.
+Write your answer (3–5 sentences). Then open `src/services/database.ts` L118–L131 and check whether your answer matches the additive pattern.
 
 ### Level 4 — Defend the decision you'd change
 "If you were starting today, would you still pick raw SQL over Drizzle?" Reference `src/services/database.ts` to support what exists, and what would change with Drizzle.
@@ -355,3 +355,4 @@ _Updated: 2026-05-17 — Added sync_state as 8th table; replaced Notion-era func
 
 ---
 Updated: 2026-05-19 — Added sync_meta as 9th SQLite table; all "8 tables" counts bumped to 9; sync_meta box added to primary diagram; getAllSyncMeta/setSyncMetaTouched added to public-operations list.
+Updated: 2026-05-29 — Refreshed all drifted database.ts line refs (functions shifted as migrate()/seed grew): full public-operations list re-numbered (getUser L238 … clearLocalForRestore L671, sync-ledger helpers L644/L663), getDatabase L17, migrate L25, seed L214, WAL pragma L27, rowToExercise/rowToSession L281/L413, exercises_json write in insertSession L371, user_profile default L30, Validate L3 column-migration region L118–131.

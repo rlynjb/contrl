@@ -33,9 +33,10 @@ The diagram in [`../00-overview.md`](../00-overview.md) is the load-bearing visu
 
 ## Where to drill in
 
-- Need to understand sync end-to-end? Read **11-supabase-mirror-sync**. Files 03, 04, 08, 09 are Notion-era and flagged as TODO (pending decision: rewrite vs remove).
+- Need to understand sync end-to-end? Read **11-supabase-mirror-sync**. (The numbering skips 03, 04, 08, 09 — those catalog slots had no applicable pattern after the Notion→Supabase migration and were removed.)
 - Need to understand state ownership? Start at **05-derived-state**, then **06-reconstruction-on-reinstall**.
 - Need to understand the camera pipeline? Start at **07-pose-detection-pipeline**.
 
 ---
 Updated: 2026-05-17 — File index entries for 01, 03, 04, 08, 09 updated to reflect Supabase migration; stale Notion-era files flagged with TODO.
+Updated: 2026-05-29 — Removed stale "files 03/04/08/09 flagged TODO" note (those files no longer exist); reworded the numbering-gap explanation.

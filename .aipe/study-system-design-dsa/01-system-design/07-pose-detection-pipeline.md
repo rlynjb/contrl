@@ -5,7 +5,7 @@
 
 > Camera frames flow into MediaPipe's GPU-delegated pose landmarker, which emits 33 landmarks per frame at ~30fps. Each frame's landmarks pass through a per-exercise processor (averaging left/right joints, exponential smoothing, FSM update) to count reps. All on-device, no network involved.
 
-**See also:** → [02-dsa/05-rep-counter-state-machine](../02-dsa/05-rep-counter-state-machine.md) · → [02-dsa/06-exponential-smoothing](../02-dsa/06-exponential-smoothing.md) · → [04-machine-learning/13-on-device-inference](../04-machine-learning/13-on-device-inference.md)
+**See also:** → [02-dsa/05-rep-counter-state-machine](../02-dsa/05-rep-counter-state-machine.md) · → [02-dsa/06-exponential-smoothing](../02-dsa/06-exponential-smoothing.md) · → on-device inference: [study-ai-engineering/08-machine-learning/13-on-device-inference](../../study-ai-engineering/08-machine-learning/13-on-device-inference.md)
 
 ---
 
@@ -213,7 +213,7 @@ The other breakpoint: pose-based rep counting is *only* accurate for well-formed
 
 - [02-dsa/05-rep-counter-state-machine](../02-dsa/05-rep-counter-state-machine.md) → the FSM in detail
 - [02-dsa/06-exponential-smoothing](../02-dsa/06-exponential-smoothing.md) → why smoothing matters
-- [04-machine-learning/02-feature-engineering-from-pose](../04-machine-learning/02-feature-engineering-from-pose.md) → the future of these landmarks
+- [study-ai-engineering/08-machine-learning/02-feature-engineering-from-pose](../../study-ai-engineering/08-machine-learning/02-feature-engineering-from-pose.md) → the future of these landmarks
 
 ---
 
@@ -388,3 +388,6 @@ Reference `src/lib/pose/exercises/plank.ts` for the "hold timer" pattern.
 - What's the file path for `RepCounter`?
 
 Then verify.
+
+---
+Updated: 2026-05-29 — Redirected two stale `04-machine-learning/` links (See also + What to explore next) to the study-ai-engineering companion guide where ML content now lives. All source line refs (PoseCamera L44/L69, pushup L23–36, rep-counter L21/L31/L36–72, angles L7/L21/L25, landmarks L13) verified accurate — no line drift.

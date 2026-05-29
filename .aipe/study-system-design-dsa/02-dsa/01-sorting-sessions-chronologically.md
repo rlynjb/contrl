@@ -178,6 +178,26 @@ A custom non-comparator sort (e.g., bucket sort by year-month) would be over-eng
 
 ---
 
+## Tech reference (industry pairing)
+
+### Array.prototype.sort (V8 / Hermes)
+
+- **Codebase uses:** `[...sessions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())` in `reconstruct.ts` L17; the same comparator shape in `useExerciseForm.ts` L36 (date DESC).
+- **Why it's here:** the language-native comparator sort. No dependency, no custom implementation — the one line every JS engineer reads at a glance.
+- **Leading today:** built-in `Array.prototype.sort` — `adoption-leading`, 2026.
+- **Why it leads:** V8 uses TimSort (stable, O(n log n)); Hermes (React Native's engine) ships a stable sort too. Stability is load-bearing here — same-timestamp sessions keep input order.
+- **Runner-up:** SQL `ORDER BY date ASC` — push the sort into the `getSessions()` query. The right move past ~1M rows, where per-comparison `new Date(...)` allocation dominates.
+
+### Date.prototype.getTime (epoch-ms keys)
+
+- **Codebase uses:** `new Date(iso).getTime()` as the sort key, and the same epoch-ms form in surrounding conflict-resolution comparisons.
+- **Why it's here:** a monotonic numeric key for the comparator; reused elsewhere so the codebase treats dates as epoch ms consistently.
+- **Leading today:** `Date.getTime()` — `adoption-leading` for date-to-number conversion, 2026.
+- **Why it leads:** built-in, monotonic, integer math; no parsing ambiguity once converted.
+- **Runner-up:** `String.prototype.localeCompare` on the ISO strings — works because ISO 8601 sorts lexicographically; skips the `Date` allocation but loses the numeric reuse.
+
+---
+
 ## Summary
 
 ### Concept recap
@@ -279,3 +299,6 @@ Compare against patterns in `useExerciseForm.ts` L33.
 - Does `sort` mutate?
 
 Then verify.
+
+---
+Updated: 2026-05-29 — Added Tech reference section (Array.prototype.sort / Date.getTime) per v1.42.0 every-concept-file rule. Line refs verified accurate: reconstruct.ts L17–19, useExerciseForm.ts L33–37 — no drift.

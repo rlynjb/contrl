@@ -45,7 +45,7 @@ If you're coming from frontend, the analogy is Redux: `sessions` is the action l
 
 ### Why even store derivations locally?
 
-`gate_progress` and `week_progress` *are* in SQLite — they're not recomputed from scratch on every render. The reason is performance: on app open, we want to paint the skill tree in tens of milliseconds, not after a full session-replay. So we maintain incremental updates in `logSession` (`useGameState.ts` L192–L287): when a new session is logged, the gate row updates in place.
+`gate_progress` and `week_progress` *are* in SQLite — they're not recomputed from scratch on every render. The reason is performance: on app open, we want to paint the skill tree in tens of milliseconds, not after a full session-replay. So we maintain incremental updates in `logSession` (`useGameState.ts` L174–L283): when a new session is logged, the gate row updates in place.
 
 The local DB is a cache of the derivation. It's allowed to be wrong (stale, missing rows) because we have a recovery path: `reconstructFromSessions` walks the session log and rebuilds the derivation deterministically. The cache is convenience; the session log is truth.
 
@@ -65,7 +65,7 @@ if (allSessions.length > 0 && isDefaultLevels && gatesAreUntouched) {
 }
 ```
 
-`useGameState.ts` L112–L133. The condition detects a "freshly initialized" state: sessions exist (we just pulled them from Supabase, but the derived rows didn't populate correctly) but levels are default and gates have no recorded progress. That's the reinstall fingerprint — sessions arrived, derivation didn't. The fix is to recompute from the session log. Under the normal reinstall path this trigger should not fire, because `pullRestoreIfFresh()` pulls all five tables including gate_progress and week_progress. See [06-reconstruction-on-reinstall](./06-reconstruction-on-reinstall.md) for the replay itself.
+`useGameState.ts` L107–L133. The condition detects a "freshly initialized" state: sessions exist (we just pulled them from Supabase, but the derived rows didn't populate correctly) but levels are default and gates have no recorded progress. That's the reinstall fingerprint — sessions arrived, derivation didn't. The fix is to recompute from the session log. Under the normal reinstall path this trigger should not fire, because `pullRestoreIfFresh()` pulls all five tables including gate_progress and week_progress. See [06-reconstruction-on-reinstall](./06-reconstruction-on-reinstall.md) for the replay itself.
 
 This works *because* the rule is upheld everywhere else: gates/levels/weeks are *always* a function of sessions. If we ever broke that rule (e.g., let users manually set their level), reconstruction would silently overwrite their manual edits.
 
@@ -123,16 +123,16 @@ Streak is never stored remotely — computed at render time from buildWeekHistor
 
 **File:** `src/hooks/useGameState.ts`
 **Function / class:** `useGameStateInternal()` → `load()` → optional `reconstructFromSessions`
-**Line range:** L68–L158 (load orchestration); L112–L133 (reconstruction trigger)
+**Line range:** L67–L158 (load orchestration); L107–L133 (reconstruction trigger)
 
 Derivation functions:
 - `reconstructFromSessions(sessions)` — `src/lib/game/reconstruct.ts` L13
-- `buildWeekHistory(sessions)` — `src/hooks/useGameState.ts` L329
+- `buildWeekHistory(sessions)` — `src/hooks/useGameState.ts` L311
 - `calculateStreak(history)` — `src/lib/game/streaks.ts` L18
 - `getWeekStart(date)` — `src/lib/game/week-progress.ts` L7
 
 Incremental updates (the cache path):
-- `logSession()` — `useGameState.ts` L192. Updates `gate_progress` and `week_progress` in place, advances `*_level` if a gate passes.
+- `logSession()` — `useGameState.ts` L174. Updates `gate_progress` and `week_progress` in place, advances `*_level` if a gate passes.
 
 ---
 
@@ -314,7 +314,7 @@ Explain to a teammate why derived state (gates, weeks) now syncs to Supabase eve
 ### Level 3 — Apply it to a new scenario
 "A user asks: I want to manually set my level. How would the codebase handle that, and what would go wrong?"
 
-Trace through `reconstructFromSessions` and decide whether the manual override survives a reload. Reference `src/hooks/useGameState.ts` L119.
+Trace through `reconstructFromSessions` and decide whether the manual override survives a reload. Reference `src/hooks/useGameState.ts` L114.
 
 ### Level 4 — Defend the decision you'd change
 "Gates now sync to Supabase. If derived state becomes stale on Supabase (e.g., a partial push failed), what is the recovery path?" What changes and what stays the same if derived state in Supabase were treated as authoritative?
@@ -332,3 +332,4 @@ _Updated: 2026-05-17 — "Synced to Notion?" column renamed and all rows updated
 
 ---
 Updated: 2026-05-19 — Added sync_meta row to synced-tables table (local-only, per-table push ledger); Level 1 validate bumped to nine tables; Key points updated to list sync_meta as local-only.
+Updated: 2026-05-29 — Refreshed drifted useGameState.ts line refs: load orchestration L68→L67, reconstruction trigger L112–133→L107–133, logSession L192→L174, buildWeekHistory L329→L311, Validate L3 ref L119→L114.

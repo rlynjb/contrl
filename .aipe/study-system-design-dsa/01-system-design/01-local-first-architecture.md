@@ -98,14 +98,14 @@ Everything above the boundary still works.
 ## In this codebase
 
 **File:** `src/services/database.ts`
-**Function / class:** `getDatabase()`, `migrate()`, `seedExercisesIfEmpty()`
-**Line range:** L14–L167
+**Function / class:** `getDatabase()` L17, `migrate()` L25, `seedExercisesIfEmpty()` L214
+**Line range:** L17–L259
 
 The single entry point is `getDatabase()` — module-scoped singleton, opens `contrl.db` once per app lifetime, runs additive migrations, seeds exercises if empty.
 
-**Sync engine:**  `src/services/sync/supabase-sync.ts` — `pushChanges()` L34–L123, `pullRestoreIfFresh()` L125–L190
+**Sync engine:**  `src/services/sync/supabase-sync.ts` — `pushChanges()` L34–L128, `pullRestoreIfFresh()` L130–L191
 **Client:**       `src/services/sync/client.ts` — supabase singleton
-**Watermark:**    `src/services/database.ts` — sync_state table, `getSyncState` L577, `setLastPushedAt` L588, `setLastPulledAt` L593
+**Watermark:**    `src/services/database.ts` — sync_state table, `getSyncState` L591, `setLastPushedAt` L602, `setLastPulledAt` L607
 **Trigger:**      `app/_layout.tsx` — `useEffect` on `ready` fires `pullRestoreIfFresh().then(pushChanges)` L37–L42
 
 The tombstone outbox (`sync_deletions`) records deletes before they happen locally — `recordTombstone` is called before the local DELETE so no write is ever lost silently.
@@ -311,7 +311,7 @@ Checkpoints:
 ### Level 3 — Apply it to a new scenario
 "You're asked to add a 'workout history' export feature that produces a CSV of all sessions. Should the export hit Supabase or SQLite, and why?"
 
-Write your answer. 3–5 sentences. Then open `src/services/database.ts` L307 (`getSessions`) and check whether your answer matches what the codebase would do.
+Write your answer. 3–5 sentences. Then open `src/services/database.ts` L391 (`getSessions`) and check whether your answer matches what the codebase would do.
 
 ### Level 4 — Defend the decision you'd change
 "If I were starting contrl today, would I still pick local-first?" Answer in writing. Reference `src/services/sync/supabase-sync.ts` to support what exists, and name what would need to change for the alternative.
@@ -330,3 +330,4 @@ _Updated: 2026-05-17 — Cloud mirror swapped Notion → Supabase; sync module n
 
 ---
 Updated: 2026-05-19 — Note reindb shared project + contrl schema (db:{schema:'contrl'}); table count bumped to 8+sync_meta; local-only table list updated to include sync_meta.
+Updated: 2026-05-29 — Refreshed drifted line refs: getDatabase/migrate/seed (L17/L25/L214), pushChanges L34–128, pullRestoreIfFresh L130–191, getSyncState/setLastPushedAt/setLastPulledAt L591/602/607, getSessions L307→L391 in Validate L3.

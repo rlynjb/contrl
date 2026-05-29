@@ -87,7 +87,7 @@ On app ready (app/_layout.tsx useEffect on `ready`):
 - **`supabase`** — `src/services/sync/client.ts`. Supabase JS client configured with anon key + URL from `EXPO_PUBLIC_*` env vars.
 - **`sync_state` table** — SQLite table with `id='default'`, `last_pushed_at`, `last_pulled_at`. Tracks watermarks for push/pull decisions.
 - **`sync_meta` table** — per-table last-synced-at ledger; `pushChanges()` writes here via `setSyncMetaTouched(tableName)` after each per-table upsert; Settings UI reads all 5 rows via `getAllSyncMeta()` to render the SYNC LEDGER section.
-- **`useGameStateInternal(dbReady)`** — `src/hooks/useGameState.ts` L68. Owns the load orchestration and the reinstall-reconstruction trigger.
+- **`useGameStateInternal(dbReady)`** — `src/hooks/useGameState.ts` L67. Owns the load orchestration and the reinstall-reconstruction trigger.
 - **`load()`** — Reads from SQLite, detects reinstall (sessions present + default levels + untouched gates), runs `reconstructFromSessions` if so, persists, then sets state.
 - **`reconstructFromSessions(sessions)`** — `src/lib/game/reconstruct.ts` L13. Pure: sort chronologically, replay each session through gate evaluation. Idempotent.
 - **`RepCounter`** — `src/lib/pose/rep-counter.ts` L21. Finite state machine, 10° hysteresis, no external state.
@@ -98,8 +98,11 @@ On app ready (app/_layout.tsx useEffect on `ready`):
 - **`sync_deletions` table** — Records local deletions that need to propagate to Supabase as DELETE on next push (originally a Notion-era table, repurposed for Supabase tombstones; `notion_page_id` column now nullable).
 - **Reinstall detection** — `useGameStateInternal` L112–L119: sessions exist AND all levels are 1 AND all current-level gates have `consecutivePasses === 0` and no `lastSessionDate`. Then `reconstructFromSessions` runs.
 
-→ Section indexes: [01-system-design/README.md](./01-system-design/README.md) · [02-dsa/README.md](./02-dsa/README.md) · [03-ai-engineering/README.md](./03-ai-engineering/README.md) · [04-machine-learning/README.md](./04-machine-learning/README.md)
+→ Section indexes: [01-system-design/README.md](./01-system-design/README.md) · [02-dsa/README.md](./02-dsa/README.md)
+
+(AI engineering and ML moved to the companion guide `.aipe/study-ai-engineering/`; prompt engineering to `.aipe/study-prompt-engineering/`.)
 
 ---
 Updated: 2026-05-17 — Notion replaced by Supabase throughout; NotionSyncProvider/useNotionSync/syncAll/rateLimit/notionFetch removed from legend; pushChanges/pullRestoreIfFresh/supabase client/sync_state added; sync_deletions description updated; week boundary Mon–Sun.
 Updated: 2026-05-19 — Added sync_meta as 9th SQLite table in diagram and legend.
+Updated: 2026-05-29 — Removed dead footer links to 03-ai-engineering/ and 04-machine-learning/ (those sections moved to the study-ai-engineering companion guide); refreshed useGameStateInternal line ref L68→L67.

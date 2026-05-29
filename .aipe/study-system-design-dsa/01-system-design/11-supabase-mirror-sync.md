@@ -85,7 +85,7 @@ The arrows are directional and asymmetric. Most of the time only the upward arro
 
 #### The watermark
 
-`sync_state` in SQLite holds a single row (`id = 'default'`) with two ISO-string columns: `last_pushed_at` and `last_pulled_at`. The watermark for pushes is `last_pushed_at`, stored and read by `getSyncState()` / `setLastPushedAt()` in `src/services/database.ts` (lines 577–591).
+`sync_state` in SQLite holds a single row (`id = 'default'`) with two ISO-string columns: `last_pushed_at` and `last_pulled_at`. The watermark for pushes is `last_pushed_at`, stored and read by `getSyncState()` / `setLastPushedAt()` in `src/services/database.ts` (lines 591–607).
 
 When `pushChanges()` runs, it reads `since = lastPushedAt`. Each entity is then filtered: `rows.filter(r => r.updatedAt && r.updatedAt > since)`. If `since` is null (first push ever), all rows qualify. After a fully successful push, `setLastPushedAt(now)` advances the watermark so the next push only sees rows modified after this moment.
 
@@ -507,13 +507,13 @@ Every architectural layer from user action to Supabase Postgres, including the s
 
 ## In this codebase
 
-- **Sync engine:** `/Users/rein/Public/contrl/src/services/sync/supabase-sync.ts` — `pushChanges()` (lines 34–123) and `pullRestoreIfFresh()` (lines 125–191). The `restoreInProgress` flag lives at module scope (line 32).
+- **Sync engine:** `/Users/rein/Public/contrl/src/services/sync/supabase-sync.ts` — `pushChanges()` (lines 34–128) and `pullRestoreIfFresh()` (lines 130–196). The `restoreInProgress` flag lives at module scope (line 32).
 - **Client:** `src/services/sync/client.ts` — supabase singleton created with anon key, `persistSession: false`, `autoRefreshToken: false`. The `createClient` call passes `db: { schema: 'contrl' }` so all `.from('sessions')` etc. resolve under the `contrl` schema on reindb, not in public.
 - **Config:** `/Users/rein/Public/contrl/src/services/sync/config.ts` — reads `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, `EXPO_PUBLIC_USER_ID` from environment; falls back to hardcoded UUID.
 - **Mapper:** `/Users/rein/Public/contrl/src/services/sync/mapper.ts` — `sessionToRemote`/`sessionFromRemote`, `exerciseToRemote`/`exerciseFromRemote`, `gateToRemote`/`gateFromRemote`, `weekToRemote`/`weekFromRemote`, `userToRemote`/`userFromRemote`.
-- **Watermark storage:** `/Users/rein/Public/contrl/src/services/database.ts` — `sync_state` table (lines 103–107 in migration), `getSyncState()` (577), `setLastPushedAt()` (588), `setLastPulledAt()` (593).
-- **Tombstones:** `/Users/rein/Public/contrl/src/services/database.ts` — `recordTombstone()` (600), `getPendingTombstones()` (609), `clearTombstones()` (617). Called before local DELETE in `deleteSession()` (302–305), `deleteAllExercises()` (308–315), `deleteExercisesNotIn()` (318–329).
-- **Restore wipe:** `/Users/rein/Public/contrl/src/services/database.ts` — `clearLocalForRestore()` (628–636) deletes rows from exercises, sessions, gate_progress, week_progress. Does not record tombstones.
+- **Watermark storage:** `/Users/rein/Public/contrl/src/services/database.ts` — `sync_state` table (lines 103–107 in migration), `getSyncState()` (591), `setLastPushedAt()` (602), `setLastPulledAt()` (607).
+- **Tombstones:** `/Users/rein/Public/contrl/src/services/database.ts` — `recordTombstone()` (614), `getPendingTombstones()` (623), `clearTombstones()` (631). Called before local DELETE in `deleteSession()` (315–319), `deleteAllExercises()` (322–329), `deleteExercisesNotIn()` (332–344).
+- **Restore wipe:** `/Users/rein/Public/contrl/src/services/database.ts` — `clearLocalForRestore()` (671–679) deletes rows from exercises, sessions, gate_progress, week_progress. Does not record tombstones.
 - **Trigger:** `/Users/rein/Public/contrl/app/_layout.tsx` — `useEffect` at line 37: `pullRestoreIfFresh().then(() => pushChanges())` fires once when `ready === true`.
 - **Schema:** `supabase/migrations/0001_contrl_schema.sql` — Postgres DDL for the 5 synced tables under the `contrl` schema on reindb (the shared Supabase project that also hosts the buffr app under its own `buffr` schema).
 - **JWT mint script (unused after MVP):** `/Users/rein/Public/contrl/scripts/generate-jwt.mjs` — left in repo for when RLS is re-enabled with per-user policies.
@@ -738,7 +738,7 @@ Explain the following sequence without looking at the file: "User logs a workout
 Expected answer includes: per-writer `pushChanges()` fires → watermark filters to the new session → upsert to Supabase → watermark advances. On reinstall: `pullRestoreIfFresh()` checks `last_pulled_at IS NULL` and `sessions.length === 0` → both true → `clearLocalForRestore()` → `SELECT *` from all five tables → `INSERT OR REPLACE` into SQLite → `setLastPulledAt(now)` and `setLastPushedAt(now)` → `restoreInProgress = false` → normal app open continues.
 
 **Level 3 — Apply to a new scenario.**
-A user deletes three sessions while the phone is in airplane mode. They reopen the app two days later with network access. Trace the exact code path from `deleteSession()` to the moment those rows are gone from Supabase. Identify the file and function at each step. (Hint: start at `src/services/database.ts` line 301.)
+A user deletes three sessions while the phone is in airplane mode. They reopen the app two days later with network access. Trace the exact code path from `deleteSession()` to the moment those rows are gone from Supabase. Identify the file and function at each step. (Hint: start at `src/services/database.ts` line 315.)
 
 **Level 4 — Defend the tradeoff.**
 You're in a system design interview. The interviewer says: "Your watermark approach means if a push fails halfway through, you'll re-push rows that already made it to Supabase. Isn't that wasteful?" Defend the design choice, including: why UPSERT semantics make this safe, what the alternative would cost (per-entity success tracking), and when the current approach would actually need to change.
@@ -757,3 +757,4 @@ You're in a system design interview. The interviewer says: "Your watermark appro
 
 ---
 Updated: 2026-05-19 — Schema bullet updated to reindb shared project + contrl schema migration; client bullet notes db:{schema:'contrl'}; Phase A description updated; new "The per-table sync ledger" sub-section added (sync_meta table, setSyncMetaTouched/getAllSyncMeta helpers, mechanism diagram, data-flow diagram).
+Updated: 2026-05-29 — Refreshed drifted database.ts line refs (functions shifted ~+14/+40 as migrate() grew): pushChanges L34–128, pullRestoreIfFresh L130–196, getSyncState/setLast* 591/602/607, recordTombstone/getPendingTombstones/clearTombstones 614/623/631, deleteSession/deleteAllExercises/deleteExercisesNotIn 315/322/332, clearLocalForRestore 671–679, watermark mention 591–607, Validate L3 hint line 301→315.

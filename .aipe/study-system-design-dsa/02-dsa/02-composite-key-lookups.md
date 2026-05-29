@@ -29,7 +29,7 @@ function gateKey(category: Category, level: number) {
 }
 ```
 
-`src/hooks/useGameState.ts` L56. One helper that every gate operation uses. The colon is arbitrary but standard — it's not a value that ever appears inside `category` or `level`, so the parse is unambiguous.
+`src/hooks/useGameState.ts` L55. One helper that every gate operation uses. The colon is arbitrary but standard — it's not a value that ever appears inside `category` or `level`, so the parse is unambiguous.
 
 For the SQLite side, the same string is the primary key:
 
@@ -41,7 +41,7 @@ await d.runAsync(
 );
 ```
 
-`src/services/database.ts` L443–L448. Both `level` and `category` are *also* stored as separate columns, which seems redundant — but the redundancy is intentional. The composite `id` is the lookup key; the separate columns let SQL `WHERE category = ?` queries use a regular index.
+`src/services/database.ts` L481–L486. Both `level` and `category` are *also* stored as separate columns, which seems redundant — but the redundancy is intentional. The composite `id` is the lookup key; the separate columns let SQL `WHERE category = ?` queries use a regular index.
 
 ### Lookup
 
@@ -151,10 +151,10 @@ With ≤ 15 gates per user (5 levels × 3 categories), full iteration is fast. N
 ## In this codebase
 
 **Files / functions:**
-- `src/hooks/useGameState.ts` L56 `gateKey(category, level)`
-- `src/services/database.ts` L443 `updateGateProgress` constructs `id = ${gp.category}:${gp.level}`
-- `src/services/database.ts` L402 `getGateProgress` queries by `WHERE id = ?`
-- `src/services/database.ts` L526 `getDraft` uses `draft:${category}:${level}`
+- `src/hooks/useGameState.ts` L55 `gateKey(category, level)`
+- `src/services/database.ts` L478 `updateGateProgress` constructs `id = ${gp.category}:${gp.level}`
+- `src/services/database.ts` L434 `getGateProgress` queries by `WHERE id = ?`
+- `src/services/database.ts` L566 `getDraft` uses `draft:${category}:${level}`
 - `src/lib/game/reconstruct.ts` L24 `getGate(cat, level)` uses `${cat}:${level}` for the in-memory accumulator
 
 ---
@@ -214,6 +214,26 @@ Fine until attribute count exceeds 3–4 or until any attribute's value space ca
 ### Sub-block 4 — what wasn't actually a tradeoff
 
 A SQL-style tuple primary key (`PRIMARY KEY (category, level)`) was not picked because we'd still need a string-shaped lookup key from JS — the underlying SQL form is irrelevant if the JS layer treats keys as strings.
+
+---
+
+## Tech reference (industry pairing)
+
+### SQLite TEXT PRIMARY KEY
+
+- **Codebase uses:** `gate_progress.id TEXT PRIMARY KEY` holding `${category}:${level}`; `drafts.id` holding `draft:${category}:${level}`. Lookup via `WHERE id = ?` in `getGateProgress` (`database.ts` L434) and `getDraft` (L566).
+- **Why it's here:** a single-column primary key is the simplest round-trippable key shape, and SQLite seeks it via a B-tree index in effectively O(1) at this scale.
+- **Leading today:** SQLite TEXT primary key — `adoption-leading` for single-column composite keys on mobile, 2026.
+- **Why it leads:** maps 1:1 to the JS string key; no join, no compound-index bookkeeping; the redundant `category`/`level` columns cover range queries.
+- **Runner-up:** SQL tuple key `PRIMARY KEY (category, level)` — first-class compound key, but the JS layer still needs a string, so the conversion buys nothing here.
+
+### JS template literals + `Record<string, T>`
+
+- **Codebase uses:** `gateKey()` (`useGameState.ts` L55) builds the key; `gateProgress: Record<string, GateProgress>` is the in-memory hashmap; `reconstruct.ts` L24 uses the same key for its accumulator.
+- **Why it's here:** JS objects compare keys by string value, so a concatenated string gives value-equality for free — what a `Map` keyed on an object cannot.
+- **Leading today:** template-literal string keys — `adoption-leading` for JS composite map keys, 2026.
+- **Why it leads:** zero allocation beyond the string, value-equality semantics, round-trips cleanly to SQLite and back.
+- **Runner-up:** `Map` with interned object keys — preserves structure but needs a key-interning cache to get value-equality; more code for no gain at 2 attributes.
 
 ---
 
@@ -288,3 +308,6 @@ Reference `database.ts` L443–L448.
 - What's the SQLite column name?
 
 Then verify.
+
+---
+Updated: 2026-05-29 — Added Tech reference section (SQLite TEXT PRIMARY KEY / JS template-literal keys) per v1.42.0. Refreshed drifted refs: gateKey useGameState L56→L55, updateGateProgress L443→L478 (INSERT L481–486), getGateProgress L402→L434, getDraft L526→L566. (reconstruct getGate L24 accurate.)

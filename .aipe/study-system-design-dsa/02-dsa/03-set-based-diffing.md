@@ -32,7 +32,7 @@ export async function deleteExercisesNotIn(ids: string[]): Promise<void> {
 }
 ```
 
-`src/services/database.ts` L257–L262. Two things to notice:
+`src/services/database.ts` L332–L344. Two things to notice:
 
 1. **Empty-list early return.** If `ids` is empty, `WHERE id NOT IN ()` is invalid SQL — every database I know rejects empty `IN ()` clauses. We short-circuit to `deleteAllExercises()`. This is the canonical fix for the "empty IN list" SQL trap.
 
@@ -224,6 +224,26 @@ A `WITH` CTE in SQL for the JS Set use case wasn't a real option — SQLite woul
 
 ---
 
+## Tech reference (industry pairing)
+
+### JavaScript `Set`
+
+- **Codebase uses:** `new Set<string>()` + `.has()` in the JS reconciliation form; also `new Set(cols.map(c => c.name))` in `migrate()` to test column presence.
+- **Why it's here:** O(1) membership testing turns an O(n×m) loop-and-check into an O(n+m) diff.
+- **Leading today:** built-in `Set` — `adoption-leading` for membership tests, 2026.
+- **Why it leads:** native, hash-backed, value-equality on primitives; no library and no allocation beyond the set itself.
+- **Runner-up:** a plain object used as a lookup (`{[id]: true}`) — works for string keys but carries prototype-pollution footguns `Set` avoids.
+
+### SQL `NOT IN` + parameterized placeholders
+
+- **Codebase uses:** `DELETE FROM exercises WHERE id NOT IN (${placeholders})` in `deleteExercisesNotIn` (`database.ts` L332–344), with `ids.map(() => '?').join(',')` building the bind list and an empty-list guard delegating to `deleteAllExercises()`.
+- **Why it's here:** the single-table anti-join the query engine executes directly; parameterized placeholders are the only injection-safe way to build it.
+- **Leading today:** parameterized `NOT IN` — `adoption-leading` for single-table set-difference deletes, 2026.
+- **Why it leads:** uses the primary-key index; one statement; no temp table at this scale.
+- **Runner-up:** temp-table anti-join (`INSERT remote ids → DELETE WHERE id NOT IN (SELECT …)`) — the right move past SQLite's ~1000 bind-parameter limit.
+
+---
+
 ## Summary
 
 ### Concept recap
@@ -294,7 +314,7 @@ Sketch the remote / local arrays and the Set used to diff them.
 Explain the set-based diff pattern and when to use it. Under 60 seconds.
 
 ### Level 3 — Apply it to a new scenario
-"Add `deleteSessionsNotIn(notionIds)` — same pattern, applied to sessions." Reference `database.ts` L257.
+"Add `deleteSessionsNotIn(remoteIds)` — same pattern, applied to sessions." Reference `database.ts` L332.
 
 ### Level 4 — Defend the decision you'd change
 "Would you ever cache the remote set instead of rebuilding it each sync?" When?
@@ -308,3 +328,4 @@ Then verify.
 
 ---
 Updated: 2026-05-17 — Notion-specific codebase anchor removed (sync.ts deleted in b057136); In this codebase block updated to note deprecation and Supabase analog; pseudocode neutralized to remoteId.
+Updated: 2026-05-29 — Added Tech reference section (JS Set / SQL NOT IN) per v1.42.0. Refreshed deleteExercisesNotIn line ref L257→L332–344 (How it works + Validate L3). Validate L3 `notionIds`→`remoteIds`.

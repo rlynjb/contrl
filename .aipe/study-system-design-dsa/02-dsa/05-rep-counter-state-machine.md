@@ -73,7 +73,7 @@ update(angle: number): RepUpdateResult {
 }
 ```
 
-`src/lib/pose/rep-counter.ts` L31–L79.
+`src/lib/pose/rep-counter.ts` L31–L80.
 
 ### Why hysteresis matters
 
@@ -195,8 +195,8 @@ The hysteresis means that even though the angle hits 95° briefly mid-bottom (ji
 **Line range:** L21–L86
 
 Per-exercise instances created in:
-- `src/lib/pose/exercises/pushup.ts` L17 — `new RepCounter({ readyAngle: 160, bottomAngle: 90, hysteresis: 10 })`
-- `src/lib/pose/exercises/squat.ts` L17 — same config
+- `src/lib/pose/exercises/pushup.ts` L17 — `new RepCounter(PUSHUP_CONFIG)` (`{ readyAngle: 160, bottomAngle: 90, hysteresis: 10 }`)
+- `src/lib/pose/exercises/squat.ts` L17 — `new RepCounter(SQUAT_CONFIG)` (same values)
 - `src/lib/pose/exercises/pull-bar.ts`, `pull-trx.ts` — per-orientation configs
 
 ---
@@ -256,6 +256,26 @@ Fine until very high frame rates (60fps+) and very fast exercises. At >120fps wi
 ### Sub-block 4 — what wasn't actually a tradeoff
 
 A Kalman filter for state estimation would be more sophisticated but inappropriate — we don't have a dynamics model for "human doing a pushup", just a threshold model. Kalman filters earn their place when the underlying process has predictable dynamics; ours doesn't.
+
+---
+
+## Tech reference (industry pairing)
+
+### Hand-rolled FSM (`switch` over a `phase` field)
+
+- **Codebase uses:** `class RepCounter` (`rep-counter.ts` L21–86) with a `switch (this.phase)` in `update()` (L31–80). One field (`phase`), one config object (`{ readyAngle, bottomAngle, hysteresis }`), no library.
+- **Why it's here:** five states and six transitions is small enough that a `switch` is clearer than any library DSL, and it has zero dependency/bundle cost on a hot per-frame path.
+- **Leading today:** hand-rolled `switch` FSM — `adoption-leading` for small embedded/per-frame state machines, 2026.
+- **Why it leads:** transparent, allocation-free, trivially testable; the whole machine fits on one screen.
+- **Runner-up:** XState — `innovation-leading` for complex UI state charts; earns its place at ~10+ states with guards/actions/parallel regions, which this isn't.
+
+### Threshold hysteresis (Schmitt-trigger pattern)
+
+- **Codebase uses:** 10° margin applied at every transition (`readyAngle - hysteresis`, `bottomAngle + hysteresis`) to convert a noisy continuous angle into clean discrete transitions.
+- **Why it's here:** without it, jitter around a threshold counts many reps for one motion — the same failure a raw `if (angle < threshold)` counter has.
+- **Leading today:** hysteresis on threshold transitions — `adoption-leading` (language-agnostic, borrowed from analog electronics), 2026.
+- **Why it leads:** one extra constant per threshold buys robustness against sensor noise; universal across debounce, gesture detection, and signal processing.
+- **Runner-up:** post-hoc smoothing only (no hysteresis) — the codebase already smooths upstream (α=0.4), but smoothing alone doesn't track direction; the FSM + hysteresis is what credits a *complete* cycle.
 
 ---
 
@@ -363,3 +383,6 @@ Reference `src/lib/pose/exercises/`.
 - What's the hysteresis value for pushups?
 
 Then verify.
+
+---
+Updated: 2026-05-29 — Added Tech reference section (hand-rolled switch FSM / threshold hysteresis) per v1.42.0. Refreshed update() span L31–79→L31–80; pushup/squat instantiation shown as PUSHUP_CONFIG/SQUAT_CONFIG. (class L21–86, pushup/squat L17 accurate.)

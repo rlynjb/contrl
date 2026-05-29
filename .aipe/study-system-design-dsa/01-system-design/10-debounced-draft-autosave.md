@@ -89,7 +89,7 @@ export async function saveDraft(category: Category, level: number, draft: DraftS
 }
 ```
 
-`src/services/database.ts` L516–L524. `INSERT OR REPLACE` means the write is idempotent — multiple saves on the same `(category, level)` key just overwrite. The composite key `draft:${category}:${level}` allows one in-progress draft per category-level pair. If the user starts a push L3 workout, switches to squat L2, switches back to push L3, the push L3 draft is still there.
+`src/services/database.ts` L556–L564. `INSERT OR REPLACE` means the write is idempotent — multiple saves on the same `(category, level)` key just overwrite. The composite key `draft:${category}:${level}` allows one in-progress draft per category-level pair. If the user starts a push L3 workout, switches to squat L2, switches back to push L3, the push L3 draft is still there.
 
 ### Cleared on save
 
@@ -98,7 +98,7 @@ export async function saveDraft(category: Category, level: number, draft: DraftS
 await db.deleteDraft(session.category, session.level);
 ```
 
-`useGameState.ts` L284. After a session is fully logged (the user hits "Save"), the corresponding draft is deleted. The draft is for "work in progress"; once the work is committed, the draft has no purpose.
+`useGameState.ts` L266. After a session is fully logged (the user hits "Save"), the corresponding draft is deleted. The draft is for "work in progress"; once the work is committed, the draft has no purpose.
 
 ### Move 2.5 — Phase A vs Phase B
 
@@ -169,11 +169,11 @@ The full picture is below.
 **Line range:** L88–L107
 
 **Persistence layer:**
-- `src/services/database.ts` L516 `saveDraft`
-- `src/services/database.ts` L526 `getDraft`
-- `src/services/database.ts` L544 `deleteDraft`
+- `src/services/database.ts` L556 `saveDraft`
+- `src/services/database.ts` L566 `getDraft`
+- `src/services/database.ts` L584 `deleteDraft`
 
-**Initial state hydration from draft:** `useExerciseForm.ts` L40–L62 (`buildInitialState`)
+**Initial state hydration from draft:** `useExerciseForm.ts` L44–L62 (`buildInitialState`)
 
 ---
 
@@ -358,3 +358,6 @@ Reference `useExerciseForm.ts` L88.
 - What ref pattern avoids stale captures?
 
 Then verify.
+
+---
+Updated: 2026-05-29 — Refreshed drifted database.ts draft refs (saveDraft L516→L556, getDraft L526→L566, deleteDraft L544→L584), deleteDraft call useGameState L284→L266, buildInitialState L40→L44. (useExerciseForm autosave-effect refs L88–107/L92–107/L89–90 verified accurate — no drift.)

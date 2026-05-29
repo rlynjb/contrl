@@ -7,9 +7,9 @@ Meaningful operations performed by contrl on its data. Most are O(n) or O(n log 
 | # | Operation | Where it lives | Time | Space | Holds at 10×? |
 |---|---|---|---|---|---|
 | 01 | Sort sessions chronologically | `reconstruct.ts` L17 | O(n log n) | O(n) | ✓ |
-| 02 | Composite-key lookup | `useGameState.ts` L56 + SQL `PRIMARY KEY` | O(1) | O(1) | ✓ |
-| 03 | Set-based diffing (upsert-then-prune) | `database.ts` L257 / `sync.ts` L130 | O(n + m) | O(n) | ✓ |
-| 04 | Group sessions by week | `useGameState.ts` L329 | O(n) | O(weeks) | ✓ |
+| 02 | Composite-key lookup | `useGameState.ts` L55 + SQL `PRIMARY KEY` | O(1) | O(1) | ✓ |
+| 03 | Set-based diffing (upsert-then-prune) | `database.ts` L332–L342 (`deleteExercisesNotIn`) | O(n + m) | O(n) | ✓ |
+| 04 | Group sessions by week | `useGameState.ts` L311 (`buildWeekHistory`) | O(n) | O(weeks) | ✓ |
 | 05 | Rep counter FSM | `rep-counter.ts` L21 | O(1) per frame | O(1) | ✓ |
 | 06 | Exponential smoothing | `angles.ts` L21 | O(1) per frame | O(1) | ✓ |
 | 07 | Week-start derivation | `week-progress.ts` L7 | O(1) | O(1) | ✓ |
@@ -34,3 +34,6 @@ No operation in contrl is currently O(n²) where O(n) is reachable. The closest 
 - Need to understand sync's reconciliation? Read **03**.
 - Need to understand the week metrics? Read **07**, then **04**, then **08** (it's the pipeline).
 - Need to understand gates and IDs? Read **02**, then [01-system-design/05-derived-state](../01-system-design/05-derived-state.md).
+
+---
+Updated: 2026-05-29 — Cheat sheet refreshed: removed stale `sync.ts L130` path (file deleted in the Notion→Supabase migration; set-diffing now lives in `database.ts` `deleteExercisesNotIn` L332–342); composite-key L56→L55; group-by L329→L311.

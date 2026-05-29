@@ -243,6 +243,26 @@ A Kalman filter for angle estimation would be more sophisticated but unnecessary
 
 ---
 
+## Tech reference (industry pairing)
+
+### Hand-rolled EMA (single-pole IIR filter)
+
+- **Codebase uses:** `smoothAngle(current, previous, factor)` in `angles.ts` L21–23 — the one-line recurrence `previous + factor * (current - previous)`. The caller keeps one `previous` scalar; init branch seeds it on frame 1 (`pushup.ts`/`squat.ts` L29–34).
+- **Why it's here:** the cheapest low-pass filter that exists — one multiply, one add, one state variable on a per-frame hot path.
+- **Leading today:** hand-rolled EMA — `adoption-leading` (language-agnostic; ubiquitous in sensor stacks), 2026.
+- **Why it leads:** O(1) memory and time, no buffer lag, no dependency; α is the single intuitive tuning knob.
+- **Runner-up:** a moving-average / `rxjs`-style operator — clearer intent in a stream pipeline, but adds buffer memory and N/2-sample lag for no accuracy gain here.
+
+### Empirically-tuned α (smoothing factor)
+
+- **Codebase uses:** `SMOOTHING_FACTOR = 0.4` per exercise processor; chosen by sweeping α against downstream rep-counter behavior.
+- **Why it's here:** α trades responsiveness against noise rejection, and the right value depends on the input's noise characteristics — there's no closed form.
+- **Leading today:** empirical α tuning against the consumer — `adoption-leading` for filter design without a dynamics model, 2026.
+- **Why it leads:** the FSM's false-trigger / missed-bottom rates are directly observable, so a sweep finds the value faster than analytical design would.
+- **Runner-up:** adaptive α (raise α during fast motion, lower it at rest) — more responsive, but a second mechanism to tune and test; not justified at current accuracy.
+
+---
+
 ## Summary
 
 ### Concept recap
@@ -332,3 +352,6 @@ Reference `src/lib/pose/exercises/plank.ts` and pushup configs.
 - What's the smoothing factor for pushups?
 
 Then verify.
+
+---
+Updated: 2026-05-29 — Added Tech reference section (hand-rolled EMA / empirically-tuned α) per v1.42.0. All line refs verified accurate: angles.ts smoothAngle L21–23, pushup/squat init+smoothing L29–34 — no drift.
