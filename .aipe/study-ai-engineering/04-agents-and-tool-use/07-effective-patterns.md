@@ -99,7 +99,7 @@ The full picture is below.
 ```
    simplest          ┌─ Prompt chaining ────────────────────────┐
         │           │  A → B → C (each LLM call narrow)         │
-        │           │  loopd's 5 chains                         │
+        │           │  e.g. 5 single-purpose chains             │
         │           └───────────────────────────────────────────┘
         │
         │           ┌─ Routing ────────────────────────────────┐
@@ -275,3 +275,6 @@ Why routing for coaching? Under 60 seconds.
 - What's the curriculum exercise number?
 
 Then verify.
+
+---
+Updated: 2026-05-29 — Replaced "loopd's 5 chains" label inside the patterns diagram with generic "5 single-purpose chains" per v1.43.0 Hard repo-scope rule.

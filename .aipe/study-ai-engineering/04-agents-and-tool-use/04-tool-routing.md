@@ -13,7 +13,7 @@
 
 Every LLM call costs money and time. If you can decide *without* the LLM that no action is needed, you should. The cheapest LLM call is the one you don't make. Routing is the discipline of saying "this event is ML's job, this event is heuristics' job, this event is the LLM's job" before paying for the model.
 
-The pattern is **two-layer routing** — heuristic outer gate + LLM inner dispatch. Same shape as middleware chains (check auth before routing to handler), feature flags (skip experimental path on a config check), and the "heuristic before LLM" pattern already established in loopd's principle #9.
+The pattern is **two-layer routing** — heuristic outer gate + LLM inner dispatch. Same shape as middleware chains (check auth before routing to handler), feature flags (skip experimental path on a config check), and the curriculum's "heuristic before LLM" principle.
 
 ---
 
@@ -129,7 +129,7 @@ The outer gate depends on classifier outputs from Phase 2C; without form classif
 
 ### Where this pattern comes from
 
-"Heuristic before LLM" is loopd's principle #9 in the curriculum, applied as an architectural rule. The same pattern shows up everywhere LLMs meet production: chatbots that detect "this is a refund request" with a regex first before invoking the model, content moderation that catches the obvious cases with rules and escalates the ambiguous to a model.
+"Heuristic before LLM" is a curriculum principle, applied as an architectural rule. The same pattern shows up everywhere LLMs meet production: chatbots that detect "this is a refund request" with a regex first before invoking the model, content moderation that catches the obvious cases with rules and escalates the ambiguous to a model.
 
 ### The deeper principle
 
@@ -186,7 +186,7 @@ A trained classifier that decides "should coach?" was not picked — it would be
 
 ### Heuristic-before-LLM gating
 
-- **Codebase uses:** Not yet implemented. Same pattern as loopd's classifier-before-LLM (principle #9).
+- **Codebase uses:** Not yet implemented. Same pattern as the curriculum's classifier-before-LLM principle.
 - **Why it's here:** the cheapest way to cut LLM cost on cases the LLM wouldn't add value to.
 - **Leading today:** Heuristic-first routing — `adoption-leading` for cost-aware production agents, 2026.
 - **Why it leads:** zero infrastructure, debuggable, controllable.
@@ -263,3 +263,6 @@ Why not LLM-only routing? Under 60 seconds.
 - Which tool decides "should coach"?
 
 Then verify.
+
+---
+Updated: 2026-05-29 — Replaced three "loopd's principle #9" attributions with curriculum-anchored phrasing per v1.43.0 Hard repo-scope rule (the heuristic-before-LLM principle is a curriculum item, not a loopd codebase claim).

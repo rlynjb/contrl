@@ -252,8 +252,7 @@ Per curriculum Phase 3 builds:
 - **B3.8 (form classifier eval harness):** "Python on test set + held-out self-labeled." The "test set" maps to the golden set + regression suite. The "held-out self-labeled" maps to the holdout.
 - **B3.9 (recommender eval, single-user A/B):** different eval shape — A/B arm assignment + outcome logging — covered separately because single-user A/B has its own constraints.
 
-**Planned file paths:**
-- `loopd/tests/ml/golden.json` (planned at the ML side, not on contrl repo yet) — equivalent for contrl:
+**Planned file paths (contrl, Phase 3):**
 - `ml/tests/golden.json` — golden set (30 cases)
 - `ml/tests/regression.json` — regression suite (append-only)
 - `ml/tests/holdout.json` — holdout (50 cases, never inspected)
@@ -512,3 +511,6 @@ Without opening files, answer:
 - Where does contrl's planned eval discipline live (curriculum builds)?
 
 Pass: holdout; regression; B3.8 (classifier) + B3.9 (recommender A/B).
+
+---
+Updated: 2026-05-29 — Dropped stale `loopd/tests/ml/golden.json` reference per v1.43.0 Hard repo-scope rule; planned paths list now contrl-only.

@@ -29,8 +29,8 @@
 
 Honest about scope. The LLM-side concepts in this guide cover:
 
-- **Single-purpose chains** (the loopd shape). contrl has no chains — just the one agent. Background reading; not applicable to contrl's current scope.
-- **Retrieval / RAG** (the loopd Phase 2A shape, or aipe's Phase 2B). contrl does no retrieval. The coaching agent uses *tool calls* against local data, not embeddings + vector search. All 12 files under `03-retrieval-and-rag/` are Case B for contrl.
+- **Single-purpose chains.** contrl has no chains — just the one agent. Background reading; not applicable to contrl's current scope.
+- **Retrieval / RAG.** contrl does no retrieval. The coaching agent uses *tool calls* against local data, not embeddings + vector search. All 12 files under `03-retrieval-and-rag/` are Case B for contrl.
 - **Streaming responses, token economics at scale, LLM caching, rate-limiting / backpressure.** Applicable to LLM-heavy apps; contrl runs the coaching agent once per session, so per-call cost is low and at low volume. These concepts are study material for now; they become relevant if/when contrl's LLM surface grows.
 - **Few-shot prompting, chain-of-thought, self-critique.** Prompt-engineering techniques; covered in the companion prompt-engineering guide. The coaching agent's prompt will use them but they're not concepts unique to AI engineering as a discipline.
 
@@ -54,3 +54,6 @@ For each of those, the relevant concepts from this guide apply directly. The cur
 - **System-design framing:** [07-system-design-templates/02-tech-support-chatbot.md](./07-system-design-templates/02-tech-support-chatbot.md) (the agent is structurally similar; differences spelled out there)
 
 The agent is the entire AI surface of this codebase. Every other LLM-side file in this guide is preparation for either growing past it or for interview scenarios where this work has to be defended in a conversation.
+
+---
+Updated: 2026-05-29 — Removed "(the loopd shape)" and "(the loopd Phase 2A shape, or aipe's Phase 2B)" shape-label parentheticals per v1.43.0 Hard repo-scope rule; the contrast still reads cleanly without them.

@@ -1,6 +1,6 @@
 # AI engineering + ML — overview
 
-> contrl's AI/ML system map. The codebase's dominant shape is **classical supervised ML + on-device inference** (the contrl-mo example shape from the spec): pre-trained MediaPipe pose detection shipping today, a planned LightGBM form classifier and progression recommender (Phase 2C), and a planned LLM coaching agent (Phase 4 Path C) that consumes the classifier's outputs through 5 read-only tools. Three layers of "AI" stacked on one production path — pre-trained CV + trained ML + LLM agent — and the contrast between the layers is the interview story.
+> contrl's AI/ML system map. The codebase's dominant shape is **classical supervised ML + on-device inference**: pre-trained MediaPipe pose detection shipping today, a planned LightGBM form classifier and progression recommender (Phase 2C), and a planned LLM coaching agent (Phase 4 Path C) that consumes the classifier's outputs through 5 read-only tools. Three layers of "AI" stacked on one production path — pre-trained CV + trained ML + LLM agent — and the contrast between the layers is the interview story.
 
 ```
 ┌─ Capture layer (on-device, SHIPPED today) ───────────────────────────────────┐
@@ -99,3 +99,6 @@
 → Synthesis files: [ai-features-in-this-codebase](./ai-features-in-this-codebase.md) · [ml-features-in-this-codebase](./ml-features-in-this-codebase.md)
 
 → Companion guides: prompt engineering at `../study-prompt-engineering/`. System-design + DSA at `../study-system-design-dsa/`.
+
+---
+Updated: 2026-05-29 — Removed "(the contrl-mo example shape from the spec)" parenthetical per v1.43.0 Hard repo-scope rule; contrl-mo is the spec's placeholder name, not a real codebase to cite.

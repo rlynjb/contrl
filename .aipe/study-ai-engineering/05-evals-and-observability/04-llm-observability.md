@@ -74,7 +74,7 @@ Strategy in plain English: **per-call log with `{chain_version, model, prompt, r
 Log every LLM call with enough metadata to reproduce it:
 
 ```ts
-// loopd / contrl planned shape for an LLM call wrapper
+// Planned shape for a contrl LLM call wrapper
 log.info({
   event: 'llm_call',
   chain_name: 'coaching-agent',
@@ -533,3 +533,6 @@ Without opening files, answer:
 - Does contrl plan to use LangSmith?
 
 Pass: chain_version + model + prompt + response + schema_pass + latency; ~25MB/day; no — too over-engineered for solo use; will use Sentry + local SQLite.
+
+---
+Updated: 2026-05-29 — Dropped "loopd /" prefix from the call-wrapper code comment per v1.43.0 Hard repo-scope rule; comment now contrl-only.

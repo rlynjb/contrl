@@ -178,14 +178,14 @@ There's no tradeoff in the pattern itself — it's the lens for designing. The t
 
 ## Project exercises
 
-### [B5.14] Three system designs 1-pager
+### [B5.14] contrl system design 1-pager
 
 - **Exercise ID:** `[B5.14]`
-- **What to build:** A single document in `aieng-portfolio/three-system-designs.md` (cross-project) presenting contrl as "on-device classification + recommender", loopd as "LLM application", aipe as "retrieval-augmented tooling". Reference IK Modules 1–6 where each applies.
-- **Why it earns its place:** the interview synthesis artifact — the three-shapes story made explicit.
-- **Files to touch:** `aieng-portfolio/three-system-designs.md` (cross-project, not in contrl's repo).
-- **Done when:** the doc has three sections, each with a system-design diagram + IK-module mapping + key tradeoffs.
-- **Estimated effort:** 1–2 days
+- **What to build:** A single document in `docs/system-design.md` presenting contrl as "on-device classification + recommender". Three sections: (1) request loop — the planned form classifier's `classifier.run()` path through MediaPipe → feature vector → ONNX inference → SQLite write; (2) training loop — `scripts/train_*.py` + `ml-runs.jsonl` + holdout eval; (3) feedback loop — `classifier_outputs` + the human-in-the-loop labelling tool. Each section gets a box-and-arrow diagram and a key-tradeoffs paragraph. Reference IK Modules 1–6 where each applies.
+- **Why it earns its place:** the interview synthesis artifact for contrl — the three-loops ML system map made explicit, defensible in a senior interview.
+- **Files to touch:** `docs/system-design.md` (new), inside contrl's repo.
+- **Done when:** the doc has the three loop sections, each with an ASCII diagram + IK-module mapping + key tradeoffs; ready to walk through in 5 minutes.
+- **Estimated effort:** 1 day
 
 ---
 
@@ -245,3 +245,6 @@ Why three loops vs one. Under 90 seconds.
 - What file ties the loops to specific code?
 
 Then verify.
+
+---
+Updated: 2026-05-29 — Reframed [B5.14] Project exercise from cross-project portfolio document (contrl + loopd + aipe) to contrl-only single-system-design 1-pager per v1.43.0 Hard repo-scope rule and user direction; artifact path moved from `aieng-portfolio/` to `docs/system-design.md` inside this repo.

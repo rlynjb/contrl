@@ -255,9 +255,9 @@ Reverse-relevance ordering is the right call until: (a) prompts are short enough
 
 ## Project exercises
 
-### [B2A.7] (loopd-anchored; documented here for cross-reference)
+### [B2A.7] — RAG retrieval-ordering exercise (out of scope for contrl)
 
-Lost-in-the-middle applies to loopd's planned RAG chain over personal corpus, not to contrl. The exercise of reverse-ordering retrieved chunks lives in the loopd build path. For contrl, the discipline is only relevant if a future feature adds retrieval.
+Curriculum item [B2A.7] is a RAG-shaped exercise: reverse-order retrieved chunks so the highest-relevance chunk sits LAST in the prompt. It belongs to the curriculum's retrieval/RAG track, which contrl does not exercise — contrl's coaching agent reads via tool calls, not an embedding-backed retriever. Listed here for provenance only; the build lives wherever a retrieval-shaped codebase is being studied.
 
 **Hypothetical [B4C.x] for contrl:** if the coaching agent's tool outputs grow such that order matters (e.g., a tool returning 20 historical sessions), apply reverse-relevance ordering: highest-relevance session at the end of the tool's output.
 
@@ -379,3 +379,6 @@ Without opening files, answer:
 - Does contrl exercise this concept?
 
 Pass: Liu et al. (2023); reverse-relevance ordering; no — contrl has no retrieval surface.
+
+---
+Updated: 2026-05-29 — Reframed [B2A.7] Project exercise to drop "loopd-anchored" attribution per v1.43.0 Hard repo-scope rule; curriculum ID preserved as provenance; exercise now described as RAG-shaped and out of scope for contrl.

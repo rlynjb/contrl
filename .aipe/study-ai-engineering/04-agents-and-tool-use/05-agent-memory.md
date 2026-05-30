@@ -162,7 +162,7 @@ Pre-loading the last 5 sessions of form classifier outputs is ~1500 tokens. Pre-
 
 ### Sub-block 3 — the breakpoint
 
-Fine until the long-term memory grows past what a tool can return in one call. Currently the tool returns the last 5 sessions; at 50 sessions per workout × 50 workouts that's ~2500 entries, no good for in-prompt retrieval. The fix is an embedding-based "find relevant past coaching" retrieval — essentially a RAG layer (which is loopd's primary curriculum item, not contrl's).
+Fine until the long-term memory grows past what a tool can return in one call. Currently the tool returns the last 5 sessions; at 50 sessions per workout × 50 workouts that's ~2500 entries, no good for in-prompt retrieval. The fix is an embedding-based "find relevant past coaching" retrieval — essentially a RAG layer, which lives in the curriculum's retrieval/RAG track, not in contrl's current scope.
 
 ### Sub-block 4 — what isn't a tradeoff
 
@@ -256,3 +256,4 @@ Then verify against the curriculum.
 
 ---
 Updated: 2026-05-17 — Long-term memory list: "Notion (sessions, exercises)" replaced with "Supabase (sessions, exercises, gate_progress, week_progress, user_profile)".
+Updated: 2026-05-29 — Sub-block 3 breakpoint phrased without loopd attribution per v1.43.0 Hard repo-scope rule; RAG framed as a curriculum-track item, not a loopd codebase claim.
