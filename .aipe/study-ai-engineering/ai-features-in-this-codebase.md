@@ -56,4 +56,3 @@ For each of those, the relevant concepts from this guide apply directly. The cur
 The agent is the entire AI surface of this codebase. Every other LLM-side file in this guide is preparation for either growing past it or for interview scenarios where this work has to be defended in a conversation.
 
 ---
-Updated: 2026-05-29 — Removed "(the loopd shape)" and "(the loopd Phase 2A shape, or aipe's Phase 2B)" shape-label parentheticals per v1.43.0 Hard repo-scope rule; the contrast still reads cleanly without them.

@@ -301,4 +301,3 @@ Compare against patterns in `useExerciseForm.ts` L33.
 Then verify.
 
 ---
-Updated: 2026-05-29 — Added Tech reference section (Array.prototype.sort / Date.getTime) per v1.42.0 every-concept-file rule. Line refs verified accurate: reconstruct.ts L17–19, useExerciseForm.ts L33–37 — no drift.

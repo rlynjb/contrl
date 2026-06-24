@@ -329,7 +329,3 @@ Then verify.
 ---
 
 _Updated: 2026-05-17 — "Synced to Notion?" column renamed and all rows updated; derived state (gates, weeks, levels) now syncs to Supabase; diagram redrawn for 5-table push + one-shot pull; principle paragraph updated; interview Q flipped from "why don't gates sync" to "why DO gates sync"; Notion-edit Q replaced with Supabase-console-edit Q._
-
----
-Updated: 2026-05-19 — Added sync_meta row to synced-tables table (local-only, per-table push ledger); Level 1 validate bumped to nine tables; Key points updated to list sync_meta as local-only.
-Updated: 2026-05-29 — Refreshed drifted useGameState.ts line refs: load orchestration L68→L67, reconstruction trigger L112–133→L107–133, logSession L192→L174, buildWeekHistory L329→L311, Validate L3 ref L119→L114.

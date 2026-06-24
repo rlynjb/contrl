@@ -513,4 +513,3 @@ Without opening files, answer:
 Pass: holdout; regression; B3.8 (classifier) + B3.9 (recommender A/B).
 
 ---
-Updated: 2026-05-29 — Dropped stale `loopd/tests/ml/golden.json` reference per v1.43.0 Hard repo-scope rule; planned paths list now contrl-only.

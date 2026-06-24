@@ -588,4 +588,3 @@ Without opening files, answer:
 Pass: you said `src/lib/agent/schemas.ts`, `tool_choice: { type: 'tool', name: '...' }`, and < 1%.
 
 ---
-Updated: 2026-05-24 — Reframed per v1.38.0 per-repo scope. In this codebase: collapsed dual Case A (aipe) + Case B (loopd) into single Case B planned for contrl's coaching agent; added ML-side note. Tradeoffs Sub-block 1 reframed (loopd → contrl/Sonnet 4). Tech reference paths retargeted to `src/lib/agent/`. Project exercises B1.7/B1.8/B1.9 → B4C.* coaching-agent variants. Validate Quick check updated. Code snippet comments made illustrative.

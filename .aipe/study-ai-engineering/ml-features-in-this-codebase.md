@@ -511,4 +511,3 @@ Then open the files and verify.
 Pass: you named `classifier_outputs`, `src/lib/pose/rep-counter.ts`, and `assets/models/form-classifier.onnx`.
 
 ---
-Updated: 2026-05-24 — Restructured from minimal roll-up shape into the per-concept template (v1.32.0+): five-move Why care, How it works with mental-model diagram + layered walkthrough sub-sections + principle, primary diagram with on-device layer label, In this codebase, Elaborate, Tradeoffs comparison table + sub-blocks 1–3, Tech reference for LightGBM / ONNX / MediaPipe / single-user A/B, Project exercises for B2C.4 / B2C.12 / B5.14, Summary recap, Interview defense with per-answer diagrams, Validate. Original inventory tables and curriculum coverage table preserved verbatim.

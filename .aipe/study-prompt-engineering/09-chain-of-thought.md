@@ -572,4 +572,3 @@ Without opening files, answer:
 Pass: `reasoning` first; ~5–15% on Haiku vs ~1–3% on Sonnet; autoregressive generation means reasoning tokens condition answer tokens.
 
 ---
-Updated: 2026-05-24 — Reframed per v1.38.0 per-repo scope. In this codebase: collapsed dual Case B (loopd escalation classifier) + Case A (aipe step-structured specs) into single Case B planned for contrl's coaching agent (reasoning field weighing classifier × form-trend × progression × recent-coaching). Added empirical question about Sonnet 4 extended thinking. Code snippet comment made illustrative. Tech reference codebase-uses retargeted. Project exercises B2A.7/B2A.8 → B4C.cot + B4C.cot-vs-thinking.

@@ -101,4 +101,3 @@
 → Companion guides: prompt engineering at `../study-prompt-engineering/`. System-design + DSA at `../study-system-design-dsa/`.
 
 ---
-Updated: 2026-05-29 — Removed "(the contrl-mo example shape from the spec)" parenthetical per v1.43.0 Hard repo-scope rule; contrl-mo is the spec's placeholder name, not a real codebase to cite.

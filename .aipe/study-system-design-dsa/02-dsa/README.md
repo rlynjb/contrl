@@ -36,4 +36,3 @@ No operation in contrl is currently O(n²) where O(n) is reachable. The closest 
 - Need to understand gates and IDs? Read **02**, then [01-system-design/05-derived-state](../01-system-design/05-derived-state.md).
 
 ---
-Updated: 2026-05-29 — Cheat sheet refreshed: removed stale `sync.ts L130` path (file deleted in the Notion→Supabase migration; set-diffing now lives in `database.ts` `deleteExercisesNotIn` L332–342); composite-key L56→L55; group-by L329→L311.

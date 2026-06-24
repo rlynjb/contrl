@@ -103,6 +103,3 @@ On app ready (app/_layout.tsx useEffect on `ready`):
 (AI engineering and ML moved to the companion guide `.aipe/study-ai-engineering/`; prompt engineering to `.aipe/study-prompt-engineering/`.)
 
 ---
-Updated: 2026-05-17 — Notion replaced by Supabase throughout; NotionSyncProvider/useNotionSync/syncAll/rateLimit/notionFetch removed from legend; pushChanges/pullRestoreIfFresh/supabase client/sync_state added; sync_deletions description updated; week boundary Mon–Sun.
-Updated: 2026-05-19 — Added sync_meta as 9th SQLite table in diagram and legend.
-Updated: 2026-05-29 — Removed dead footer links to 03-ai-engineering/ and 04-machine-learning/ (those sections moved to the study-ai-engineering companion guide); refreshed useGameStateInternal line ref L68→L67.

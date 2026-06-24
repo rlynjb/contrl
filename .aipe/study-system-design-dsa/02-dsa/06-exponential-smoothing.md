@@ -354,4 +354,3 @@ Reference `src/lib/pose/exercises/plank.ts` and pushup configs.
 Then verify.
 
 ---
-Updated: 2026-05-29 — Added Tech reference section (hand-rolled EMA / empirically-tuned α) per v1.42.0. All line refs verified accurate: angles.ts smoothAngle L21–23, pushup/squat init+smoothing L29–34 — no drift.

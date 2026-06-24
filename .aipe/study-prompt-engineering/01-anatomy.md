@@ -509,4 +509,3 @@ Without opening any files, answer:
 Pass: you said "no LLM code today", `src/lib/agent/{system.md, runner.ts, tools/, examples.md}` (or close to it), and "~200 tokens total prompt size" or "fewer than ~50 calls/day."
 
 ---
-Updated: 2026-05-24 — Reframed per v1.38.0 per-repo scope. In this codebase: dual Case A (aipe) + Case B (loopd) collapsed to single Case B for contrl's planned coaching agent. Project exercises: retargeted B1.3/B1.4/B1.5 (loopd) to B4C.* (contrl coaching agent). Scattered loopd/aipe planning references reframed as contrl-anchored or illustrative. Summary key point #5 rewritten for contrl scope. Validate Quick check updated.

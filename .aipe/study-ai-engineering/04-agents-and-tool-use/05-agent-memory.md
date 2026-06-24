@@ -255,5 +255,3 @@ Reference the planned `coaching_log`.
 Then verify against the curriculum.
 
 ---
-Updated: 2026-05-17 — Long-term memory list: "Notion (sessions, exercises)" replaced with "Supabase (sessions, exercises, gate_progress, week_progress, user_profile)".
-Updated: 2026-05-29 — Sub-block 3 breakpoint phrased without loopd attribution per v1.43.0 Hard repo-scope rule; RAG framed as a curriculum-track item, not a loopd codebase claim.

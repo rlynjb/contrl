@@ -71,5 +71,3 @@ models/                     MediaPipe pose-landmarker assets
 - `restoreInProgress` flag must be cleared before writes fire `pushChanges()` to avoid pushing JSON-seed pollution during restore.
 
 ---
-Updated: 2026-05-17 — Notion sync replaced by Supabase write-mostly mirror; NotionSyncContext/useNotionSync/syncVersion removed; week boundary changed Sun→Mon.
-Updated: 2026-05-19 — Supabase project renamed to reindb (shared with buffr); contrl schema + db:{schema:'contrl'} client option; sync_meta ledger table + getAllSyncMeta/setSyncMetaTouched helpers; Settings SYNC LEDGER section noted.

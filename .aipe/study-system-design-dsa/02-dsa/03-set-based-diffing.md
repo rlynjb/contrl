@@ -327,5 +327,3 @@ Explain the set-based diff pattern and when to use it. Under 60 seconds.
 Then verify.
 
 ---
-Updated: 2026-05-17 — Notion-specific codebase anchor removed (sync.ts deleted in b057136); In this codebase block updated to note deprecation and Supabase analog; pseudocode neutralized to remoteId.
-Updated: 2026-05-29 — Added Tech reference section (JS Set / SQL NOT IN) per v1.42.0. Refreshed deleteExercisesNotIn line ref L257→L332–344 (How it works + Validate L3). Validate L3 `notionIds`→`remoteIds`.

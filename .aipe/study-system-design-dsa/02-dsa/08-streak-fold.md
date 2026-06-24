@@ -327,5 +327,3 @@ Reference `streaks.ts` L18.
 Then verify.
 
 ---
-Updated: 2026-05-17 — "Notion-side edits" replaced with "remote-side edits" for provider neutrality.
-Updated: 2026-05-29 — Added Tech reference section (fold/reduce / derive-not-store) per v1.42.0. Refreshed calculateStreak span L18–27→L18–28 and call site useGameState L150→L145. (isWeekComplete L46–48, line range L8–28 accurate.)

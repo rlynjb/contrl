@@ -360,4 +360,3 @@ Reference `useExerciseForm.ts` L88.
 Then verify.
 
 ---
-Updated: 2026-05-29 — Refreshed drifted database.ts draft refs (saveDraft L516→L556, getDraft L526→L566, deleteDraft L544→L584), deleteDraft call useGameState L284→L266, buildInitialState L40→L44. (useExerciseForm autosave-effect refs L88–107/L92–107/L89–90 verified accurate — no drift.)

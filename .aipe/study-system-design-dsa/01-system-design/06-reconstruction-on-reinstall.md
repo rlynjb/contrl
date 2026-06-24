@@ -384,6 +384,3 @@ Then verify.
 ---
 
 _Updated: 2026-05-17 — Trigger diagram rewritten for pullRestoreIfFresh() 5-table Supabase pull; why-care narrative updated; Sub-block 4 reframed (derived state IS now in Supabase); interview Q updated from Notion/pullSessions to Supabase/pullRestoreIfFresh; reconstructFromSessions repositioned as fallback not primary path._
-
----
-Updated: 2026-05-29 — Refreshed drifted line refs: reinstall fingerprint L112–133→L107–133 (two spots), pullRestoreIfFresh L125–190→L130–196. (reconstruct.ts L13–72, gate-check createGateProgress L23, skip line L36–37, _layout L37–42 still accurate.)

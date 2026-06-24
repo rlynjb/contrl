@@ -34,4 +34,3 @@ Examples from other shaped codebases (markdown-spec meta-tooling, single-purpose
 → Overview: [00-overview.md](./00-overview.md)
 
 ---
-Updated: 2026-05-24 — Reframed README per v1.38.0 per-repo scope. Removed loopd/aipe Case A claims; codebase-scoped intro added.

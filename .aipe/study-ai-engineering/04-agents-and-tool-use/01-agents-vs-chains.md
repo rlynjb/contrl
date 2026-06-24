@@ -241,4 +241,3 @@ Why isn't there an agent for the home screen? Under 60 seconds.
 Then verify.
 
 ---
-Updated: 2026-05-17 — Session sync row updated from Notion to Supabase write-mostly mirror.

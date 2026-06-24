@@ -514,4 +514,3 @@ Without opening files, answer:
 Pass: untyped destructuring + `||` fallbacks + unneeded coercion; shape should be deterministic, content shouldn't; `src/lib/agent/schemas.ts`.
 
 ---
-Updated: 2026-05-24 — Reframed per v1.38.0 per-repo scope. In this codebase: collapsed dual Case B (loopd) + Case A (aipe) into single Case B planned for contrl's coaching agent + 5 tools (6 contracts total) + ML-side analog (label-enum shared between classifier and consumers). Tradeoffs Sub-block 1 + Sub-block 3 breakpoint reframed. Tech reference codebase-uses lines retargeted. Project exercises B1.20/B1.21 → B4C.contracts + B4C.review-checklist. Validate Quick check updated.

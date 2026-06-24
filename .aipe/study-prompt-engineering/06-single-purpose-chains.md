@@ -590,4 +590,3 @@ Without opening files, answer:
 Pass: one (the coaching agent); the agent does one job — produce a single coaching message; Haiku for classifier/extractor/rewriter tasks where eval suite confirms it passes, Sonnet for generative or subjective-quality tasks like coaching.
 
 ---
-Updated: 2026-05-24 — Reframed per v1.38.0 per-repo scope. In this codebase: removed dual Case B (loopd 5 chains) + Case B (aipe slash commands); replaced with single Case B reflecting contrl's actual scope (one coaching agent, not a chain pipeline; discipline applies when surface count grows past 1). Move 2.5 future-state diagram retargeted (contrl Phase A=nothing → Phase B=agent with tools). Sub-block 1 tradeoff reframed (moot for single-agent shape). Code snippet comments made illustrative. Tech reference codebase-uses retargeted. Project exercises B1.17/B1.18/B1.19 → B4C.scope-discipline + deferred second-surface exercise. Summary closing + Validate Quick check updated.

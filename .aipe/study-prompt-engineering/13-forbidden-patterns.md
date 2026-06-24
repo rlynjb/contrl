@@ -646,4 +646,3 @@ Without opening files, answer:
 Pass: top 3–5 (the model's actual defaults from a survey); 6–10 formulas with examples; `formula_used`.
 
 ---
-Updated: 2026-05-24 — Reframed per v1.38.0 per-repo scope. In this codebase: collapsed dual Case B (loopd caption chain) + Case A (aipe structural variety) into single Case B planned for contrl's coaching agent (the highest-repetition surface — same user every workout, formula rotation prevents fatigue). Move 2.5 future-state diagram retargeted (loopd caption chain → contrl coaching agent). Code snippet comments made illustrative. Tech reference codebase-uses lines retargeted. Project exercises B1.29/B1.30/B1.31 → B4C.survey-defaults + B4C.formulas + B4C.formula-track. Summary closing updated.

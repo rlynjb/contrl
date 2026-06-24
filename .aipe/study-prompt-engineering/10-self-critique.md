@@ -602,4 +602,3 @@ Without opening files, answer:
 Pass: different from generator (cross-tier or cross-family); specific boolean dimensions; self-consistency (parallel + vote).
 
 ---
-Updated: 2026-05-24 — Reframed per v1.38.0 per-repo scope. In this codebase: replaced loopd journal-edit + caption critic + aipe implicit self-correction sections with "not currently planned for contrl" framing (cost-of-bad is medium, scale is solo; lightweight prompt-level self-review earns its place instead). Added deferred-trigger note for write-authority case. Code snippet comments made illustrative. Tech reference codebase-uses retargeted. Project exercises B2A.9/B2A.10 → B4C.self-review + deferred full-critic exercise.

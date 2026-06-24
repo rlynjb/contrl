@@ -247,4 +247,3 @@ Why three loops vs one. Under 90 seconds.
 Then verify.
 
 ---
-Updated: 2026-05-29 — Reframed [B5.14] Project exercise from cross-project portfolio document (contrl + loopd + aipe) to contrl-only single-system-design 1-pager per v1.43.0 Hard repo-scope rule and user direction; artifact path moved from `aieng-portfolio/` to `docs/system-design.md` inside this repo.

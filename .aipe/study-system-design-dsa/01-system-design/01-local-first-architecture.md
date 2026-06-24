@@ -327,7 +327,3 @@ Then open and verify.
 ---
 
 _Updated: 2026-05-17 — Cloud mirror swapped Notion → Supabase; sync module now `src/services/sync/`; push/pull functions renamed; Phase A/B box, diagram, interview Q&As, and tech-reference section all updated._
-
----
-Updated: 2026-05-19 — Note reindb shared project + contrl schema (db:{schema:'contrl'}); table count bumped to 8+sync_meta; local-only table list updated to include sync_meta.
-Updated: 2026-05-29 — Refreshed drifted line refs: getDatabase/migrate/seed (L17/L25/L214), pushChanges L34–128, pullRestoreIfFresh L130–191, getSyncState/setLastPushedAt/setLastPulledAt L591/602/607, getSessions L307→L391 in Validate L3.

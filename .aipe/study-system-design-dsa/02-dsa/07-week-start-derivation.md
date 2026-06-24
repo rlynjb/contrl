@@ -330,5 +330,3 @@ Reference `week-progress.ts` L7.
 Then verify.
 
 ---
-Updated: 2026-05-17 — Algorithm switched from Sunday-start to Monday-start; modular-arithmetic offset `(getDay()+6)%7`; one-shot SQLite migration re-keys legacy Sunday rows.
-Updated: 2026-05-29 — Added Tech reference section (native Date / string period keys) per v1.42.0. Refreshed caller line refs: useGameState L85→L83, L96→L93, L333→L315; week-progress needsWeekReset L56→L54. (getWeekStart L7–15, createWeekProgress L22 accurate.)

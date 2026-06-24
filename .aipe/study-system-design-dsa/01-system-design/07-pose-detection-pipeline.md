@@ -390,4 +390,3 @@ Reference `src/lib/pose/exercises/plank.ts` for the "hold timer" pattern.
 Then verify.
 
 ---
-Updated: 2026-05-29 — Redirected two stale `04-machine-learning/` links (See also + What to explore next) to the study-ai-engineering companion guide where ML content now lives. All source line refs (PoseCamera L44/L69, pushup L23–36, rep-counter L21/L31/L36–72, angles L7/L21/L25, landmarks L13) verified accurate — no line drift.

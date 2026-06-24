@@ -609,4 +609,3 @@ Without opening files, answer:
 Pass: hierarchy + delimiters + structured output + runtime gating; indirect attacks arrive in pasted content (data channel), not direct chat input; attacker-controlled field values smuggled into side effects.
 
 ---
-Updated: 2026-05-24 — Reframed per v1.38.0 per-repo scope. In this codebase: collapsed dual Case B (loopd 5 chains) + Case A (aipe minimal defense) into single Case A planned for contrl's coaching agent, with the 5-read-only-tools allowlist named as the primary Layer 4 design decision. Added ML-side note (adversarial robustness is separate). Sub-block 1 token-budget retargeted (5 chains → 1 agent, ~8 hours). Tech reference codebase-uses retargeted. Project exercises B1.26/B1.27/B1.28 → B4C.delimiters + B4C.injection-tests + B4C.tool-allowlist-discipline.

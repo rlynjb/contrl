@@ -573,4 +573,3 @@ Without opening files, answer:
 Pass: you said `src/lib/agent/system.md`, `meta.model`, `chain_version`.
 
 ---
-Updated: 2026-05-24 — Reframed per v1.38.0 per-repo scope. Subtitle blockquote: "aipe is the worked example" → meta-tooling as cleanest worked example, contrl applies when `src/lib/agent/` lands. In this codebase: Case A (aipe canonical) collapsed into Case B planned for contrl coaching agent + ML-side analog. Move 2.5 future-state diagram retargeted (contrl Phase A=nothing → Phase B=agent). Sub-block 3 breakpoint updated. Tech reference codebase-uses lines retargeted. Project exercises B1.6/B1.10/B1.11 → B4C.* coaching-agent variants. Summary closing + Key points #5 + one-line anchor #5 + Validate quick-check all reframed.

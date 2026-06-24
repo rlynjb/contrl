@@ -352,7 +352,3 @@ Then open and verify.
 ---
 
 _Updated: 2026-05-17 — Added sync_state as 8th table; replaced Notion-era functions (getUnsyncedSessions, upsertSessionFromNotion) with Supabase-era functions (getSyncState, setLastPushedAt, setLastPulledAt, recordTombstone, getPendingTombstones, clearTombstones, clearLocalForRestore); notion_page_id noted as dead schema; migration answer updated to reference supabase-sync.ts._
-
----
-Updated: 2026-05-19 — Added sync_meta as 9th SQLite table; all "8 tables" counts bumped to 9; sync_meta box added to primary diagram; getAllSyncMeta/setSyncMetaTouched added to public-operations list.
-Updated: 2026-05-29 — Refreshed all drifted database.ts line refs (functions shifted as migrate()/seed grew): full public-operations list re-numbered (getUser L238 … clearLocalForRestore L671, sync-ledger helpers L644/L663), getDatabase L17, migrate L25, seed L214, WAL pragma L27, rowToExercise/rowToSession L281/L413, exercises_json write in insertSession L371, user_profile default L30, Validate L3 column-migration region L118–131.

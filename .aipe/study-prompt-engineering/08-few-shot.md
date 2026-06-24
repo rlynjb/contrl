@@ -548,4 +548,3 @@ Without opening files, answer:
 Pass: 3–5; after system, before user message (in cached prefix); assistant-role tool-use messages.
 
 ---
-Updated: 2026-05-24 — Reframed per v1.38.0 per-repo scope. In this codebase: collapsed dual Case B (loopd intent classifier) + Case A (aipe vocabulary sections) into single Case B planned for contrl's coaching agent (4 examples covering coaching behavioral surface: clean execution, form drift, deload signal, sparse history). Tech reference codebase-uses retargeted. Project exercises B1.22/B1.23 → B4C.few-shot + B4C.tool-use-fs (deferred).

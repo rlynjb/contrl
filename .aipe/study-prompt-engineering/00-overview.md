@@ -87,4 +87,3 @@ Other concepts (single-purpose chains, output-mode-mismatch, self-critique, meta
 → Index: [README.md](./README.md)
 
 ---
-Updated: 2026-05-24 — Reframed overview per v1.38.0 per-repo scope. Added codebase-anchoring section; removed aipe-as-worked-example claim.

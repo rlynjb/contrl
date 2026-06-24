@@ -310,4 +310,3 @@ Reference `database.ts` L443–L448.
 Then verify.
 
 ---
-Updated: 2026-05-29 — Added Tech reference section (SQLite TEXT PRIMARY KEY / JS template-literal keys) per v1.42.0. Refreshed drifted refs: gateKey useGameState L56→L55, updateGateProgress L443→L478 (INSERT L481–486), getGateProgress L402→L434, getDraft L526→L566. (reconstruct getGate L24 accurate.)

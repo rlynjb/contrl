@@ -381,4 +381,3 @@ Without opening files, answer:
 Pass: Liu et al. (2023); reverse-relevance ordering; no — contrl has no retrieval surface.
 
 ---
-Updated: 2026-05-29 — Reframed [B2A.7] Project exercise to drop "loopd-anchored" attribution per v1.43.0 Hard repo-scope rule; curriculum ID preserved as provenance; exercise now described as RAG-shaped and out of scope for contrl.

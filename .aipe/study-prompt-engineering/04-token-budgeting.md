@@ -627,4 +627,3 @@ Without opening files, answer:
 Pass: 1024 tokens; ~1 token per 4 characters; the middle of a long prompt.
 
 ---
-Updated: 2026-05-24 — Reframed per v1.38.0 per-repo scope. Removed dual Case A (aipe specs) + Case B (loopd 5 chains) framing; replaced with single Case B planned for contrl's coaching agent (single-prompt budget + per-tool caps). Tradeoffs Sub-block 1 updated (loopd's 5 chains → contrl's single agent). Sub-block 3 breakpoint updated. Tech reference codebase-uses lines retargeted. Project exercises B1.12/B1.13/B1.14 → B4C.* coaching-agent variants. Code snippet comments made illustrative.

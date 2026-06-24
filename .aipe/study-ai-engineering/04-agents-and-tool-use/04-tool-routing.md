@@ -265,4 +265,3 @@ Why not LLM-only routing? Under 60 seconds.
 Then verify.
 
 ---
-Updated: 2026-05-29 — Replaced three "loopd's principle #9" attributions with curriculum-anchored phrasing per v1.43.0 Hard repo-scope rule (the heuristic-before-LLM principle is a curriculum item, not a loopd codebase claim).

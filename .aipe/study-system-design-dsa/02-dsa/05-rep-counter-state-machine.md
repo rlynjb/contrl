@@ -385,4 +385,3 @@ Reference `src/lib/pose/exercises/`.
 Then verify.
 
 ---
-Updated: 2026-05-29 — Added Tech reference section (hand-rolled switch FSM / threshold hysteresis) per v1.42.0. Refreshed update() span L31–79→L31–80; pushup/squat instantiation shown as PUSHUP_CONFIG/SQUAT_CONFIG. (class L21–86, pushup/squat L17 accurate.)

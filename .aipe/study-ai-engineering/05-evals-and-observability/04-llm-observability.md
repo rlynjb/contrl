@@ -535,4 +535,3 @@ Without opening files, answer:
 Pass: chain_version + model + prompt + response + schema_pass + latency; ~25MB/day; no — too over-engineered for solo use; will use Sentry + local SQLite.
 
 ---
-Updated: 2026-05-29 — Dropped "loopd /" prefix from the call-wrapper code comment per v1.43.0 Hard repo-scope rule; comment now contrl-only.

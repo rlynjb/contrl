@@ -38,5 +38,3 @@ The diagram in [`../00-overview.md`](../00-overview.md) is the load-bearing visu
 - Need to understand the camera pipeline? Start at **07-pose-detection-pipeline**.
 
 ---
-Updated: 2026-05-17 — File index entries for 01, 03, 04, 08, 09 updated to reflect Supabase migration; stale Notion-era files flagged with TODO.
-Updated: 2026-05-29 — Removed stale "files 03/04/08/09 flagged TODO" note (those files no longer exist); reworded the numbering-gap explanation.

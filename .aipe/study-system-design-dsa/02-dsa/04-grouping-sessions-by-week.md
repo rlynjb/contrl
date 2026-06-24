@@ -312,5 +312,3 @@ Reference `useGameState.ts` L311.
 Then verify.
 
 ---
-Updated: 2026-05-17 — Week boundary now Monday-start, matching getWeekStart() change in week-progress.ts.
-Updated: 2026-05-29 — Added Tech reference section (JS Map+Set group-by / SQL GROUP BY) per v1.42.0. Refreshed buildWeekHistory line ref L329–351→L311–333 (How it works + In this codebase + Validate L3); call site L149→L144.

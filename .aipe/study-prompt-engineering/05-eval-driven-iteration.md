@@ -657,4 +657,3 @@ Without opening files, answer:
 Pass: 20–50 cases; `tests/ml/form-classifier/{golden.json, run.ts}` and `tests/agent/{golden.json, run.ts}`; judge is bigger or different family.
 
 ---
-Updated: 2026-05-24 — Reframed per v1.38.0 per-repo scope. In this codebase: collapsed dual Case B (loopd) + Case B (aipe) into Case A planned (contrl ML evals B3.8/B3.9 from curriculum) + Case B planned (coaching-agent evals). Code snippet comments made illustrative. Tech reference codebase-uses lines retargeted to contrl. Project exercises B1.8/B1.15/B1.16 → B3.8 + B3.9 + B4C.golden (contrl-anchored). Validate Quick check updated.
