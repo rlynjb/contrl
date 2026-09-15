@@ -141,9 +141,11 @@ export function DailyHabitPanel({
           onPress={handleLogPlank}
           disabled={!plankReadyToLog || savingPlank || plankAlreadyComplete}
           accessibilityLabel={
-            !plankReadyToLog
-              ? `Complete ${FIXED_PLANK_SET_COUNT - plankSets} more plank sets before logging`
-              : 'Log completed daily plank'
+            plankAlreadyComplete
+              ? 'Daily plank already logged'
+              : !plankReadyToLog
+                ? `Complete ${FIXED_PLANK_SET_COUNT - plankSets} more plank sets before logging`
+                : 'Log completed daily plank'
           }
         >
           <Text style={styles.habitActionText}>
