@@ -10,7 +10,14 @@ import type {
   WeekProgress,
   DraftSession,
   Category,
+  DailyHabitEntry,
+  DailyHabitSettings,
 } from '../types';
+import {
+  DEFAULT_DAILY_PLANK_GOAL_SECONDS,
+  DEFAULT_DAILY_STEPS_GOAL,
+  toLocalDateKey,
+} from '../lib/daily-habits';
 
 let db: SQLite.SQLiteDatabase | null = null;
 
@@ -31,6 +38,9 @@ async function migrate(database: SQLite.SQLiteDatabase): Promise<void> {
       push_level INTEGER DEFAULT 1,
       pull_level INTEGER DEFAULT 1,
       squat_level INTEGER DEFAULT 1,
+      daily_steps_goal INTEGER DEFAULT 8000,
+      daily_plank_goal_seconds INTEGER DEFAULT 60,
+      show_daily_habits_on_home INTEGER DEFAULT 1,
       created_at TEXT NOT NULL,
       notion_page_id TEXT,
       updated_at TEXT NOT NULL
@@ -106,6 +116,15 @@ async function migrate(database: SQLite.SQLiteDatabase): Promise<void> {
       last_pulled_at TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS daily_habits (
+      date TEXT PRIMARY KEY,
+      steps_count INTEGER,
+      steps_goal INTEGER NOT NULL,
+      plank_seconds INTEGER,
+      plank_goal_seconds INTEGER NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS sync_meta (
       table_name      TEXT PRIMARY KEY,
       last_synced_at  TEXT
@@ -129,6 +148,21 @@ async function migrate(database: SQLite.SQLiteDatabase): Promise<void> {
   const sessionColNames = new Set(sessionCols.map(c => c.name));
   if (!sessionColNames.has('passed')) await database.execAsync('ALTER TABLE sessions ADD COLUMN passed INTEGER');
   if (!sessionColNames.has('created_at')) await database.execAsync('ALTER TABLE sessions ADD COLUMN created_at TEXT');
+
+  // Add new user setting columns if missing
+  const userCols = await database.getAllAsync<{ name: string }>(
+    'PRAGMA table_info(user_profile)'
+  );
+  const userColNames = new Set(userCols.map(c => c.name));
+  if (!userColNames.has('daily_steps_goal')) {
+    await database.execAsync('ALTER TABLE user_profile ADD COLUMN daily_steps_goal INTEGER DEFAULT 8000');
+  }
+  if (!userColNames.has('daily_plank_goal_seconds')) {
+    await database.execAsync('ALTER TABLE user_profile ADD COLUMN daily_plank_goal_seconds INTEGER DEFAULT 60');
+  }
+  if (!userColNames.has('show_daily_habits_on_home')) {
+    await database.execAsync('ALTER TABLE user_profile ADD COLUMN show_daily_habits_on_home INTEGER DEFAULT 1');
+  }
 
   // week_progress.week_start changed from Sunday-based to Monday-based.
   // Re-key any Sunday-shaped row to the preceding Monday (date - 6 days).
@@ -182,6 +216,7 @@ async function migrate(database: SQLite.SQLiteDatabase): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_sessions_updated ON sessions(updated_at);
     CREATE INDEX IF NOT EXISTS idx_gate_progress_notion ON gate_progress(notion_page_id);
     CREATE INDEX IF NOT EXISTS idx_week_progress_notion ON week_progress(notion_page_id);
+    CREATE INDEX IF NOT EXISTS idx_daily_habits_date ON daily_habits(date);
   `);
 
   // Seed default user if none exists
@@ -242,6 +277,9 @@ export async function getUser(): Promise<User> {
     push_level: number;
     pull_level: number;
     squat_level: number;
+    daily_steps_goal: number | null;
+    daily_plank_goal_seconds: number | null;
+    show_daily_habits_on_home: number | null;
     created_at: string;
     notion_page_id: string | null;
     updated_at: string;
@@ -252,6 +290,9 @@ export async function getUser(): Promise<User> {
   return {
     id: row.id,
     levels: { push: row.push_level, pull: row.pull_level, squat: row.squat_level },
+    dailyStepsGoal: row.daily_steps_goal ?? DEFAULT_DAILY_STEPS_GOAL,
+    dailyPlankGoalSeconds: row.daily_plank_goal_seconds ?? DEFAULT_DAILY_PLANK_GOAL_SECONDS,
+    showDailyHabitsOnHome: row.show_daily_habits_on_home !== 0,
     createdAt: row.created_at,
     notionPageId: row.notion_page_id,
     updatedAt: row.updated_at,
@@ -584,6 +625,123 @@ export async function getDraft(category: Category, level: number): Promise<Draft
 export async function deleteDraft(category: Category, level: number): Promise<void> {
   const d = await getDatabase();
   await d.runAsync('DELETE FROM drafts WHERE id = ?', [`draft:${category}:${level}`]);
+}
+
+// ── Daily habits ────────────────────────────────────────────
+
+type DailyHabitRow = {
+  date: string;
+  steps_count: number | null;
+  steps_goal: number;
+  plank_seconds: number | null;
+  plank_goal_seconds: number;
+  updated_at: string;
+};
+
+function rowToDailyHabit(row: DailyHabitRow): DailyHabitEntry {
+  return {
+    date: row.date,
+    stepsCount: row.steps_count,
+    stepsGoal: row.steps_goal,
+    plankSeconds: row.plank_seconds,
+    plankGoalSeconds: row.plank_goal_seconds,
+    updatedAt: row.updated_at,
+  };
+}
+
+export async function getDailyHabitSettings(): Promise<DailyHabitSettings> {
+  const user = await getUser();
+  return {
+    dailyStepsGoal: user.dailyStepsGoal,
+    dailyPlankGoalSeconds: user.dailyPlankGoalSeconds,
+    showDailyHabitsOnHome: user.showDailyHabitsOnHome,
+  };
+}
+
+export async function updateDailyHabitSettings(settings: DailyHabitSettings): Promise<void> {
+  const d = await getDatabase();
+  const now = new Date().toISOString();
+  await d.runAsync(
+    `UPDATE user_profile
+     SET daily_steps_goal = ?,
+         daily_plank_goal_seconds = ?,
+         show_daily_habits_on_home = ?,
+         updated_at = ?
+     WHERE id = ?`,
+    [
+      settings.dailyStepsGoal,
+      settings.dailyPlankGoalSeconds,
+      settings.showDailyHabitsOnHome ? 1 : 0,
+      now,
+      'default',
+    ]
+  );
+}
+
+export async function getDailyHabit(date: string): Promise<DailyHabitEntry | null> {
+  const d = await getDatabase();
+  const row = await d.getFirstAsync<DailyHabitRow>(
+    'SELECT * FROM daily_habits WHERE date = ?',
+    [date]
+  );
+  return row ? rowToDailyHabit(row) : null;
+}
+
+export async function getDailyHabitsInRange(startDate: string, endDate: string): Promise<DailyHabitEntry[]> {
+  const d = await getDatabase();
+  const rows = await d.getAllAsync<DailyHabitRow>(
+    'SELECT * FROM daily_habits WHERE date >= ? AND date <= ? ORDER BY date DESC',
+    [startDate, endDate]
+  );
+  return rows.map(rowToDailyHabit);
+}
+
+export async function upsertDailyHabit(entry: DailyHabitEntry): Promise<void> {
+  const d = await getDatabase();
+  const now = new Date().toISOString();
+  await d.runAsync(
+    `INSERT OR REPLACE INTO daily_habits
+     (date, steps_count, steps_goal, plank_seconds, plank_goal_seconds, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [
+      entry.date,
+      entry.stepsCount,
+      entry.stepsGoal,
+      entry.plankSeconds,
+      entry.plankGoalSeconds,
+      now,
+    ]
+  );
+}
+
+async function getOrCreateDailyHabit(date: string): Promise<DailyHabitEntry> {
+  const existing = await getDailyHabit(date);
+  if (existing) return existing;
+  const settings = await getDailyHabitSettings();
+  return {
+    date,
+    stepsCount: null,
+    stepsGoal: settings.dailyStepsGoal,
+    plankSeconds: null,
+    plankGoalSeconds: settings.dailyPlankGoalSeconds,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+export async function updateDailyHabitSteps(date: string, stepsCount: number): Promise<void> {
+  const entry = await getOrCreateDailyHabit(date || toLocalDateKey());
+  await upsertDailyHabit({
+    ...entry,
+    stepsCount: Math.max(0, Math.floor(stepsCount)),
+  });
+}
+
+export async function updateDailyHabitPlank(date: string, plankSeconds: number): Promise<void> {
+  const entry = await getOrCreateDailyHabit(date || toLocalDateKey());
+  await upsertDailyHabit({
+    ...entry,
+    plankSeconds: Math.max(0, Math.floor(plankSeconds)),
+  });
 }
 
 // ── Sync state ──────────────────────────────────────────────

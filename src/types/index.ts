@@ -36,9 +36,27 @@ export type Exercise = {
 export type User = {
   id: string
   levels: Record<Category, number>
+  dailyStepsGoal: number
+  dailyPlankGoalSeconds: number
+  showDailyHabitsOnHome: boolean
   createdAt: string
   notionPageId?: string | null
   updatedAt?: string
+}
+
+export type DailyHabitSettings = {
+  dailyStepsGoal: number
+  dailyPlankGoalSeconds: number
+  showDailyHabitsOnHome: boolean
+}
+
+export type DailyHabitEntry = {
+  date: string
+  stepsCount: number | null
+  stepsGoal: number
+  plankSeconds: number | null
+  plankGoalSeconds: number
+  updatedAt: string
 }
 
 // ── Workout session ─────────────────────────────────────────
