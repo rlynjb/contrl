@@ -33,9 +33,8 @@ export default function HomeScreen() {
     today,
     weekEntries,
     settings: habitSettings,
-    updateSteps,
-    updatePlank,
-    updateSettings,
+    logStepsGoal,
+    logFixedPlank,
   } = useDailyHabits();
 
   const weekDateKeys = useMemo(() => getWeekDateKeys(), []);
@@ -144,9 +143,8 @@ export default function HomeScreen() {
           <DailyHabitPanel
             today={today}
             settings={habitSettings}
-            onUpdateSteps={updateSteps}
-            onUpdatePlank={updatePlank}
-            onUpdateSettings={updateSettings}
+            onLogStepsGoal={logStepsGoal}
+            onLogFixedPlank={logFixedPlank}
           />
         </View>
       )}

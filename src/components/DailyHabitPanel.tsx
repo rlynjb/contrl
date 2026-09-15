@@ -1,91 +1,78 @@
-import { useEffect, useState } from 'react';
-import {
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts } from '@/constants/theme';
 import type { DailyHabitEntry, DailyHabitSettings } from '@/types';
 import {
-  formatSeconds,
-  formatSteps,
-  PLANK_GOALS,
-  STEP_GOALS,
+  FIXED_PLANK_SET_COUNT,
+  FIXED_PLANK_SET_SECONDS,
+  plankCompletedSets,
+  stepsFromThousands,
+  stepsToThousandsInput,
 } from '@/lib/daily-habits';
-import { HoldTimerModal } from './ui/HoldTimerModal';
 
 type Props = {
   today: DailyHabitEntry | null;
-  settings: DailyHabitSettings;
-  onUpdateSteps: (stepsCount: number) => Promise<void>;
-  onUpdatePlank: (plankSeconds: number) => Promise<void>;
-  onUpdateSettings: (settings: DailyHabitSettings) => Promise<void>;
+  settings: Pick<DailyHabitSettings, 'dailyStepsGoal'>;
+  onLogStepsGoal: (stepsGoal: number) => Promise<void>;
+  onLogFixedPlank: () => Promise<void>;
 };
-
-type EntryMode = 'steps' | 'plank' | 'plankGoal';
 
 export function DailyHabitPanel({
   today,
   settings,
-  onUpdateSteps,
-  onUpdatePlank,
-  onUpdateSettings,
+  onLogStepsGoal,
+  onLogFixedPlank,
 }: Props) {
-  const [entryMode, setEntryMode] = useState<EntryMode | null>(null);
-  const [entryValue, setEntryValue] = useState('');
-  const [timerVisible, setTimerVisible] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const initialStepsInput = useMemo(
+    () => stepsToThousandsInput(today?.stepsCount ?? today?.stepsGoal ?? null, settings.dailyStepsGoal),
+    [settings.dailyStepsGoal, today?.stepsCount, today?.stepsGoal]
+  );
+  const loggedPlankSets = plankCompletedSets(today);
+  const plankComplete = loggedPlankSets >= FIXED_PLANK_SET_COUNT;
 
-  const stepsValue = today?.stepsCount ?? null;
-  const stepsGoal = today?.stepsGoal ?? settings.dailyStepsGoal;
-  const plankValue = today?.plankSeconds ?? null;
-  const plankGoal = today?.plankGoalSeconds ?? settings.dailyPlankGoalSeconds;
-  const stepsPct = stepsGoal > 0 && stepsValue != null
-    ? Math.min(100, Math.round((stepsValue / stepsGoal) * 100))
-    : 0;
-  const plankPct = plankGoal > 0 && plankValue != null
-    ? Math.min(100, Math.round((plankValue / plankGoal) * 100))
-    : 0;
+  const [stepsInput, setStepsInput] = useState(initialStepsInput);
+  const [plankSets, setPlankSets] = useState(loggedPlankSets);
+  const [stepsError, setStepsError] = useState<string | null>(null);
+  const [savingSteps, setSavingSteps] = useState(false);
+  const [savingPlank, setSavingPlank] = useState(false);
 
   useEffect(() => {
-    if (!entryMode) setEntryValue('');
-  }, [entryMode]);
+    setStepsInput(initialStepsInput);
+  }, [initialStepsInput]);
 
-  const openEntry = (mode: EntryMode) => {
-    setEntryMode(mode);
-    if (mode === 'steps') setEntryValue(stepsValue != null ? String(stepsValue) : '');
-    if (mode === 'plank') setEntryValue(plankValue != null ? String(plankValue) : '');
-    if (mode === 'plankGoal') setEntryValue(String(plankGoal));
-  };
+  useEffect(() => {
+    setPlankSets(loggedPlankSets);
+  }, [loggedPlankSets]);
 
-  const saveEntry = async () => {
-    if (!entryMode || saving) return;
-    const nextValue = Math.max(0, Math.floor(Number(entryValue) || 0));
-    setSaving(true);
+  const handleLogSteps = async () => {
+    const stepsGoal = stepsFromThousands(stepsInput);
+    if (stepsGoal == null) {
+      setStepsError('Enter a goal');
+      return;
+    }
+    setStepsError(null);
+    setSavingSteps(true);
     try {
-      if (entryMode === 'steps') await onUpdateSteps(nextValue);
-      if (entryMode === 'plank') await onUpdatePlank(nextValue);
-      if (entryMode === 'plankGoal') {
-        await onUpdateSettings({
-          ...settings,
-          dailyPlankGoalSeconds: nextValue,
-        });
-      }
-      setEntryMode(null);
+      await onLogStepsGoal(stepsGoal);
     } finally {
-      setSaving(false);
+      setSavingSteps(false);
     }
   };
 
-  const entryTitle = entryMode === 'steps'
-    ? 'Steps'
-    : entryMode === 'plank'
-      ? 'Plank seconds'
-      : 'Plank goal';
+  const incrementPlankSets = () => {
+    setPlankSets(current => Math.min(FIXED_PLANK_SET_COUNT, current + 1));
+  };
+
+  const handleLogPlank = async () => {
+    if (plankSets < FIXED_PLANK_SET_COUNT) return;
+    setSavingPlank(true);
+    try {
+      await onLogFixedPlank();
+    } finally {
+      setSavingPlank(false);
+    }
+  };
 
   return (
     <View style={styles.dailyCard}>
@@ -93,39 +80,33 @@ export function DailyHabitPanel({
         <View style={[styles.habitIcon, styles.stepsIcon]}>
           <Feather name="navigation" size={16} color={colors.success} />
         </View>
-        <View style={styles.habitMain}>
-          <View style={styles.habitTitle}>
-            <Text style={styles.habitName}>Steps</Text>
-            <Text style={styles.habitValue}>
-              {formatSteps(stepsValue)} / {formatSteps(stepsGoal)}
-            </Text>
+        <Text style={styles.habitName}>Steps</Text>
+        <View style={styles.inlineActionGroup}>
+          <View style={styles.goalInputWrap}>
+            <Text style={styles.goalInputLabel}>Goal</Text>
+            <TextInput
+              style={styles.goalInput}
+              value={stepsInput}
+              onChangeText={(value) => {
+                setStepsInput(value.replace(/[^0-9.]/g, ''));
+                setStepsError(null);
+              }}
+              keyboardType="decimal-pad"
+              accessibilityLabel="Daily step goal in thousands"
+            />
+            <Text style={styles.goalInputSuffix}>K</Text>
           </View>
-          <View
-            style={styles.progressTrack}
-            accessible
-            accessibilityLabel={`Steps progress, ${stepsValue ?? 0} of ${stepsGoal}`}
-          >
-            <View style={[styles.progressFill, styles.stepsFill, { width: `${stepsPct}%` }]} />
-          </View>
-        </View>
-        <Pressable style={styles.habitAction} onPress={() => openEntry('steps')}>
-          <Text style={styles.habitActionText}>Edit</Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.goalGrid}>
-        {STEP_GOALS.map(goal => (
           <Pressable
-            key={goal}
-            style={[styles.goalChip, stepsGoal === goal && styles.stepsGoalActive]}
-            onPress={() => onUpdateSettings({ ...settings, dailyStepsGoal: goal })}
+            style={[styles.habitAction, savingSteps && styles.disabledButton]}
+            onPress={handleLogSteps}
+            disabled={savingSteps}
+            accessibilityLabel={`Log ${stepsInput || '0'} thousand steps`}
           >
-            <Text style={[styles.goalText, stepsGoal === goal && styles.goalTextActive]}>
-              {goal / 1000}K
-            </Text>
+            <Text style={styles.habitActionText}>{savingSteps ? 'Saving' : 'Log'}</Text>
           </Pressable>
-        ))}
+        </View>
       </View>
+      {stepsError && <Text style={styles.errorText}>{stepsError}</Text>}
 
       <View style={styles.divider} />
 
@@ -133,105 +114,41 @@ export function DailyHabitPanel({
         <View style={[styles.habitIcon, styles.plankIcon]}>
           <Feather name="clock" size={16} color={colors.primary} />
         </View>
-        <View style={styles.habitMain}>
-          <View style={styles.habitTitle}>
+        <View style={styles.plankMain}>
+          <View style={styles.plankTitleRow}>
             <Text style={styles.habitName}>Plank</Text>
-            <Text style={styles.habitValue}>
-              {formatSeconds(plankValue)} / {formatSeconds(plankGoal)}
-            </Text>
+            <Text style={styles.setCount}>{plankComplete ? FIXED_PLANK_SET_COUNT : plankSets}</Text>
+            <Pressable
+              style={[styles.setButton, plankSets >= FIXED_PLANK_SET_COUNT && styles.disabledButton]}
+              onPress={incrementPlankSets}
+              disabled={plankSets >= FIXED_PLANK_SET_COUNT}
+              accessibilityLabel="Add completed plank set"
+            >
+              <Feather name="plus" size={14} color={colors.primary} />
+            </Pressable>
           </View>
-          <View
-            style={styles.progressTrack}
-            accessible
-            accessibilityLabel={`Plank progress, ${plankValue ?? 0} of ${plankGoal} seconds`}
-          >
-            <View style={[styles.progressFill, styles.plankFill, { width: `${plankPct}%` }]} />
-          </View>
+          <Text style={styles.habitValue}>
+            of {FIXED_PLANK_SET_COUNT} sets · {FIXED_PLANK_SET_SECONDS}s
+          </Text>
         </View>
         <Pressable
-          style={styles.habitAction}
-          onPress={() => setTimerVisible(true)}
-          accessibilityLabel="Start plank timer"
+          style={[
+            styles.habitAction,
+            (plankSets < FIXED_PLANK_SET_COUNT || savingPlank || plankComplete) && styles.disabledButton,
+          ]}
+          onPress={handleLogPlank}
+          disabled={plankSets < FIXED_PLANK_SET_COUNT || savingPlank || plankComplete}
+          accessibilityLabel={
+            plankSets < FIXED_PLANK_SET_COUNT
+              ? `Complete ${FIXED_PLANK_SET_COUNT - plankSets} more plank sets before logging`
+              : 'Log completed daily plank'
+          }
         >
-          <Feather name="play" size={13} color={colors.primary} />
-        </Pressable>
-      </View>
-
-      <View style={styles.goalGrid}>
-        {PLANK_GOALS.map(goal => (
-          <Pressable
-            key={goal}
-            style={[styles.goalChip, plankGoal === goal && styles.plankGoalActive]}
-            onPress={() => onUpdateSettings({ ...settings, dailyPlankGoalSeconds: goal })}
-          >
-            <Text style={[styles.goalText, plankGoal === goal && styles.goalTextActive]}>
-              {goal}s
-            </Text>
-          </Pressable>
-        ))}
-        <Pressable
-          style={[styles.goalChip, !PLANK_GOALS.includes(plankGoal as 30 | 45 | 60 | 90) && styles.plankGoalActive]}
-          onPress={() => openEntry('plankGoal')}
-        >
-          <Text
-            style={[
-              styles.goalText,
-              !PLANK_GOALS.includes(plankGoal as 30 | 45 | 60 | 90) && styles.goalTextActive,
-            ]}
-          >
-            Custom
+          <Text style={styles.habitActionText}>
+            {plankComplete ? 'Done' : savingPlank ? 'Saving' : 'Log'}
           </Text>
         </Pressable>
-        <Pressable style={styles.goalChip} onPress={() => openEntry('plank')}>
-          <Text style={styles.goalText}>Log</Text>
-        </Pressable>
       </View>
-
-      <Modal
-        visible={entryMode !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setEntryMode(null)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{entryTitle}</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={entryValue}
-              onChangeText={setEntryValue}
-              placeholder="0"
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="numeric"
-              selectTextOnFocus
-            />
-            <View style={styles.modalActions}>
-              <Pressable style={styles.cancelButton} onPress={() => setEntryMode(null)}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.saveButton, saving && styles.disabledButton]}
-                onPress={saveEntry}
-                disabled={saving}
-              >
-                <Text style={styles.saveButtonText}>{saving ? 'Saving' : 'Save'}</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      <HoldTimerModal
-        visible={timerVisible}
-        targetSeconds={plankGoal}
-        exerciseName="Daily Plank"
-        setLabel="Today"
-        onComplete={(seconds) => {
-          setTimerVisible(false);
-          onUpdatePlank(seconds);
-        }}
-        onCancel={() => setTimerVisible(false)}
-      />
     </View>
   );
 }
@@ -267,16 +184,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryDim,
     borderColor: colors.primary + '30',
   },
-  habitMain: {
+  inlineActionGroup: {
     flex: 1,
-    gap: 7,
-    minWidth: 0,
-  },
-  habitTitle: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
     gap: 8,
+    minWidth: 0,
   },
   habitName: {
     fontSize: 13,
@@ -288,21 +202,38 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     color: colors.textSecondary,
   },
-  progressTrack: {
-    height: 5,
-    backgroundColor: colors.border,
-    borderRadius: 0,
-    overflow: 'hidden',
+  goalInputWrap: {
+    height: 34,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 2,
+    backgroundColor: colors.surfaceLight,
+    paddingLeft: 8,
+    paddingRight: 7,
+    minWidth: 98,
   },
-  progressFill: {
-    height: '100%',
-    borderRadius: 0,
+  goalInputLabel: {
+    fontSize: 10,
+    fontFamily: fonts.semiBold,
+    color: colors.textSecondary,
+    marginRight: 6,
   },
-  stepsFill: {
-    backgroundColor: colors.success,
+  goalInput: {
+    minWidth: 28,
+    maxWidth: 50,
+    padding: 0,
+    color: colors.text,
+    fontSize: 13,
+    fontFamily: fonts.bold,
+    textAlign: 'right',
   },
-  plankFill: {
-    backgroundColor: colors.primary,
+  goalInputSuffix: {
+    fontSize: 11,
+    fontFamily: fonts.bold,
+    color: colors.textSecondary,
+    marginLeft: 2,
   },
   habitAction: {
     minWidth: 42,
@@ -320,102 +251,41 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     color: colors.primary,
   },
-  goalGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 5,
-  },
-  goalChip: {
-    minWidth: 44,
-    minHeight: 28,
-    paddingHorizontal: 8,
-    borderRadius: 2,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surfaceLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepsGoalActive: {
-    borderColor: colors.success + '55',
-    backgroundColor: colors.successDim,
-  },
-  plankGoalActive: {
-    borderColor: colors.primary + '55',
-    backgroundColor: colors.primaryDim,
-  },
-  goalText: {
-    fontSize: 10,
-    fontFamily: fonts.bold,
-    color: colors.textSecondary,
-  },
-  goalTextActive: {
-    color: colors.text,
-  },
   divider: {
     height: 1,
     backgroundColor: colors.border,
   },
-  modalOverlay: {
+  plankMain: {
     flex: 1,
-    backgroundColor: 'rgba(6,8,15,0.88)',
+    gap: 3,
+    minWidth: 0,
+  },
+  plankTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  setCount: {
+    fontSize: 13,
+    fontFamily: fonts.bold,
+    color: colors.text,
+  },
+  setButton: {
+    width: 26,
+    height: 26,
+    borderWidth: 1,
+    borderColor: colors.primary + '35',
+    borderRadius: 2,
+    backgroundColor: colors.primaryDim,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
   },
-  modalContent: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 2,
-    width: '100%',
-    maxWidth: 320,
-    padding: 20,
-    gap: 14,
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontFamily: fonts.bold,
-    color: colors.text,
-  },
-  modalInput: {
-    backgroundColor: colors.surfaceLight,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 2,
-    color: colors.text,
-    fontFamily: fonts.bold,
-    fontSize: 24,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 10,
-  },
-  cancelButton: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 2,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  cancelButtonText: {
-    fontSize: 13,
-    fontFamily: fonts.regular,
-    color: colors.textSecondary,
-  },
-  saveButton: {
-    borderRadius: 2,
-    backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  saveButtonText: {
-    fontSize: 13,
-    fontFamily: fonts.bold,
-    color: colors.bg,
+  errorText: {
+    fontSize: 11,
+    fontFamily: fonts.semiBold,
+    color: colors.danger,
+    marginTop: -6,
+    marginLeft: 44,
   },
   disabledButton: {
     opacity: 0.55,
