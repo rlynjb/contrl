@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { colors, fonts } from '@/constants/theme';
@@ -37,6 +37,7 @@ export function DailyHabitPanel({
   const [stepsError, setStepsError] = useState<string | null>(null);
   const [savingSteps, setSavingSteps] = useState(false);
   const [savingPlank, setSavingPlank] = useState(false);
+  const stepsInputRef = useRef<TextInput>(null);
   const plankReadyToLog = plankSets >= FIXED_PLANK_SET_COUNT;
 
   useEffect(() => {
@@ -66,6 +67,10 @@ export function DailyHabitPanel({
     setPlankSets(current => Math.min(FIXED_PLANK_SET_COUNT, current + 1));
   };
 
+  const focusStepsInput = () => {
+    stepsInputRef.current?.focus();
+  };
+
   const handleLogPlank = async () => {
     if (plankSets < FIXED_PLANK_SET_COUNT) return;
     setSavingPlank(true);
@@ -84,9 +89,14 @@ export function DailyHabitPanel({
         </View>
         <Text style={styles.habitName}>Steps</Text>
         <View style={styles.inlineActionGroup}>
-          <View style={styles.goalInputWrap}>
+          <Pressable
+            style={styles.goalInputWrap}
+            onPress={focusStepsInput}
+            accessible={false}
+          >
             <Text style={styles.goalInputLabel}>Goal</Text>
             <TextInput
+              ref={stepsInputRef}
               style={styles.goalInput}
               value={stepsInput}
               onChangeText={(value) => {
@@ -94,10 +104,12 @@ export function DailyHabitPanel({
                 setStepsError(null);
               }}
               keyboardType="decimal-pad"
+              inputMode="decimal"
+              selectTextOnFocus
               accessibilityLabel="Daily step goal in thousands"
             />
             <Text style={styles.goalInputSuffix}>K</Text>
-          </View>
+          </Pressable>
           <Pressable
             style={[styles.habitAction, savingSteps && styles.disabledButton]}
             onPress={handleLogSteps}
@@ -216,7 +228,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceLight,
     paddingLeft: 8,
     paddingRight: 7,
-    minWidth: 98,
+    minWidth: 112,
   },
   goalInputLabel: {
     fontSize: 10,
@@ -225,9 +237,11 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   goalInput: {
-    minWidth: 28,
-    maxWidth: 50,
+    height: '100%',
+    minWidth: 34,
+    maxWidth: 56,
     padding: 0,
+    paddingVertical: 0,
     color: colors.text,
     fontSize: 13,
     fontFamily: fonts.bold,
