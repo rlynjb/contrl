@@ -14,6 +14,9 @@ import { useGameState } from '../../src/hooks/useGameState';
 import { useExercises } from '../../src/hooks/useExercises';
 import { getWeekStart } from '../../src/lib/game/week-progress';
 import {
+  FIXED_PLANK_SET_COUNT,
+  FIXED_PLANK_SET_SECONDS,
+  FIXED_PLANK_TOTAL_SECONDS,
   formatSeconds,
   formatSteps,
   isPlankComplete,
@@ -51,6 +54,14 @@ function computePassed(exercises: ExerciseEntry[]): boolean {
 function exercisePercentage(ex: ExerciseEntry): number {
   const checked = ex.checkedSets.filter(Boolean).length;
   return Math.round((checked / ex.targetSets) * 100);
+}
+
+function formatPlankHistory(habit: DailyHabitEntry): string {
+  if (habit.plankSeconds === FIXED_PLANK_TOTAL_SECONDS && habit.plankGoalSeconds === FIXED_PLANK_TOTAL_SECONDS) {
+    return `Plank ${FIXED_PLANK_SET_COUNT} x ${FIXED_PLANK_SET_SECONDS}s`;
+  }
+  if (isPlankComplete(habit)) return 'Plank complete';
+  return `Plank ${formatSeconds(habit.plankSeconds)}`;
 }
 
 export default function HistoryScreen() {
@@ -231,7 +242,7 @@ export default function HistoryScreen() {
                           color={isStepsComplete(habit) ? colors.success : colors.muted}
                         />
                         <Text style={styles.habitSummaryText}>
-                          Steps {formatSteps(habit.stepsCount)} / {formatSteps(habit.stepsGoal)}
+                          Steps {formatSteps(habit.stepsCount)}
                         </Text>
                       </View>
                       <View style={styles.habitSummaryItem}>
@@ -241,7 +252,7 @@ export default function HistoryScreen() {
                           color={isPlankComplete(habit) ? colors.success : colors.muted}
                         />
                         <Text style={styles.habitSummaryText}>
-                          Plank {formatSeconds(habit.plankSeconds)} / {formatSeconds(habit.plankGoalSeconds)}
+                          {formatPlankHistory(habit)}
                         </Text>
                       </View>
                     </View>
