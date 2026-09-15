@@ -393,7 +393,7 @@ export async function getSessions(): Promise<WorkoutSession[]> {
   const rows = await d.getAllAsync<{
     id: string; date: string; level: number; category: string;
     exercises_json: string; notes: string | null;
-    notion_page_id: string | null; updated_at: string;
+    passed: number | null; notion_page_id: string | null; updated_at: string;
   }>('SELECT * FROM sessions ORDER BY date DESC');
 
   return rows.map(rowToSession);
@@ -404,7 +404,7 @@ export async function getSessionsByCategory(category: Category): Promise<Workout
   const rows = await d.getAllAsync<{
     id: string; date: string; level: number; category: string;
     exercises_json: string; notes: string | null;
-    notion_page_id: string | null; updated_at: string;
+    passed: number | null; notion_page_id: string | null; updated_at: string;
   }>('SELECT * FROM sessions WHERE category = ? ORDER BY date DESC', [category]);
 
   return rows.map(rowToSession);

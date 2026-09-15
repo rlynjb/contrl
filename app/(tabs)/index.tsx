@@ -27,7 +27,7 @@ export default function HomeScreen() {
   const { error: exercisesError, reload: reloadExercises } = useExercises();
 
   // Build a map of session dates this week keyed by day-of-week index (0=Mon)
-  const weekDaySessions = useMemo(() => {
+  const weekDaySessions = useMemo<(null | { category: Category; level: number })[]>(() => {
     if (!sessions || !user) return new Array(7).fill(null);
 
     const now = new Date();
