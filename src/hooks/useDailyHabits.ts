@@ -16,6 +16,8 @@ export type UseDailyHabitsReturn = {
   loadRange: (startDate: string, endDate: string) => Promise<DailyHabitEntry[]>;
   updateSteps: (stepsCount: number) => Promise<void>;
   updatePlank: (plankSeconds: number) => Promise<void>;
+  logStepsGoal: (stepsGoal: number) => Promise<void>;
+  logFixedPlank: () => Promise<void>;
   updateSettings: (settings: DailyHabitSettings) => Promise<void>;
 };
 
@@ -68,6 +70,16 @@ export function useDailyHabits(): UseDailyHabitsReturn {
     await reload();
   }, [reload, todayDate]);
 
+  const logStepsGoal = useCallback(async (stepsGoal: number) => {
+    await db.logDailyHabitStepsGoal(todayDate, stepsGoal);
+    await reload();
+  }, [reload, todayDate]);
+
+  const logFixedPlank = useCallback(async () => {
+    await db.logFixedDailyPlank(todayDate);
+    await reload();
+  }, [reload, todayDate]);
+
   const updateSettings = useCallback(async (nextSettings: DailyHabitSettings) => {
     await db.updateDailyHabitSettings(nextSettings);
     setSettings(nextSettings);
@@ -85,6 +97,8 @@ export function useDailyHabits(): UseDailyHabitsReturn {
     loadRange,
     updateSteps,
     updatePlank,
+    logStepsGoal,
+    logFixedPlank,
     updateSettings,
   };
 }

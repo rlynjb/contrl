@@ -16,6 +16,7 @@ import type {
 import {
   DEFAULT_DAILY_PLANK_GOAL_SECONDS,
   DEFAULT_DAILY_STEPS_GOAL,
+  FIXED_PLANK_TOTAL_SECONDS,
   toLocalDateKey,
 } from '../lib/daily-habits';
 
@@ -736,11 +737,30 @@ export async function updateDailyHabitSteps(date: string, stepsCount: number): P
   });
 }
 
+export async function logDailyHabitStepsGoal(date: string, stepsGoal: number): Promise<void> {
+  const safeGoal = Math.max(0, Math.floor(stepsGoal));
+  const entry = await getOrCreateDailyHabit(date || toLocalDateKey());
+  await upsertDailyHabit({
+    ...entry,
+    stepsCount: safeGoal,
+    stepsGoal: safeGoal,
+  });
+}
+
 export async function updateDailyHabitPlank(date: string, plankSeconds: number): Promise<void> {
   const entry = await getOrCreateDailyHabit(date || toLocalDateKey());
   await upsertDailyHabit({
     ...entry,
     plankSeconds: Math.max(0, Math.floor(plankSeconds)),
+  });
+}
+
+export async function logFixedDailyPlank(date: string): Promise<void> {
+  const entry = await getOrCreateDailyHabit(date || toLocalDateKey());
+  await upsertDailyHabit({
+    ...entry,
+    plankSeconds: FIXED_PLANK_TOTAL_SECONDS,
+    plankGoalSeconds: FIXED_PLANK_TOTAL_SECONDS,
   });
 }
 

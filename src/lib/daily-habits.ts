@@ -5,6 +5,9 @@ export const DEFAULT_DAILY_STEPS_GOAL = 8000
 export const DEFAULT_DAILY_PLANK_GOAL_SECONDS = 60
 export const STEP_GOALS = [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000] as const
 export const PLANK_GOALS = [30, 45, 60, 90] as const
+export const FIXED_PLANK_SET_COUNT = 4
+export const FIXED_PLANK_SET_SECONDS = 60
+export const FIXED_PLANK_TOTAL_SECONDS = FIXED_PLANK_SET_COUNT * FIXED_PLANK_SET_SECONDS
 
 export function toLocalDateKey(date: Date = new Date()): string {
   const yyyy = date.getFullYear()
@@ -29,6 +32,26 @@ export function isStepsComplete(entry: DailyHabitEntry | null): boolean {
 
 export function isPlankComplete(entry: DailyHabitEntry | null): boolean {
   return entry?.plankSeconds != null && entry.plankSeconds >= entry.plankGoalSeconds
+}
+
+export function stepsFromThousands(value: string): number | null {
+  const normalized = value.trim()
+  if (!normalized) return null
+  const numeric = Number(normalized)
+  if (!Number.isFinite(numeric) || numeric <= 0) return null
+  return Math.floor(numeric * 1000)
+}
+
+export function stepsToThousandsInput(value: number | null, fallbackGoal: number): string {
+  const source = value ?? fallbackGoal
+  if (!Number.isFinite(source) || source <= 0) return ''
+  const thousands = source / 1000
+  return Number.isInteger(thousands) ? String(thousands) : String(Math.round(thousands * 10) / 10)
+}
+
+export function plankCompletedSets(entry: DailyHabitEntry | null): number {
+  if (!entry?.plankSeconds) return 0
+  return Math.min(FIXED_PLANK_SET_COUNT, Math.floor(entry.plankSeconds / FIXED_PLANK_SET_SECONDS))
 }
 
 export function formatSteps(value: number | null): string {
