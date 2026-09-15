@@ -1,7 +1,9 @@
 import { useCallback, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, Switch } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { colors, fonts } from '../../src/constants/theme';
+import { STEP_GOALS, PLANK_GOALS } from '../../src/lib/daily-habits';
+import { useDailyHabits } from '../../src/hooks/useDailyHabits';
 import { getSyncState, getAllSyncMeta } from '../../src/services/database';
 import { pushChanges, isSyncConfigured } from '../../src/services/sync';
 
@@ -27,6 +29,10 @@ export default function SettingsScreen() {
   const [sync, setSync] = useState<SyncState>({ lastPushedAt: null, lastPulledAt: null });
   const [pushing, setPushing] = useState(false);
   const [ledger, setLedger] = useState<SyncMetaRow[]>([]);
+  const {
+    settings: habitSettings,
+    updateSettings: updateHabitSettings,
+  } = useDailyHabits();
 
   const refresh = useCallback(() => {
     getSyncState().then(setSync).catch(() => {});
@@ -49,6 +55,13 @@ export default function SettingsScreen() {
       refresh();
     }
   }, [pushing, refresh]);
+
+  const updateHabitSettingValue = useCallback(async (
+    patch: Partial<NonNullable<typeof habitSettings>>
+  ) => {
+    if (!habitSettings) return;
+    await updateHabitSettings({ ...habitSettings, ...patch });
+  }, [habitSettings, updateHabitSettings]);
 
   const configured = isSyncConfigured();
 
@@ -86,6 +99,74 @@ export default function SettingsScreen() {
           <Text style={styles.rowSubtitle}>{formatTimeSince(row.lastSyncedAt)}</Text>
         </View>
       ))}
+
+      {habitSettings && (
+        <>
+          <Text style={[styles.sectionTitle, { marginTop: 32 }]}>DAILY HABITS</Text>
+          <View style={styles.goalBlock}>
+            <Text style={styles.rowLabel}>Daily step goal</Text>
+            <View style={styles.goalGrid}>
+              {STEP_GOALS.map(goal => (
+                <Pressable
+                  key={goal}
+                  style={[
+                    styles.goalChip,
+                    habitSettings.dailyStepsGoal === goal && styles.goalChipActive,
+                  ]}
+                  onPress={() => updateHabitSettingValue({ dailyStepsGoal: goal })}
+                >
+                  <Text
+                    style={[
+                      styles.goalChipText,
+                      habitSettings.dailyStepsGoal === goal && styles.goalChipTextActive,
+                    ]}
+                  >
+                    {goal / 1000}K
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.goalBlock}>
+            <Text style={styles.rowLabel}>Daily plank goal</Text>
+            <View style={styles.goalGrid}>
+              {PLANK_GOALS.map(goal => (
+                <Pressable
+                  key={goal}
+                  style={[
+                    styles.goalChip,
+                    habitSettings.dailyPlankGoalSeconds === goal && styles.goalChipActive,
+                  ]}
+                  onPress={() => updateHabitSettingValue({ dailyPlankGoalSeconds: goal })}
+                >
+                  <Text
+                    style={[
+                      styles.goalChipText,
+                      habitSettings.dailyPlankGoalSeconds === goal && styles.goalChipTextActive,
+                    ]}
+                  >
+                    {goal}s
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.row}>
+            <View>
+              <Text style={styles.rowLabel}>Show on Home</Text>
+              <Text style={styles.rowSubtitle}>Today card and weekly habit marks</Text>
+            </View>
+            <Switch
+              value={habitSettings.showDailyHabitsOnHome}
+              onValueChange={(value) => updateHabitSettingValue({ showDailyHabitsOnHome: value })}
+              trackColor={{ false: colors.border, true: colors.primary + '55' }}
+              thumbColor={habitSettings.showDailyHabitsOnHome ? colors.primary : colors.muted}
+            />
+          </View>
+        </>
+      )}
 
       <Text style={[styles.sectionTitle, { marginTop: 32 }]}>ABOUT</Text>
       <View style={styles.row}>
@@ -135,6 +216,39 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.muted,
     marginTop: 2,
+  },
+  goalBlock: {
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    gap: 10,
+  },
+  goalGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  goalChip: {
+    minWidth: 48,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 2,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+  },
+  goalChipActive: {
+    borderColor: colors.primary + '55',
+    backgroundColor: colors.primaryDim,
+  },
+  goalChipText: {
+    fontSize: 12,
+    fontFamily: fonts.bold,
+    color: colors.textSecondary,
+  },
+  goalChipTextActive: {
+    color: colors.primary,
   },
   syncButton: {
     backgroundColor: colors.primaryDim,

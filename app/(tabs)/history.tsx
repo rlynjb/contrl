@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,21 @@ import {
   Pressable,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
 import { colors, fonts, categoryColors } from '../../src/constants/theme';
 import { useGameState } from '../../src/hooks/useGameState';
 import { useExercises } from '../../src/hooks/useExercises';
 import { getWeekStart } from '../../src/lib/game/week-progress';
+import {
+  formatSeconds,
+  formatSteps,
+  isPlankComplete,
+  isStepsComplete,
+  toLocalDateKey,
+} from '../../src/lib/daily-habits';
 import { CategoryBadge } from '../../src/components/ui/CategoryBadge';
-import type { Category, WorkoutSession, ExerciseEntry } from '../../src/types';
+import * as database from '../../src/services/database';
+import type { Category, WorkoutSession, ExerciseEntry, DailyHabitEntry } from '../../src/types';
 import { CATEGORIES } from '../../src/types';
 
 type WeekGroup = {
@@ -48,6 +57,7 @@ export default function HistoryScreen() {
   const { status, error, sessions, reload } = useGameState();
   const { exercises, error: exercisesError, reload: reloadExercises } = useExercises();
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [habitEntries, setHabitEntries] = useState<Record<string, DailyHabitEntry>>({});
 
   const exerciseNameMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -83,6 +93,63 @@ export default function HistoryScreen() {
       });
   }, [sessions]);
 
+  useFocusEffect(useCallback(() => {
+    let cancelled = false;
+
+    async function loadHabits() {
+      const weekStarts = new Set<string>([getWeekStart(new Date())]);
+      for (const session of sessions) {
+        weekStarts.add(getWeekStart(new Date(session.date)));
+      }
+
+      const sortedStarts = Array.from(weekStarts).sort();
+      const first = sortedStarts[0];
+      const lastStart = sortedStarts[sortedStarts.length - 1];
+      const last = new Date(lastStart + 'T00:00:00');
+      last.setDate(last.getDate() + 6);
+      const end = toLocalDateKey(last);
+
+      const entries = await database.getDailyHabitsInRange(first, end);
+      if (cancelled) return;
+
+      const byDate: Record<string, DailyHabitEntry> = {};
+      for (const entry of entries) byDate[entry.date] = entry;
+      setHabitEntries(byDate);
+    }
+
+    loadHabits().catch(() => {});
+    return () => { cancelled = true; };
+  }, [sessions]));
+
+  const displayWeekGroups = useMemo((): WeekGroup[] => {
+    const groups = new Map<string, WorkoutSession[]>();
+    for (const group of weekGroups) {
+      groups.set(group.weekStart, [...group.sessions]);
+    }
+    for (const entry of Object.values(habitEntries)) {
+      const weekStart = getWeekStart(new Date(entry.date + 'T00:00:00'));
+      if (!groups.has(weekStart)) groups.set(weekStart, []);
+    }
+
+    return Array.from(groups.entries())
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([weekStart, weekSessions]) => {
+        const start = new Date(weekStart + 'T00:00:00');
+        const end = new Date(start);
+        end.setDate(end.getDate() + 6);
+        const fmt = (d: Date) =>
+          d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        return {
+          weekStart,
+          weekLabel: `${fmt(start)} \u2013 ${fmt(end)}`,
+          sessions: weekSessions.sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          ),
+          categories: new Set(weekSessions.map((s) => s.category)),
+        };
+      });
+  }, [habitEntries, weekGroups]);
+
   if (status === 'loading') {
     return (
       <View style={styles.loadingContainer}>
@@ -112,10 +179,21 @@ export default function HistoryScreen() {
       <Text style={styles.sectionLabel}>HISTORY</Text>
       <Text style={styles.sectionTitle}>Past Sessions</Text>
 
-      {sessions.length === 0 ? (
+      {displayWeekGroups.length === 0 ? (
         <Text style={styles.emptyText}>No sessions logged yet. Start training!</Text>
       ) : (
-        weekGroups.map((group, wi) => (
+        displayWeekGroups.map((group) => {
+          const weekEnd = new Date(group.weekStart + 'T00:00:00');
+          weekEnd.setDate(weekEnd.getDate() + 6);
+          const weekEndKey = toLocalDateKey(weekEnd);
+          const sessionDates = group.sessions.map(s => s.date.slice(0, 10));
+          const habitDates = Object.keys(habitEntries).filter(date =>
+            date >= group.weekStart && date <= weekEndKey
+          );
+          const dates = Array.from(new Set([...sessionDates, ...habitDates]))
+            .sort((a, b) => b.localeCompare(a));
+
+          return (
           <View key={group.weekStart} style={styles.weekGroup}>
             {/* Week header */}
             <View style={styles.weekHeader}>
@@ -137,106 +215,141 @@ export default function HistoryScreen() {
               </View>
             </View>
 
-            {/* Session cards */}
-            {group.sessions.map((session, si) => {
-              const key = `${wi}-${si}`;
-              const isExpanded = expanded === key;
-              const passed = session.passed ?? computePassed(session.exercises);
-              const percentage = computeOverallPercentage(session.exercises);
-              const dateLabel = formatShortDate(session.date);
+            {dates.map((date) => {
+              const habit = habitEntries[date];
+              const dateSessions = group.sessions.filter(s => s.date.slice(0, 10) === date);
 
               return (
-                <Pressable
-                  key={session.id}
-                  onPress={() => setExpanded(isExpanded ? null : key)}
-                  style={styles.sessionCard}
-                >
-                  {/* Collapsed row */}
-                  <View style={styles.sessionRow}>
-                    <View style={styles.sessionLeft}>
-                      <Text style={styles.sessionDate}>{dateLabel}</Text>
-                      <CategoryBadge category={session.category} size="sm" />
-                      <Text style={styles.sessionLevel}>L{session.level}</Text>
-                    </View>
-                    <View style={styles.sessionRight}>
-                      <Feather
-                        name={passed ? 'check' : 'minus'}
-                        size={14}
-                        color={passed ? colors.success : colors.muted}
-                      />
-                      <Text
-                        style={[
-                          styles.percentageText,
-                          { color: passed ? colors.success : colors.warning },
-                        ]}
-                      >
-                        {percentage}%
-                      </Text>
-                      <Feather
-                        name="chevron-right"
-                        size={12}
-                        color={colors.textSecondary}
-                        style={{
-                          transform: [{ rotate: isExpanded ? '90deg' : '0deg' }],
-                        }}
-                      />
-                    </View>
-                  </View>
-
-                  {/* Expanded exercise breakdown */}
-                  {isExpanded && (
-                    <View style={styles.expandedSection}>
-                      {session.exercises.map((entry) => {
-                        const name =
-                          exerciseNameMap[entry.exerciseId] ?? entry.exerciseId;
-                        const hit = entry.hitTarget;
-                        const pct = exercisePercentage(entry);
-                        return (
-                          <View key={entry.exerciseId} style={styles.exerciseRow}>
-                            <View style={styles.exerciseInfo}>
-                              <View style={styles.exerciseNameRow}>
-                                <Feather
-                                  name={hit ? 'check' : 'minus'}
-                                  size={12}
-                                  color={hit ? colors.success : colors.muted}
-                                />
-                                <Text style={styles.exerciseName}>{name}</Text>
-                              </View>
-                              <Text
-                                style={[
-                                  styles.exercisePct,
-                                  {
-                                    color: hit ? colors.success : colors.warning,
-                                  },
-                                ]}
-                              >
-                                {pct}%
-                              </Text>
-                            </View>
-                            {/* Progress bar */}
-                            <View style={styles.progressTrack}>
-                              <View
-                                style={[
-                                  styles.progressFill,
-                                  {
-                                    width: `${Math.min(pct, 100)}%`,
-                                    backgroundColor: hit
-                                      ? colors.success
-                                      : colors.warning,
-                                  },
-                                ]}
-                              />
-                            </View>
-                          </View>
-                        );
-                      })}
+                <View key={date}>
+                  {habit && (
+                    <View style={styles.habitSummaryRow}>
+                      <Text style={styles.habitDate}>{formatShortDate(date)}</Text>
+                      <View style={styles.habitSummaryItem}>
+                        <Feather
+                          name={isStepsComplete(habit) ? 'check' : 'minus'}
+                          size={12}
+                          color={isStepsComplete(habit) ? colors.success : colors.muted}
+                        />
+                        <Text style={styles.habitSummaryText}>
+                          Steps {formatSteps(habit.stepsCount)} / {formatSteps(habit.stepsGoal)}
+                        </Text>
+                      </View>
+                      <View style={styles.habitSummaryItem}>
+                        <Feather
+                          name={isPlankComplete(habit) ? 'check' : 'minus'}
+                          size={12}
+                          color={isPlankComplete(habit) ? colors.success : colors.muted}
+                        />
+                        <Text style={styles.habitSummaryText}>
+                          Plank {formatSeconds(habit.plankSeconds)} / {formatSeconds(habit.plankGoalSeconds)}
+                        </Text>
+                      </View>
                     </View>
                   )}
-                </Pressable>
+
+                  {dateSessions.map((session) => {
+                    const key = `${date}-${session.id}`;
+                    const isExpanded = expanded === key;
+                    const passed = session.passed ?? computePassed(session.exercises);
+                    const percentage = computeOverallPercentage(session.exercises);
+                    const dateLabel = formatShortDate(session.date);
+
+                    return (
+                      <Pressable
+                        key={session.id}
+                        onPress={() => setExpanded(isExpanded ? null : key)}
+                        style={styles.sessionCard}
+                      >
+                        {/* Collapsed row */}
+                        <View style={styles.sessionRow}>
+                          <View style={styles.sessionLeft}>
+                            <Text style={styles.sessionDate}>{dateLabel}</Text>
+                            <CategoryBadge category={session.category} size="sm" />
+                            <Text style={styles.sessionLevel}>L{session.level}</Text>
+                          </View>
+                          <View style={styles.sessionRight}>
+                            <Feather
+                              name={passed ? 'check' : 'minus'}
+                              size={14}
+                              color={passed ? colors.success : colors.muted}
+                            />
+                            <Text
+                              style={[
+                                styles.percentageText,
+                                { color: passed ? colors.success : colors.warning },
+                              ]}
+                            >
+                              {percentage}%
+                            </Text>
+                            <Feather
+                              name="chevron-right"
+                              size={12}
+                              color={colors.textSecondary}
+                              style={{
+                                transform: [{ rotate: isExpanded ? '90deg' : '0deg' }],
+                              }}
+                            />
+                          </View>
+                        </View>
+
+                        {/* Expanded exercise breakdown */}
+                        {isExpanded && (
+                          <View style={styles.expandedSection}>
+                            {session.exercises.map((entry) => {
+                              const name =
+                                exerciseNameMap[entry.exerciseId] ?? entry.exerciseId;
+                              const hit = entry.hitTarget;
+                              const pct = exercisePercentage(entry);
+                              return (
+                                <View key={entry.exerciseId} style={styles.exerciseRow}>
+                                  <View style={styles.exerciseInfo}>
+                                    <View style={styles.exerciseNameRow}>
+                                      <Feather
+                                        name={hit ? 'check' : 'minus'}
+                                        size={12}
+                                        color={hit ? colors.success : colors.muted}
+                                      />
+                                      <Text style={styles.exerciseName}>{name}</Text>
+                                    </View>
+                                    <Text
+                                      style={[
+                                        styles.exercisePct,
+                                        {
+                                          color: hit ? colors.success : colors.warning,
+                                        },
+                                      ]}
+                                    >
+                                      {pct}%
+                                    </Text>
+                                  </View>
+                                  {/* Progress bar */}
+                                  <View style={styles.progressTrack}>
+                                    <View
+                                      style={[
+                                        styles.progressFill,
+                                        {
+                                          width: `${Math.min(pct, 100)}%`,
+                                          backgroundColor: hit
+                                            ? colors.success
+                                            : colors.warning,
+                                        },
+                                      ]}
+                                    />
+                                  </View>
+                                </View>
+                              );
+                            })}
+                          </View>
+                        )}
+                      </Pressable>
+                    );
+                  })}
+                </View>
               );
             })}
           </View>
-        ))
+          );
+        })
       )}
     </ScrollView>
   );
@@ -337,6 +450,38 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 0,
+  },
+
+  // Daily habits
+  habitSummaryRow: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    marginBottom: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  habitDate: {
+    fontSize: 11,
+    fontFamily: fonts.regular,
+    color: colors.textSecondary,
+    minWidth: 28,
+  },
+  habitSummaryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 1,
+  },
+  habitSummaryText: {
+    fontSize: 11,
+    fontFamily: fonts.regular,
+    color: colors.textSecondary,
   },
 
   // Session card

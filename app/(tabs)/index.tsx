@@ -4,6 +4,10 @@ import { colors, fonts, categoryColors } from '../../src/constants/theme';
 import { useGameState } from '../../src/hooks/useGameState';
 import { useExercises } from '../../src/hooks/useExercises';
 import { SkillTree } from '../../src/components/SkillTree';
+import { DailyHabitPanel } from '../../src/components/DailyHabitPanel';
+import { HabitWeekMarks } from '../../src/components/HabitWeekMarks';
+import { useDailyHabits } from '../../src/hooks/useDailyHabits';
+import { getWeekDateKeys } from '../../src/lib/daily-habits';
 import type { Category } from '../../src/types';
 
 /** Short uppercase labels */
@@ -25,9 +29,19 @@ export default function HomeScreen() {
   } = useGameState();
 
   const { error: exercisesError, reload: reloadExercises } = useExercises();
+  const {
+    today,
+    weekEntries,
+    settings: habitSettings,
+    updateSteps,
+    updatePlank,
+    updateSettings,
+  } = useDailyHabits();
+
+  const weekDateKeys = useMemo(() => getWeekDateKeys(), []);
 
   // Build a map of session dates this week keyed by day-of-week index (0=Mon)
-  const weekDaySessions = useMemo(() => {
+  const weekDaySessions = useMemo<(null | { category: Category; level: number })[]>(() => {
     if (!sessions || !user) return new Array(7).fill(null);
 
     const now = new Date();
@@ -114,11 +128,28 @@ export default function HomeScreen() {
                 ]}>
                   {hasSession ? categoryLabel[session.category] : ''}
                 </Text>
+
+                {habitSettings?.showDailyHabitsOnHome !== false && (
+                  <HabitWeekMarks entry={weekEntries[weekDateKeys[i]] ?? null} />
+                )}
               </View>
             );
           })}
         </View>
       </View>
+
+      {habitSettings?.showDailyHabitsOnHome !== false && habitSettings && (
+        <View style={styles.todaySection}>
+          <Text style={styles.sectionHeader}>TODAY</Text>
+          <DailyHabitPanel
+            today={today}
+            settings={habitSettings}
+            onUpdateSteps={updateSteps}
+            onUpdatePlank={updatePlank}
+            onUpdateSettings={updateSettings}
+          />
+        </View>
+      )}
 
       {/* ─── SKILL TREE (active-level nodes render as workout cards) ─── */}
       <View style={styles.section}>
@@ -214,5 +245,8 @@ const styles = StyleSheet.create({
   // ── Sections ────────────────────────────
   section: {
     marginBottom: 16,
+  },
+  todaySection: {
+    marginBottom: 22,
   },
 });

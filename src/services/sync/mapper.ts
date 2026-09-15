@@ -6,6 +6,10 @@ import type {
   User,
   ExerciseEntry,
 } from '@/types';
+import {
+  DEFAULT_DAILY_PLANK_GOAL_SECONDS,
+  DEFAULT_DAILY_STEPS_GOAL,
+} from '@/lib/daily-habits';
 import { USER_ID } from './config';
 
 // ── Sessions ────────────────────────────────────────────────
@@ -147,6 +151,9 @@ export function userFromRemote(r: any): User {
       pull: r.pull_level,
       squat: r.squat_level,
     },
+    dailyStepsGoal: DEFAULT_DAILY_STEPS_GOAL,
+    dailyPlankGoalSeconds: DEFAULT_DAILY_PLANK_GOAL_SECONDS,
+    showDailyHabitsOnHome: true,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     notionPageId: null,

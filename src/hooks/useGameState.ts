@@ -84,20 +84,21 @@ export function useGameStateInternal(dbReady: boolean = true): UseGameStateRetur
     let loadedWeek = await db.getWeekProgress(currentWeekStart);
     const allSessions = await db.getSessions();
 
-    if (needsWeekReset(loadedWeek, new Date())) {
+    if (!loadedWeek || needsWeekReset(loadedWeek, new Date())) {
       loadedWeek = createWeekProgress(new Date());
     }
+    const activeWeek = loadedWeek;
 
     // Recompute week progress from actual sessions
     const thisWeekSessions = allSessions.filter(s => {
       const sessionWeek = getWeekStart(new Date(s.date));
-      return sessionWeek === loadedWeek.weekStart;
+      return sessionWeek === activeWeek.weekStart;
     });
     const recomputedCompleted: Record<Category, boolean> = { push: false, pull: false, squat: false };
     for (const s of thisWeekSessions) {
       recomputedCompleted[s.category] = true;
     }
-    loadedWeek = { ...loadedWeek, sessionsCompleted: recomputedCompleted };
+    loadedWeek = { ...activeWeek, sessionsCompleted: recomputedCompleted };
     await db.updateWeekProgress(loadedWeek);
 
     // Detect reinstall: sessions exist, user levels are all default, and no
