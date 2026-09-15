@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, Switch } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { colors, fonts } from '../../src/constants/theme';
-import { STEP_GOALS, PLANK_GOALS } from '../../src/lib/daily-habits';
+import { STEP_GOALS } from '../../src/lib/daily-habits';
 import { useDailyHabits } from '../../src/hooks/useDailyHabits';
 import { getSyncState, getAllSyncMeta } from '../../src/services/database';
 import { pushChanges, isSyncConfigured } from '../../src/services/sync';
@@ -128,28 +128,10 @@ export default function SettingsScreen() {
             </View>
           </View>
 
-          <View style={styles.goalBlock}>
-            <Text style={styles.rowLabel}>Daily plank goal</Text>
-            <View style={styles.goalGrid}>
-              {PLANK_GOALS.map(goal => (
-                <Pressable
-                  key={goal}
-                  style={[
-                    styles.goalChip,
-                    habitSettings.dailyPlankGoalSeconds === goal && styles.goalChipActive,
-                  ]}
-                  onPress={() => updateHabitSettingValue({ dailyPlankGoalSeconds: goal })}
-                >
-                  <Text
-                    style={[
-                      styles.goalChipText,
-                      habitSettings.dailyPlankGoalSeconds === goal && styles.goalChipTextActive,
-                    ]}
-                  >
-                    {goal}s
-                  </Text>
-                </Pressable>
-              ))}
+          <View style={styles.row}>
+            <View>
+              <Text style={styles.rowLabel}>Daily plank</Text>
+              <Text style={styles.rowSubtitle}>Fixed at 4 sets · 60s</Text>
             </View>
           </View>
 
