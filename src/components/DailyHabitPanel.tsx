@@ -6,6 +6,7 @@ import type { DailyHabitEntry, DailyHabitSettings } from '@/types';
 import {
   FIXED_PLANK_SET_COUNT,
   FIXED_PLANK_SET_SECONDS,
+  isPlankComplete,
   plankCompletedSets,
   stepsFromThousands,
   stepsToThousandsInput,
@@ -29,13 +30,14 @@ export function DailyHabitPanel({
     [settings.dailyStepsGoal, today?.stepsCount, today?.stepsGoal]
   );
   const loggedPlankSets = plankCompletedSets(today);
-  const plankComplete = loggedPlankSets >= FIXED_PLANK_SET_COUNT;
+  const plankAlreadyComplete = isPlankComplete(today);
 
   const [stepsInput, setStepsInput] = useState(initialStepsInput);
   const [plankSets, setPlankSets] = useState(loggedPlankSets);
   const [stepsError, setStepsError] = useState<string | null>(null);
   const [savingSteps, setSavingSteps] = useState(false);
   const [savingPlank, setSavingPlank] = useState(false);
+  const plankReadyToLog = plankSets >= FIXED_PLANK_SET_COUNT;
 
   useEffect(() => {
     setStepsInput(initialStepsInput);
@@ -117,11 +119,11 @@ export function DailyHabitPanel({
         <View style={styles.plankMain}>
           <View style={styles.plankTitleRow}>
             <Text style={styles.habitName}>Plank</Text>
-            <Text style={styles.setCount}>{plankComplete ? FIXED_PLANK_SET_COUNT : plankSets}</Text>
+            <Text style={styles.setCount}>{plankAlreadyComplete ? FIXED_PLANK_SET_COUNT : plankSets}</Text>
             <Pressable
-              style={[styles.setButton, plankSets >= FIXED_PLANK_SET_COUNT && styles.disabledButton]}
+              style={[styles.setButton, (plankReadyToLog || plankAlreadyComplete) && styles.disabledButton]}
               onPress={incrementPlankSets}
-              disabled={plankSets >= FIXED_PLANK_SET_COUNT}
+              disabled={plankReadyToLog || plankAlreadyComplete}
               accessibilityLabel="Add completed plank set"
             >
               <Feather name="plus" size={14} color={colors.primary} />
@@ -134,18 +136,18 @@ export function DailyHabitPanel({
         <Pressable
           style={[
             styles.habitAction,
-            (plankSets < FIXED_PLANK_SET_COUNT || savingPlank || plankComplete) && styles.disabledButton,
+            (!plankReadyToLog || savingPlank || plankAlreadyComplete) && styles.disabledButton,
           ]}
           onPress={handleLogPlank}
-          disabled={plankSets < FIXED_PLANK_SET_COUNT || savingPlank || plankComplete}
+          disabled={!plankReadyToLog || savingPlank || plankAlreadyComplete}
           accessibilityLabel={
-            plankSets < FIXED_PLANK_SET_COUNT
+            !plankReadyToLog
               ? `Complete ${FIXED_PLANK_SET_COUNT - plankSets} more plank sets before logging`
               : 'Log completed daily plank'
           }
         >
           <Text style={styles.habitActionText}>
-            {plankComplete ? 'Done' : savingPlank ? 'Saving' : 'Log'}
+            {plankAlreadyComplete ? 'Done' : savingPlank ? 'Saving' : 'Log'}
           </Text>
         </Pressable>
       </View>
