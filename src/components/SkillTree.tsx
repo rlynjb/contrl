@@ -23,7 +23,7 @@ const categoryDim: Record<Category, string> = {
   squat: 'rgba(217,70,239,0.15)',
 };
 
-const LEVELS = [5, 4, 3, 2, 1]; // top-to-bottom display
+const LEVELS = [1, 2, 3, 4, 5]; // top-to-bottom display
 
 type SelectedNode = {
   category: Category;
