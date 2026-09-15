@@ -128,10 +128,10 @@ export function DailyHabitPanel({
             >
               <Feather name="plus" size={14} color={colors.primary} />
             </Pressable>
+            <Text style={styles.habitValue} numberOfLines={1}>
+              of {FIXED_PLANK_SET_COUNT} sets · {FIXED_PLANK_SET_SECONDS}s
+            </Text>
           </View>
-          <Text style={styles.habitValue}>
-            of {FIXED_PLANK_SET_COUNT} sets · {FIXED_PLANK_SET_SECONDS}s
-          </Text>
         </View>
         <Pressable
           style={[
