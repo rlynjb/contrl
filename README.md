@@ -4,7 +4,24 @@
 
 `contrl` is a local-first mobile workout progression app. It guides one user through push, pull, and squat exercise levels, records workouts and daily habits on the device, can count selected exercises with the camera, and can optionally mirror core workout data to Supabase.
 
-This README is the Stage 1 onboarding guide: it explains what the repository contains, how its parts fit together, how to run it, and where to start reading. Stage 2 will trace representative flows and examine the data and algorithms in detail.
+This README is a complete, three-stage onboarding guide: it maps the repository, traces its execution and data behavior, and shows how to investigate failures and design trade-offs.
+
+## Table of contents
+
+- [Evidence and scope](#evidence-and-scope)
+- **Stage 1 — Build the repo map**
+  - [1. Purpose and boundaries](#1-purpose-and-boundaries)
+  - [2. Repository and architecture map](#2-repository-and-architecture-map)
+  - [3. Local development and first reading path](#3-local-development-and-first-reading-path)
+- **Stage 2 — Connect execution, data, and algorithms**
+  - [4. Representative existing flows](#4-representative-existing-flows)
+  - [5. Data lifecycle — FODE](#5-data-lifecycle--fode)
+  - [6. Data behavior and guarantees — DDIA](#6-data-behavior-and-guarantees--ddia)
+  - [7. Computational reasoning — Algorithmic Thinking](#7-computational-reasoning--algorithmic-thinking)
+- **Stage 3 — Learn to investigate and explain the repo**
+  - [8. Failure, security, and performance](#8-failure-security-and-performance)
+  - [9. Design trade-offs and learning summary](#9-design-trade-offs-and-learning-summary)
+  - [10. Practical onboarding path](#10-practical-onboarding-path)
 
 ## Evidence and scope
 
