@@ -101,7 +101,7 @@ this is where it stops being "I trained a model" and becomes "I engineer ML syst
 - **ML maturity signals**: navigated label scarcity, controlled domain shift, baselined before going complex, evaluated cross-subject with a confusion matrix and calibration — the things that separate ML engineers from people who ran `model.fit()` on a clean benchmark.
 - **on-device / edge ML** — TFLite inference in a real shipped RN app, latency-bounded to one inference per rep.
 
-does **not** fill the RAG gap — that stays a separate corpus-first project (the aipe/`study.md` direction). this and that prove different things; build one at a time.
+does **not** fill the RAG gap — that stays a separate corpus-first study project. this and that prove different things; build one at a time.
 
 ## the honest cost check
 

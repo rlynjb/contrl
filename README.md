@@ -33,7 +33,7 @@ Evidence labels used below:
 - **Inferred** — a likely implication of the code, not proof of deployed behavior or production load.
 - **Unknown** — not established by repository evidence or by a local runtime check.
 
-Inspected areas include the root manifests and configuration; all route entry points; domain types; representative UI, state, game, pose, database, and sync modules; the exercise seed; Supabase migration; Android build configuration; design/spec documents; and the available scripts. The review did not inspect every style declaration, generated Android file, historical `.aipe/` study note, implementation-plan paragraph, dependency source file, binary model byte, or asset pixel. It did not connect to Supabase, launch a simulator/device, run a native build, or inspect a production deployment.
+Inspected areas include the root manifests and configuration; all route entry points; domain types; representative UI, state, game, pose, database, and sync modules; the exercise seed; Supabase migration; Android build configuration; design/spec documents; and the available scripts. The review did not inspect every style declaration, generated Android file, implementation-plan paragraph, dependency source file, binary model byte, or asset pixel. It did not connect to Supabase, launch a simulator/device, run a native build, or inspect a production deployment.
 
 ## 1. Purpose and boundaries
 
@@ -178,7 +178,6 @@ One exception matters during debugging: [`src/services/database.ts#L1-L2`](src/s
 | `assets/` | App icon, adaptive icon, splash, and favicon inputs. | Expo build config | [`app.json#L7-L13`](app.json#L7-L13) |
 | `android/` | Locally generated Gradle project and native build outputs. Ignored by Git. | Expo prebuild, Android SDK, Java | [`android/app/build.gradle`](android/app/build.gradle) |
 | `docs/superpowers/` | Historical design decisions and implementation plans. Useful intent evidence, but source/config wins when they disagree. | Human documentation | [`docs/superpowers/specs/2026-05-17-supabase-mirror-sync-design.md`](docs/superpowers/specs/2026-05-17-supabase-mirror-sync-design.md) |
-| `.aipe/` | Extensive study/audit material. It is educational documentation, not runtime code. | Human documentation | [`.aipe/project/context.md`](.aipe/project/context.md) |
 | `scripts/` | One-off administrative utilities. `generate-jwt.mjs` appears to describe an older auth approach and is not called by package scripts. | Node standard library | [`scripts/generate-jwt.mjs`](scripts/generate-jwt.mjs) |
 | Root config | Dependency lock, TypeScript strict mode/path alias, Expo plugins, and EAS profiles. | npm, Expo, EAS | [`package.json`](package.json), [`app.json`](app.json), [`eas.json`](eas.json), [`tsconfig.json`](tsconfig.json) |
 
